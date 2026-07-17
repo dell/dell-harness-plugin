@@ -1,0 +1,7 @@
+{
+  "name": "dell-harness-plugin",
+  "interface": {
+    "displayName": "Dell Harness Plugin"
+  },
+  "plugins": []
+}

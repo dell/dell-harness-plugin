@@ -11,7 +11,15 @@ to a Dell internal service via the Dell MCP HTTP gateway.
 Each plugin provides 23 MCP tools for searching, reading, creating, and
 managing pages, comments, labels, attachments, and page history.
 
-## Install
+## Setup
+
+### 1. Add the marketplace
+
+```bash
+codex plugin marketplace add https://github.com/dell/dell-harness-plugin.git
+```
+
+### 2. Install plugins
 
 ```bash
 ```
