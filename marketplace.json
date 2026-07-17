@@ -1,0 +1,17 @@
+{
+  "name": "dell-isg-marketplace",
+  "plugins": [
+    {
+      "name": "dell-codex-enterprise",
+      "source": {
+        "source": "local",
+        "path": "./dell-codex-enterprise"
+      },
+      "policy": {
+        "installation": "INSTALLED_BY_DEFAULT",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
