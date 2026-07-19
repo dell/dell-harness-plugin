@@ -1,38 +1,45 @@
-# dell-harness-plugin
+# Dell Harness Codex plugins
 
-Dell Codex plugins for the Dell Pilot Workspace. Each plugin connects Codex
-to a Dell internal service via the Dell MCP HTTP gateway.
+gateway.
 
-## Plugins
+| Plugin | Gateway | Credential variable |
+| --- | --- | --- |
 
-| Plugin | Service | Instance | Gateway |
-|--------|---------|----------|---------|
+Live MCP `tools/list` is authoritative for the tools exposed by each gateway.
+Write and destructive operations use Codex write approval mode.
 
-Each plugin provides 23 MCP tools for searching, reading, creating, and
-managing pages, comments, labels, attachments, and page history.
+## Install
 
-## Setup
-
-### 1. Add the marketplace
-
-```bash
+```powershell
 codex plugin marketplace add https://github.com/dell/dell-harness-plugin.git
 ```
 
-### 2. Install plugins
+does not execute a script or prompt for a PAT.
 
-```bash
+## Authorize on Windows
+
+Clone this repository, open Windows Terminal at its root, and run either
+Windows PowerShell 5.1:
+
+```powershell
 ```
 
-target instance. The plugin ships no secrets.
+or PowerShell 7:
+
+```powershell
+```
+
+The prompt is hidden. Never paste a PAT into chat, a command line, config JSON,
+or the repository. Each PAT is plaintext at rest in the active
+`%CODEX_HOME%\.env`, defaulting to `%USERPROFILE%\.codex\.env`, with a Windows
+ACL restricted to the current user and SYSTEM.
+
+After enrollment, fully quit ChatGPT/Codex Desktop from the system tray,
+restart it, and start a new task. See each plugin README for status, rotation,
+removal, and troubleshooting commands.
 
 ## Governance
 
-- `marketplace.json` -- plugin catalog for the Dell ISG marketplace
-- `requirements.toml` -- MCP server allowlist for enterprise governance
-
-## Security
-
-- No tokens, passwords, or secrets are stored in this repository.
-- All credentials use `${env:...}` placeholder syntax in `.mcp.json` files.
-- PATs are stored per-user by Codex and never committed.
+- `.agents/plugins/marketplace.json` is the Codex marketplace catalog.
+- `requirements.toml` contains the enterprise MCP allowlist.
+- The repository contains no PAT values or other credentials.
