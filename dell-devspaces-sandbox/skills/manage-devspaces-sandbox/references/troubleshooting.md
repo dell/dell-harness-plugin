@@ -4,6 +4,14 @@
 
 Confirm Python 3 and the pinned `mcp` and `kubernetes` packages are available. Confirm kubeconfig is readable and contains the selected context.
 
+## SSO browser does not open
+
+Confirm the managed runtime provides `oc` on `PATH` or sets `DEVSPACES_OC_COMMAND`. Confirm the workstation can reach the registered API URL on port 6443. The plugin will not fall back to asking for a token.
+
+## Instance is missing or an endpoint changed
+
+Update the enterprise JSON file selected by `DEVSPACES_INSTANCES_FILE`. Keep one stable logical name per instance and change its API/UI URLs centrally. Do not accept an unregistered URL from a prompt.
+
 ## No authorized namespaces
 
 For administrative identities, set a comma-separated `DEVSPACES_ALLOWED_NAMESPACES` allowlist. For regular users, verify that the Dev Spaces user namespace has ownership metadata and that RBAC permits listing that namespace.

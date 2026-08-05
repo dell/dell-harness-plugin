@@ -25,6 +25,7 @@
       "Write"
     ],
     "defaultPrompt": [
+      "Authenticate to my default Dev Spaces instance and list my workspaces.",
       "List my authorized Dev Spaces workspaces.",
       "Explain why my Dev Spaces workspace failed.",
       "Start my Dev Spaces workspace after confirming the target."

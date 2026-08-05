@@ -6,8 +6,12 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from dataclasses import dataclass
+import shutil
+import subprocess
+from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from kubernetes import client, config
 from kubernetes.client import ApiClient
@@ -25,6 +29,7 @@ WORKSPACE_POD_LABELS = (
     "controller.devfile.io/devworkspace_id",
     "devworkspace_id",
 )
+DEFAULT_INSTANCES_FILE = Path(__file__).parents[1] / "config" / "instances.json"
 
 
 def _csv(name: str) -> tuple[str, ...]:
@@ -39,6 +44,90 @@ def _bool(name: str, default: bool = False) -> bool:
 
 
 @dataclass(frozen=True)
+class DevSpacesInstance:
+    name: str
+    display_name: str
+    api_url: str
+    ui_url: str
+    default: bool = False
+
+    @classmethod
+    def from_dict(cls, value: dict[str, Any]) -> "DevSpacesInstance":
+        instance = cls(
+            name=str(value.get("name", "")).strip(),
+            display_name=str(value.get("display_name", "")).strip(),
+            api_url=str(value.get("api_url", "")).rstrip("/"),
+            ui_url=str(value.get("ui_url", "")).rstrip("/"),
+            default=bool(value.get("default", False)),
+        )
+        if not instance.name or not instance.display_name:
+            raise ValueError("Each Dev Spaces instance requires name and display_name")
+        for field_name, url in (("api_url", instance.api_url), ("ui_url", instance.ui_url)):
+            parsed = urlparse(url)
+            if (
+                parsed.scheme != "https"
+                or not parsed.hostname
+                or parsed.username
+                or parsed.password
+                or parsed.query
+                or parsed.fragment
+            ):
+                raise ValueError(
+                    f"Instance {instance.name!r} has an invalid {field_name}; use a credential-free HTTPS URL"
+                )
+        return instance
+
+    def public(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "display_name": self.display_name,
+            "api_url": self.api_url,
+            "ui_url": self.ui_url,
+            "default": self.default,
+        }
+
+
+class InstanceRegistry:
+    def __init__(self, instances: tuple[DevSpacesInstance, ...]):
+        if not instances:
+            raise ValueError("The Dev Spaces instance registry is empty")
+        names = [instance.name for instance in instances]
+        if len(set(names)) != len(names):
+            raise ValueError("Dev Spaces instance names must be unique")
+        if sum(instance.default for instance in instances) > 1:
+            raise ValueError("Only one Dev Spaces instance may be marked default")
+        self.instances = instances
+
+    @classmethod
+    def from_file(cls, path: str) -> "InstanceRegistry":
+        with Path(path).expanduser().open(encoding="utf-8") as stream:
+            document = json.load(stream)
+        values = document.get("instances", [])
+        if not isinstance(values, list):
+            raise ValueError("instances must be a JSON array")
+        return cls(tuple(DevSpacesInstance.from_dict(value) for value in values))
+
+    def list(self) -> list[dict[str, Any]]:
+        return [instance.public() for instance in self.instances]
+
+    def resolve(
+        self, requested: str | None = None, default_name: str | None = None
+    ) -> DevSpacesInstance:
+        name = requested or default_name
+        if name:
+            for instance in self.instances:
+                if instance.name == name:
+                    return instance
+            raise ValueError(f"Unknown Dev Spaces instance {name!r}")
+        defaults = [instance for instance in self.instances if instance.default]
+        if defaults:
+            return defaults[0]
+        if len(self.instances) == 1:
+            return self.instances[0]
+        raise ValueError("Specify instance_name because the registry has multiple instances")
+
+
+@dataclass(frozen=True)
 class Settings:
     kubeconfig: str | None
     requested_context: str | None
@@ -46,6 +135,9 @@ class Settings:
     allowed_namespaces: tuple[str, ...]
     enable_writes: bool
     enable_delete: bool
+    instances_file: str
+    default_instance: str | None
+    oc_command: str
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -56,7 +148,113 @@ class Settings:
             allowed_namespaces=_csv("DEVSPACES_ALLOWED_NAMESPACES"),
             enable_writes=_bool("DEVSPACES_ENABLE_WRITES"),
             enable_delete=_bool("DEVSPACES_ENABLE_DELETE"),
+            instances_file=os.getenv(
+                "DEVSPACES_INSTANCES_FILE", str(DEFAULT_INSTANCES_FILE)
+            ),
+            default_instance=os.getenv("DEVSPACES_DEFAULT_INSTANCE"),
+            oc_command=os.getenv("DEVSPACES_OC_COMMAND", "oc"),
         )
+
+
+class AuthenticationManager:
+    def __init__(self, settings: Settings, registry: InstanceRegistry):
+        self.settings = settings
+        self.registry = registry
+        self.login_processes: dict[str, subprocess.Popen[Any]] = {}
+
+    def _oc_path(self) -> str | None:
+        return shutil.which(self.settings.oc_command)
+
+    def _environment(self) -> dict[str, str]:
+        environment = os.environ.copy()
+        if self.settings.kubeconfig:
+            environment["KUBECONFIG"] = self.settings.kubeconfig
+        return environment
+
+    def _run(self, arguments: list[str], timeout: int = 30) -> subprocess.CompletedProcess[str]:
+        oc_path = self._oc_path()
+        if not oc_path:
+            raise RuntimeError(
+                "The managed Codex runtime must provide oc on PATH or set DEVSPACES_OC_COMMAND"
+            )
+        return subprocess.run(
+            [oc_path, *arguments],
+            capture_output=True,
+            check=False,
+            env=self._environment(),
+            text=True,
+            timeout=timeout,
+        )
+
+    def status(self, instance_name: str | None = None) -> dict[str, Any]:
+        instance = self.registry.resolve(instance_name, self.settings.default_instance)
+        if not self._oc_path():
+            return {
+                "instance": instance.public(),
+                "authenticated": False,
+                "reason": "oc is not available in the managed runtime",
+            }
+        server = self._run(["whoami", "--show-server"])
+        user = self._run(["whoami"])
+        context = self._run(["config", "current-context"])
+        current_server = server.stdout.strip().rstrip("/") if server.returncode == 0 else None
+        authenticated = (
+            server.returncode == 0
+            and user.returncode == 0
+            and current_server == instance.api_url
+        )
+        login_process = self.login_processes.get(instance.name)
+        login_state = None
+        if login_process is not None:
+            return_code = login_process.poll()
+            if return_code is None:
+                login_state = "waiting_for_browser"
+            elif return_code == 0:
+                login_state = "completed"
+            else:
+                login_state = "failed"
+            if return_code is not None:
+                self.login_processes.pop(instance.name, None)
+        return {
+            "instance": instance.public(),
+            "authenticated": authenticated,
+            "username": user.stdout.strip() if authenticated else None,
+            "context": context.stdout.strip() if authenticated and context.returncode == 0 else None,
+            "current_server": current_server,
+            "reason": None if authenticated else "No valid SSO session for the selected instance",
+            "login_state": login_state,
+        }
+
+    def authenticate(self, instance_name: str | None = None) -> dict[str, Any]:
+        instance = self.registry.resolve(instance_name, self.settings.default_instance)
+        current = self.status(instance.name)
+        if current["authenticated"]:
+            return {**current, "login_started": False}
+        existing = self.login_processes.get(instance.name)
+        if existing is not None and existing.poll() is None:
+            return {
+                **current,
+                "login_started": False,
+                "login_state": "waiting_for_browser",
+            }
+        oc_path = self._oc_path()
+        if not oc_path:
+            raise RuntimeError(
+                "The managed Codex runtime must provide oc on PATH or set DEVSPACES_OC_COMMAND"
+            )
+        process = subprocess.Popen(
+            [oc_path, "login", instance.api_url, "--web"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            env=self._environment(),
+        )
+        self.login_processes[instance.name] = process
+        return {
+            **current,
+            "login_started": True,
+            "login_state": "waiting_for_browser",
+        }
 
 
 class DevSpacesClient:
@@ -279,14 +477,33 @@ class DevSpacesClient:
 
 
 SETTINGS = Settings.from_env()
+REGISTRY = InstanceRegistry.from_file(SETTINGS.instances_file)
+AUTHENTICATION = AuthenticationManager(SETTINGS, REGISTRY)
 _client: DevSpacesClient | None = None
+_session_context: str | None = None
 
 
 def get_client() -> DevSpacesClient:
     global _client
     if _client is None:
-        _client = DevSpacesClient(SETTINGS)
+        effective_settings = SETTINGS
+        if _session_context:
+            allowed_contexts = tuple(
+                dict.fromkeys((*SETTINGS.allowed_contexts, _session_context))
+            )
+            effective_settings = replace(
+                SETTINGS,
+                requested_context=_session_context,
+                allowed_contexts=allowed_contexts,
+            )
+        _client = DevSpacesClient(effective_settings)
     return _client
+
+
+def activate_context(context: str) -> None:
+    global _client, _session_context
+    _session_context = context
+    _client = None
 
 
 READ = ToolAnnotations(
@@ -299,6 +516,38 @@ DELETE = ToolAnnotations(
     readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True
 )
 mcp = FastMCP("Dell Dev Spaces Sandbox")
+
+
+@mcp.tool(annotations=READ)
+def list_devspaces_instances() -> dict[str, Any]:
+    """List managed Dev Spaces instance names and credential-free endpoints."""
+    try:
+        selected = REGISTRY.resolve(None, SETTINGS.default_instance).name
+    except ValueError:
+        selected = None
+    return {
+        "instances": REGISTRY.list(),
+        "selected_instance": selected,
+        "registry_file": SETTINGS.instances_file,
+    }
+
+
+@mcp.tool(annotations=READ)
+def get_authentication_status(instance_name: str | None = None) -> dict[str, Any]:
+    """Check whether oc has a valid SSO session for a managed instance."""
+    result = AUTHENTICATION.status(instance_name)
+    if result.get("authenticated") and result.get("context"):
+        activate_context(result["context"])
+    return result
+
+
+@mcp.tool(annotations=WRITE)
+def authenticate_devspaces(instance_name: str | None = None) -> dict[str, Any]:
+    """Initiate oc login --web for a managed instance and activate its context."""
+    result = AUTHENTICATION.authenticate(instance_name)
+    if result.get("authenticated") and result.get("context"):
+        activate_context(result["context"])
+    return result
 
 
 @mcp.tool(annotations=READ)

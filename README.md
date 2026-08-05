@@ -5,7 +5,7 @@ workflows.
 
 | Plugin | Integration | Authentication |
 | --- | --- | --- |
-| `dell-devspaces-sandbox` | Local, namespace-scoped OpenShift DevWorkspace MCP adapter | Existing kubeconfig/OpenShift OAuth identity |
+| `dell-devspaces-sandbox` | Local, namespace-scoped OpenShift DevWorkspace MCP adapter | Automatically initiated OpenShift SSO |
 
 Live MCP `tools/list` is authoritative for the tools exposed by each gateway.
 Write and destructive operations use Codex write approval mode.
@@ -43,15 +43,15 @@ removal, and troubleshooting commands.
 
 ## Configure Dev Spaces
 
-The Dev Spaces plugin runs its MCP server locally through stdio and connects
-to the selected OpenShift API with the user's existing kubeconfig identity.
-Before starting Codex, pin the intended cluster and authorized namespaces:
+The Dev Spaces plugin runs its MCP server locally through stdio. Its skill
+selects a logical instance from the managed catalog, checks authentication,
+and automatically starts `oc login --web` when SSO is missing or expired.
+The user only completes the corporate browser challenge.
 
-```powershell
-$env:DEVSPACES_CONTEXT = "my-openshift-context"
-$env:DEVSPACES_ALLOWED_CONTEXTS = "my-openshift-context"
-$env:DEVSPACES_ALLOWED_NAMESPACES = "my-user-devspaces"
-```
+The managed runtime must include `python`, the pinned Python dependencies,
+and `oc`. Administrators maintain instance API/UI URLs centrally in
+`dell-devspaces-sandbox/config/instances.json` or through
+`DEVSPACES_INSTANCES_FILE`; users do not enter URLs or tokens.
 
 Lifecycle writes and deletion are disabled by default. See
 `dell-devspaces-sandbox/README.md` for the security model, dependencies, and

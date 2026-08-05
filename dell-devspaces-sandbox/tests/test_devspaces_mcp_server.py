@@ -1,4 +1,5 @@
 import importlib.util
+import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -21,6 +22,11 @@ def settings(**overrides):
         "allowed_namespaces": ("team-a",),
         "enable_writes": False,
         "enable_delete": False,
+        "instances_file": str(
+            Path(__file__).parents[1] / "config" / "instances.json"
+        ),
+        "default_instance": None,
+        "oc_command": "oc",
     }
     values.update(overrides)
     return SERVER.Settings(**values)
@@ -44,6 +50,93 @@ def test_defaults_are_read_only(monkeypatch):
     assert actual.enable_writes is False
     assert actual.enable_delete is False
     assert actual.allowed_namespaces == ()
+
+
+def instance(name="primary", default=True):
+    return SERVER.DevSpacesInstance(
+        name=name,
+        display_name=name.title(),
+        api_url=f"https://api.{name}.example:6443",
+        ui_url=f"https://ui.{name}.example",
+        default=default,
+    )
+
+
+def test_registry_resolves_named_and_default_instances():
+    registry = SERVER.InstanceRegistry(
+        (instance("primary", True), instance("secondary", False))
+    )
+    assert registry.resolve().name == "primary"
+    assert registry.resolve("secondary").api_url == "https://api.secondary.example:6443"
+
+
+def test_registry_rejects_untrusted_instance_url():
+    with pytest.raises(ValueError, match="credential-free HTTPS"):
+        SERVER.DevSpacesInstance.from_dict(
+            {
+                "name": "bad",
+                "display_name": "Bad",
+                "api_url": "http://user:password@example.invalid",
+                "ui_url": "https://ui.example.invalid",
+            }
+        )
+
+
+def test_authentication_status_returns_identity_but_no_command_output(monkeypatch):
+    registry = SERVER.InstanceRegistry((instance(),))
+    manager = SERVER.AuthenticationManager(settings(), registry)
+    responses = {
+        ("whoami", "--show-server"): subprocess.CompletedProcess(
+            [], 0, "https://api.primary.example:6443\n", ""
+        ),
+        ("whoami",): subprocess.CompletedProcess([], 0, "user@example.com\n", ""),
+        ("config", "current-context"): subprocess.CompletedProcess(
+            [], 0, "primary/user\n", ""
+        ),
+    }
+    monkeypatch.setattr(manager, "_oc_path", lambda: "oc")
+    monkeypatch.setattr(
+        manager, "_run", lambda arguments, timeout=30: responses[tuple(arguments)]
+    )
+    result = manager.status()
+    assert result["authenticated"] is True
+    assert result["username"] == "user@example.com"
+    assert result["context"] == "primary/user"
+    assert "token" not in str(result).lower()
+
+
+def test_authentication_initiates_registered_web_login(monkeypatch):
+    registry = SERVER.InstanceRegistry((instance(),))
+    manager = SERVER.AuthenticationManager(settings(), registry)
+    monkeypatch.setattr(
+        manager,
+        "status",
+        lambda instance_name=None: {
+            "authenticated": False,
+            "instance": instance().public(),
+        },
+    )
+    monkeypatch.setattr(manager, "_oc_path", lambda: "/managed/bin/oc")
+    calls = []
+
+    class Process:
+        def __init__(self, arguments, **kwargs):
+            calls.append((arguments, kwargs))
+
+        def poll(self):
+            return None
+
+    monkeypatch.setattr(SERVER.subprocess, "Popen", Process)
+    result = manager.authenticate()
+    assert calls[0][0] == [
+        "/managed/bin/oc",
+        "login",
+        "https://api.primary.example:6443",
+        "--web",
+    ]
+    assert "shell" not in calls[0][1]
+    assert result["login_started"] is True
+    assert result["login_state"] == "waiting_for_browser"
 
 
 def test_workspace_summary_excludes_spec_and_secrets():
