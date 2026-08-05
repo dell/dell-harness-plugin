@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "dell_devspaces": {
+      "command": "python",
+      "args": ["${PLUGIN_ROOT}/scripts/devspaces_mcp_server.py"],
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}

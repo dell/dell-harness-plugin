@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage Dev Spaces Sandbox"
+  short_description: "Safely manage governed Dev Spaces workspaces"
+  default_prompt: "Use $manage-devspaces-sandbox to inspect and manage my authorized Dev Spaces workspace."

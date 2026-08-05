@@ -1,0 +1,34 @@
+{
+  "name": "dell-devspaces-sandbox",
+  "version": "0.1.0",
+  "description": "Safely inspect and manage authorized Eclipse Che and Red Hat OpenShift Dev Spaces workspaces from Codex.",
+  "author": {
+    "name": "Dell Technologies"
+  },
+  "license": "Proprietary",
+  "keywords": [
+    "dell",
+    "openshift",
+    "dev-spaces",
+    "eclipse-che",
+    "devworkspace"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Dell Dev Spaces Sandbox",
+    "shortDescription": "Governed Dev Spaces lifecycle and diagnostics.",
+    "longDescription": "Inspect authorized Eclipse Che or Red Hat OpenShift Dev Spaces workspaces, diagnose failures, and perform explicitly enabled lifecycle operations through a namespace-scoped MCP adapter.",
+    "developerName": "Dell Technologies",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "List my authorized Dev Spaces workspaces.",
+      "Explain why my Dev Spaces workspace failed.",
+      "Start my Dev Spaces workspace after confirming the target."
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}

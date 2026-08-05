@@ -3,5 +3,18 @@
   "interface": {
     "displayName": "Dell Harness Plugin"
   },
-  "plugins": []
+  "plugins": [
+    {
+      "name": "dell-devspaces-sandbox",
+      "source": {
+        "source": "local",
+        "path": "./dell-devspaces-sandbox"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
 }

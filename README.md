@@ -1,9 +1,11 @@
 # Dell Harness Codex plugins
 
-gateway.
+Codex plugins for Dell engineering services and governed development
+workflows.
 
-| Plugin | Gateway | Credential variable |
+| Plugin | Integration | Authentication |
 | --- | --- | --- |
+| `dell-devspaces-sandbox` | Local, namespace-scoped OpenShift DevWorkspace MCP adapter | Existing kubeconfig/OpenShift OAuth identity |
 
 Live MCP `tools/list` is authoritative for the tools exposed by each gateway.
 Write and destructive operations use Codex write approval mode.
@@ -12,6 +14,7 @@ Write and destructive operations use Codex write approval mode.
 
 ```powershell
 codex plugin marketplace add https://github.com/dell/dell-harness-plugin.git
+codex plugin add dell-devspaces-sandbox@dell-harness-plugin
 ```
 
 does not execute a script or prompt for a PAT.
@@ -37,6 +40,22 @@ ACL restricted to the current user and SYSTEM.
 After enrollment, fully quit ChatGPT/Codex Desktop from the system tray,
 restart it, and start a new task. See each plugin README for status, rotation,
 removal, and troubleshooting commands.
+
+## Configure Dev Spaces
+
+The Dev Spaces plugin runs its MCP server locally through stdio and connects
+to the selected OpenShift API with the user's existing kubeconfig identity.
+Before starting Codex, pin the intended cluster and authorized namespaces:
+
+```powershell
+$env:DEVSPACES_CONTEXT = "my-openshift-context"
+$env:DEVSPACES_ALLOWED_CONTEXTS = "my-openshift-context"
+$env:DEVSPACES_ALLOWED_NAMESPACES = "my-user-devspaces"
+```
+
+Lifecycle writes and deletion are disabled by default. See
+`dell-devspaces-sandbox/README.md` for the security model, dependencies, and
+validation commands.
 
 ## Governance
 

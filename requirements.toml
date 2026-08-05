@@ -13,6 +13,10 @@ identity = { url = "https://mcp.example.com/atlassian" }
 [mcp_servers.github-enterprise]
 identity = { url = "https://mcp.example.com/github/isg" }
 
+# Dev Spaces MCP server (plugin-bundled stdio adapter)
+[mcp_servers.dell_devspaces]
+identity = { command = "python" }
+
 # AIDP MCP servers (stdio, Docker-based)
 [mcp_servers.aidp_elasticsearch]
 identity = { command = "docker" }
