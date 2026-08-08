@@ -1,0 +1,20 @@
+{
+  "name": "dell-data-analytics-engine",
+  "version": "0.1.0",
+  "description": "Connect Codex to a customer-managed Dell Data Analytics Engine MCP endpoint.",
+  "author": { "name": "Dell Technologies" },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Dell Data Analytics Engine",
+    "shortDescription": "Explore governed lakehouse data with read-only SQL.",
+    "longDescription": "Connects Codex to a customer-selected Dell Data Analytics Engine MCP endpoint for catalog discovery, schema inspection, and governed read-only SQL through Starburst Enterprise.",
+    "developerName": "Dell Technologies",
+    "category": "Productivity",
+    "capabilities": ["Read"],
+    "defaultPrompt": [
+      "Show the DDAE catalogs and schemas I can access.",
+      "Help me build a bounded read-only DDAE query."
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}

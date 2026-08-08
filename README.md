@@ -6,6 +6,8 @@ workflows.
 | Plugin | Integration | Authentication |
 | --- | --- | --- |
 | `dell-devspaces-sandbox` | Local, namespace-scoped OpenShift DevWorkspace MCP adapter | Automatically initiated OpenShift SSO |
+| `dell-data-analytics-engine` | Customer-managed DDAE/Starburst MCP | Interactive OAuth |
+| `dell-data-search-engine` | Customer-managed DDSE Kibana Agent Builder MCP | Least-privilege API key |
 
 Live MCP `tools/list` is authoritative for the tools exposed by each gateway.
 Write and destructive operations use Codex write approval mode.
@@ -15,6 +17,8 @@ Write and destructive operations use Codex write approval mode.
 ```powershell
 codex plugin marketplace add https://github.com/dell/dell-harness-plugin.git
 codex plugin add dell-devspaces-sandbox@dell-harness-plugin
+codex plugin add dell-data-analytics-engine@dell-harness-plugin
+codex plugin add dell-data-search-engine@dell-harness-plugin
 ```
 
 does not execute a script or prompt for a PAT.
@@ -56,6 +60,16 @@ and `oc`. Administrators maintain instance API/UI URLs centrally in
 Lifecycle writes and deletion are disabled by default. See
 `dell-devspaces-sandbox/README.md` for the security model, dependencies, and
 validation commands.
+
+## Configure Dell data engines
+
+The DDAE and DDSE plugins contain no customer endpoint or credential. Set the
+environment variables documented in each plugin README in the environment that
+starts Codex. DDAE uses interactive OAuth. Self-managed DDSE uses a dedicated,
+least-privilege API key through `DDSE_MCP_AUTHORIZATION`.
+
+For a private deployment reachable only from Dev Spaces or a bastion-connected
+host, follow [`MCP_PRIVATE_NETWORK_TESTING.md`](MCP_PRIVATE_NETWORK_TESTING.md).
 
 ## Governance
 
