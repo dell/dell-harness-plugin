@@ -16,6 +16,14 @@ The live `tools/list` response is authoritative. Starburst Enterprise MCP
 Server 1.0.0 was validated with `searchDataProducts` and `queryReadOnly`; that
 version-scoped observation is not a promise for every DDAE deployment.
 
+The current Starburst Enterprise documentation describes a broader product
+surface: the three built-in tools `queryReadOnly`, `searchDataProducts`, and
+`getDataProductDetails`; the optional `listParametrizedQueryTools` and
+`parametrizedQuery` tools when parameterized queries are enabled; and an
+optional Starburst AI data-product agent tool when a model alias is configured.
+Installed release, license, feature configuration, administrator definitions,
+and authorization determine what a customer endpoint actually advertises.
+
 ## Configure
 
 Supply customer-selected values before starting Codex:

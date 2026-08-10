@@ -48,6 +48,15 @@ Server 1.0.0 advertised exactly:
 - `searchDataProducts`: search Data Products visible to the OAuth user.
 - `queryReadOnly`: execute one read-only Trino SQL statement.
 
+That response contained one page and no `nextCursor`, so two is complete for
+the tested endpoint and identity. Do not generalize it to the DDAE product.
+Current Starburst documentation also describes built-in
+`getDataProductDetails`, optional `listParametrizedQueryTools` and
+`parametrizedQuery`, and an optional Starburst AI data-product agent tool.
+Compare live output with the supported documentation for the installed release
+and investigate missing tools through license, features, definitions, and
+authorization rather than inventing or assuming them.
+
 Neither validated tool requires a DDAE-hosted generative model. Codex can
 reason about the request and formulate SQL; DDAE performs OAuth,
 authorization, read-only enforcement, execution, limits, and audit.
