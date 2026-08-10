@@ -1,60 +1,76 @@
 # Dell Data Search Engine for Codex
 
-This plugin connects Codex to the Kibana Agent Builder MCP endpoint in a
-customer-managed Dell Data Search Engine (DDSE) deployment. It does not ship an
-endpoint, API key, tenant/space name, or customer data.
+This plugin connects Codex to the native Kibana Agent Builder Streamable HTTP
+MCP endpoint in a customer-managed Dell Data Search Engine (DDSE) deployment.
+It contains no endpoint, API key, Kibana space, certificate, or customer data.
 
 ## Customer capabilities
 
-Depending on the installed Elastic release, licensed features, Kibana space,
-and assigned privileges, customers can:
+Depending on the Elastic release, license, Kibana space, installed content,
+model configuration, and assigned privileges, customers can:
 
-- Discover indices, mappings, fields, and individual authorized documents.
-- Generate and execute ES|QL for search, aggregation, and investigation.
-- Explore logs, traces, hosts, services, and change points.
-- Investigate Elastic Security alerts and cases.
-- Inspect integrations, workflows, and relevant Elastic product guidance.
+- Discover authorized indices and mappings and retrieve known documents.
+- Execute exact, bounded ES|QL and investigate governed search data.
+- Explore logs, traces, hosts, services, alerts, cases, and change points.
+- Inspect integrations, workflows, and installed Elastic knowledge content.
+- Use natural-language search and ES|QL generation when an Agent Builder chat
+  model is configured in the same Kibana space.
 
-The live MCP `tools/list` response is authoritative; the plugin does not assume
-every tool is enabled for every customer.
+The live `tools/list` response is authoritative. The validated pilot advertised
+25 tools; see the bundled skill reference for the version-scoped inventory and
+its LLM or product dependencies.
 
 ## Configure
 
-Create a dedicated, least-privilege, expiring API key. Supply the customer
+Create a dedicated, least-privilege, expiring API key and supply customer
 values before starting Codex:
 
-```bash
+~~~bash
 export DDSE_MCP_URL="https://<kibana-host>/api/agent_builder/mcp"
-read -rsp "DDSE API key: " DDSE_API_KEY; echo
-export DDSE_MCP_AUTHORIZATION="ApiKey ${DDSE_API_KEY}"
-unset DDSE_API_KEY
-```
+export DDSE_MCP_AUTHORIZATION="ApiKey <encoded-api-key>"
+~~~
 
-For a non-default Kibana space, use:
+For a named Kibana space, use:
 
-```text
+~~~text
 https://<kibana-host>/s/<space-name>/api/agent_builder/mcp
-```
+~~~
 
-Then install and verify registration without printing the authorization value:
+Verify registration without printing the authorization value:
 
-```bash
+~~~bash
 codex plugin add dell-data-search-engine@dell-harness-plugin
 codex mcp get dell_data_search_engine --json
-```
+~~~
+
+The marketplace package uses API-key authentication because that is the
+validated self-managed DDSE contract. Browser SSO into Kibana is not MCP OAuth.
+Claim MCP OAuth only when the exact supported DDSE release publishes OAuth
+protected-resource metadata and documents the flow.
+
+## Model dependencies
+
+An Elastic chat connector is not required for deterministic index listing,
+mapping retrieval, known-document lookup, exact ES|QL execution, or many
+Observability and ML/AIOps retrieval tools. It is required by the validated
+natural-language tools `platform_core_search`, `platform_core_generate_esql`,
+and `platform_core_index_explorer`. Other tools can require installed content,
+embeddings, ML jobs, solution data, licensing, or additional privileges even
+when they do not require the Agent Builder chat model.
 
 ## Marketplace and security notes
 
-- The endpoint and authorization value are mandatory configuration; neither has
-  a Dell lab default.
-- The API key remains outside the plugin and must be injected by an approved
-  secret-management or managed-device mechanism.
-- Use a dedicated service identity or user API key with only the Kibana space,
-  index, inference, and feature privileges required by the use case.
-- Administrators should allowlist the exact Kibana MCP origin in managed Codex
-  policy and outbound network controls.
-- Rotate the key on personnel, scope, incident, or environment changes.
+- Keep the endpoint and API key outside the package and inject them through an
+  approved user or managed-device secret mechanism.
+- Restrict the key to the intended Kibana spaces, application features, and
+  index patterns, normally with `read` and `view_index_metadata` only.
+- Grant inference privileges only for enabled tools that require them.
+- Prefer expiring keys and rotate on scope, personnel, incident, or environment
+  changes. Do not publish all-index, non-expiring pilot credentials.
+- Require trusted HTTPS certificates and allowlist the exact customer Kibana
+  origin. Do not disable verification or package customer CA certificates.
+- Review live tools for writes to cases, workflows, or stored state and disable
+  or approval-gate them before a read-only deployment.
 
 See the bundled `configure-dell-data-search-engine` skill for validation and
-troubleshooting. For private deployments, see
-[`MCP_PRIVATE_NETWORK_TESTING.md`](../MCP_PRIVATE_NETWORK_TESTING.md).
+safe-use guidance.

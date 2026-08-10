@@ -2,73 +2,92 @@
 name: configure-dell-data-search-engine
 description: >
   Configure, authenticate, validate, and safely use a customer-managed Dell
-  Data Search Engine Kibana Agent Builder MCP endpoint from Codex. Use when a
-  user asks about DDSE or Elastic MCP setup, API-key authentication, Kibana
-  spaces, index search, ES|QL, observability, security investigation, or
-  connection troubleshooting.
+  Data Search Engine Kibana Agent Builder MCP endpoint from Codex. Use for DDSE
+  or Elastic MCP setup, API-key authentication, Kibana spaces, tool catalogs,
+  index search, ES|QL, Agent Builder model dependencies, observability,
+  security investigation, permissions, or connection troubleshooting.
 ---
 
 # Configure Dell Data Search Engine
 
 Use the native Kibana Agent Builder Streamable HTTP MCP endpoint. Do not point
-the plugin at the Elasticsearch REST origin: that service is not the MCP
-endpoint.
+the plugin at the Elasticsearch REST origin.
 
-## Required configuration
+## Configure and authenticate
 
-Obtain these values from the DDSE administrator:
+Obtain from the DDSE administrator:
 
-- `DDSE_MCP_URL`: `https://<kibana-host>/api/agent_builder/mcp`, or the
-  `/s/<space-name>/api/agent_builder/mcp` form for a non-default Kibana space.
-- `DDSE_MCP_AUTHORIZATION`: `ApiKey <api-key>`, injected into the environment
-  that launches Codex.
+- `DDSE_MCP_URL`: `https://<kibana-host>/api/agent_builder/mcp`, or
+  `/s/<space-name>/api/agent_builder/mcp` for a named Kibana space.
+- `DDSE_MCP_AUTHORIZATION`: `ApiKey <encoded-api-key>`, injected into the
+  environment that launches Codex.
 
-Never infer a customer endpoint from a Dell lab example. Never ask the user to
-paste an API key into chat, source code, `.mcp.json`, a command-line argument,
-or a committed environment file.
+Never infer a customer endpoint. Never request an API key in chat or place it
+in source, `.mcp.json`, command arguments, logs, or committed environment files.
 
-For self-managed DDSE, use API-key authentication. OAuth for Elastic MCP is a
-separate Elastic Serverless capability and must not be claimed for a
-self-managed deployment unless its product documentation explicitly supports
-it.
+Use a dedicated, least-privilege, expiring API key for the validated
+self-managed DDSE contract. Browser SSO into Kibana is not MCP OAuth. Claim
+OAuth only when the exact supported release publishes protected-resource
+metadata and product documentation for MCP clients.
+
+## Interpret tools and model dependencies
+
+Initialize MCP and treat live `tools/list` as authoritative. Release, license,
+space, privileges, enabled features, installed content, and model configuration
+can change the catalog.
+
+The validated 25-tool pilot separated tools into:
+
+- deterministic or product-native tools that do not require the Agent Builder
+  chat model for core execution;
+- `platform_core_search`, `platform_core_generate_esql`, and
+  `platform_core_index_explorer`, which require a configured default chat
+  model in the same Kibana space;
+- conditional tools that require installed Elastic knowledge, embeddings, ML
+  features, solution data, licensing, or further validation.
+
+Read `references/validated-tool-catalog.md` whenever a user asks for tool
+availability, descriptions, model dependencies, prerequisites, or pilot
+evidence. Do not copy that baseline into a claim about another deployment.
+
+Codex's own model does not replace a server-side Agent Builder connector when
+the selected MCP tool internally calls Elastic inference. For a Codex-first
+workflow without an Elastic chat model, use deterministic tools such as index
+listing, mappings, known-document retrieval, or exact bounded ES|QL.
 
 ## Validate before data access
 
-1. Confirm the URL is the Kibana Agent Builder MCP path, not Elasticsearch REST.
-2. Confirm TLS and the expected Kibana hostname without disabling certificate
-   verification.
-3. Initialize MCP and inspect `tools/list`; do not search customer data merely
-   to test authentication.
-4. Confirm the returned tools and indices match the intended Kibana space and
-   role.
-5. Execute a small bounded query only after the user identifies an authorized
+1. Confirm the URL targets Kibana Agent Builder MCP, not Elasticsearch REST.
+2. Confirm TLS and hostname verification without a bypass.
+3. Initialize MCP and record `tools/list` before assuming any capability.
+4. Confirm tools, indices, and features match the intended Kibana space and
+   least-privilege role.
+5. Start with index listing or mappings; do not search customer data merely to
+   test authentication.
+6. Execute one bounded operation only after the user identifies an authorized
    data source.
 
-## Least-privilege design
+## Enforce least privilege and safe usage
 
-- Create a dedicated, expiring API key rather than reusing an administrator key.
-- Restrict Kibana application privileges to the intended space and Agent
-  Builder/actions features.
-- Restrict index privileges to the required index patterns, normally `read`
-  and `view_index_metadata` only.
-- Grant inference monitoring only when the enabled tools require it.
-- Treat the live server tool inventory as authoritative; capability sets vary
-  by release, license, role, and space.
+- Prefer a dedicated, expiring API key. Restrict Kibana application privileges
+  to the intended space and Agent Builder or Actions features.
+- Restrict indices to approved patterns with `read` and
+  `view_index_metadata`; add inference monitoring only when required.
+- Begin with mappings and bounded ES|QL. Minimize fields, rows, time ranges,
+  buckets, and result payloads.
+- Treat case, workflow, and other state-changing tools as writes even if they
+  appear beside read tools. Require explicit approval or disable them.
+- Treat observability and security results as sensitive. Do not expose API
+  keys, authorization headers, unnecessary source fields, or secrets in logs.
 
-## Safe usage
+## Troubleshoot
 
-- Begin with mappings and bounded ES|QL; avoid broad index scans.
-- Do not expose API keys or authorization headers in output or logs.
-- Ask before operations that could change cases, workflows, or stored data.
-- Treat observability and security results as potentially sensitive.
-
-## Troubleshooting
-
-- `404` or `405`: verify the request targets Kibana's
-  `/api/agent_builder/mcp`, not the Elasticsearch origin.
-- `401`: verify the value begins with `ApiKey ` and rotate the key if it may
-  have been exposed.
-- `403`: reduce or correct the key's role descriptors; do not switch to an
-  administrator key as a diagnostic shortcut.
-- Missing tools or indices: verify the Elastic version, license, feature flags,
-  Kibana space, and application/index privileges.
+- `404` or `405`: verify the Kibana Agent Builder MCP path and space prefix.
+- `401`: verify the `ApiKey ` scheme and rotate a potentially exposed key.
+- `403`: correct the role descriptors; do not switch to an administrator key.
+- Natural-language tool reports a missing connector or `connectorId`: configure
+  and select the default Agent Builder chat model in the same Kibana space.
+- Knowledge tool reports missing content or model artifacts: install the
+  documented content and verify approved egress, licensing, and privileges.
+- Missing tools or indices: verify release, license, feature flags, space,
+  application privileges, and index privileges.

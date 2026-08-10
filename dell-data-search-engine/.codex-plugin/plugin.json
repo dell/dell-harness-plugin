@@ -1,19 +1,24 @@
 {
   "name": "dell-data-search-engine",
-  "version": "0.1.0",
+  "version": "0.1.0+codex.20260810230406",
   "description": "Connect Codex to a customer-managed Dell Data Search Engine MCP endpoint.",
-  "author": { "name": "Dell Technologies" },
+  "author": {
+    "name": "Dell Technologies"
+  },
   "skills": "./skills/",
   "interface": {
     "displayName": "Dell Data Search Engine",
-    "shortDescription": "Search, analyze, and investigate governed Elastic data.",
-    "longDescription": "Connects Codex to a customer-selected Dell Data Search Engine Kibana Agent Builder MCP endpoint for governed search, ES|QL analysis, index discovery, and observability or security investigations.",
+    "shortDescription": "Investigate governed Elastic data with read-only tools.",
+    "longDescription": "Connects Codex to a customer-selected Dell Data Search Engine Kibana Agent Builder MCP endpoint for governed index discovery, search, ES|QL, observability, and security investigation.",
     "developerName": "Dell Technologies",
     "category": "Productivity",
-    "capabilities": ["Read"],
+    "capabilities": [
+      "Read"
+    ],
     "defaultPrompt": [
-      "Show the DDSE data sources I can access.",
-      "Help me investigate DDSE data with bounded ES|QL."
+      "List the Dell Data Search Engine indices I can access.",
+      "Inspect a mapping before running a bounded search.",
+      "Help me determine whether this tool needs an Elastic AI connector."
     ]
   },
   "mcpServers": "./.mcp.json"

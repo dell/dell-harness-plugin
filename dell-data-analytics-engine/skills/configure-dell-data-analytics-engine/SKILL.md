@@ -2,67 +2,92 @@
 name: configure-dell-data-analytics-engine
 description: >
   Configure, authenticate, validate, and safely use a customer-managed Dell
-  Data Analytics Engine MCP endpoint from Codex. Use when a user asks about
-  DDAE or Starburst MCP setup, OAuth login, catalog discovery, read-only SQL,
-  endpoint validation, or connection troubleshooting.
+  Data Analytics Engine or Starburst Enterprise MCP endpoint from Codex. Use
+  for DDAE OAuth, protected-resource discovery, Data Product search, read-only
+  Trino SQL, tool-catalog inspection, model-dependency questions, or connection
+  troubleshooting.
 ---
 
 # Configure Dell Data Analytics Engine
 
 Use the native DDAE/Starburst Streamable HTTP MCP server. Do not substitute a
-locally hosted Trino bridge unless the user explicitly asks for that legacy
-architecture.
+local Trino bridge unless the user explicitly requests a legacy adapter.
 
-## Required configuration
+## Configure and authenticate
 
-Obtain these non-secret values from the DDAE administrator:
+Obtain from the DDAE administrator:
 
-- `DDAE_MCP_URL`: the complete HTTPS MCP endpoint, commonly
+- `DDAE_MCP_URL`: complete HTTPS MCP endpoint, commonly
   `https://<ddae-host>/mcp`.
-- `DDAE_OAUTH_RESOURCE`: the protected-resource identifier advertised by the
-  server, commonly the DDAE origin without `/mcp`.
+- `DDAE_OAUTH_RESOURCE`: resource identifier advertised by protected-resource
+  metadata, commonly the DDAE origin without `/mcp`.
 
-Never infer a customer endpoint from a Dell lab example. Require HTTPS outside
-an isolated development environment.
+Never infer an endpoint from an example. Set both variables in the environment
+that launches Codex, then run:
 
-Set both variables in the environment used to launch Codex, then run:
-
-```bash
+~~~bash
 codex mcp login dell_data_analytics_engine --scopes openid
 codex mcp get dell_data_analytics_engine --json
-```
+~~~
 
-If the identity provider does not permit dynamic client registration, stop and
-ask the DDAE administrator for an approved OAuth client. Configure it using the
-Codex `oauth_client_id` setting; never embed a client secret in this plugin.
+If dynamic client registration is disabled, require an administrator-approved
+public OAuth client supporting authorization code, PKCE, and Codex's loopback
+callback. Configure its ID with Codex `oauth_client_id`. Never embed a client
+secret, access token, refresh token, endpoint, tenant, or certificate.
+
+Do not confuse a Starburst CLI/JDBC browser handoff with MCP-native OAuth. Use
+an alternative token handoff only when the supported DDAE product contract and
+customer security policy explicitly approve it; keep the marketplace default
+on standards-based MCP OAuth.
+
+## Interpret the live catalog
+
+Treat `tools/list` as authoritative. The validated Starburst Enterprise MCP
+Server 1.0.0 advertised exactly:
+
+- `searchDataProducts`: search Data Products visible to the OAuth user.
+- `queryReadOnly`: execute one read-only Trino SQL statement.
+
+Neither validated tool requires a DDAE-hosted generative model. Codex can
+reason about the request and formulate SQL; DDAE performs OAuth,
+authorization, read-only enforcement, execution, limits, and audit.
+
+Read `references/validated-tool-catalog.md` for the validated schemas,
+evidence, and version caveats.
 
 ## Validate before data access
 
-1. Check the MCP URL returns an authentication challenge or MCP response, not
-   a general DDAE UI page.
-2. Confirm protected-resource metadata identifies the expected authorization
-   server and resource.
-3. Complete interactive OAuth login as the current user.
-4. List MCP tools and catalogs; do not execute a query merely to test login.
-5. Run a small read-only query only after the user identifies an authorized
-   dataset.
+1. Confirm the MCP URL returns an authentication challenge or MCP response,
+   not a general DDAE UI page.
+2. Confirm protected-resource metadata identifies the expected resource,
+   authorization server, and scope.
+3. Complete OAuth as the intended non-admin user.
+4. Initialize MCP and inspect `tools/list`; do not infer tools that the server
+   does not advertise.
+5. Exercise `searchDataProducts` with a narrow or no-match query before reading
+   data.
+6. Run `queryReadOnly` only after the user identifies an authorized dataset and
+   approves a bounded statement.
 
-## Safe usage
+## Enforce safe usage
 
-- Treat DDAE roles and row/column controls as authoritative.
-- Keep generated SQL read-only. Reject DDL, DML, procedures, and multi-statement
-  SQL even if a downstream deployment unexpectedly accepts them.
-- Start with metadata and bounded queries; avoid broad scans and `SELECT *`.
-- Do not present query generation as proof that the user can execute it.
-- Do not log tokens, authorization headers, or sensitive result rows.
+- Treat DDAE roles, catalog permissions, row and column controls, resource
+  groups, and audit policy as authoritative.
+- Reject DDL, DML, procedures, multi-statement SQL, and administrative SQL even
+  if a downstream release unexpectedly accepts them.
+- For `queryReadOnly`, use explicit columns, restrictive predicates, and a row
+  limit. Avoid broad enumeration, `SELECT *`, and export-scale results.
+- Do not log tokens, authorization headers, query results, or sensitive error
+  details unnecessarily.
 
-## Troubleshooting
+## Troubleshoot
 
-- `401` before login: expected; complete `codex mcp login`.
-- OAuth audience/resource error: verify `DDAE_OAUTH_RESOURCE` against protected
-  resource metadata.
+- `401` before login: expected; complete OAuth.
+- Protected-resource or audience error: verify `DDAE_OAUTH_RESOURCE` against
+  live metadata.
 - Dynamic registration rejected: use an administrator-approved public client.
-- Login succeeds but catalogs are absent: verify DDAE user roles rather than
-  expanding plugin permissions.
-- Timeout or oversized result: reduce the scan and result set; DDAE can enforce
-  server-side MCP query and response limits.
+- Redirect rejected: verify registered loopback URIs and PKCE policy.
+- Login succeeds but resources are absent: verify DDAE roles; do not expand
+  plugin permissions.
+- Timeout or oversized result: reduce the scan and result set and confirm
+  server-side limits.
