@@ -1,6 +1,6 @@
 {
   "name": "dell-data-analytics-engine",
-  "version": "0.1.0+codex.20260810231355",
+  "version": "0.1.0+codex.20260810233628",
   "description": "Connect Codex to a customer-managed Dell Data Analytics Engine MCP endpoint.",
   "author": {
     "name": "Dell Technologies"

@@ -4,8 +4,8 @@ description: >
   Configure, authenticate, validate, and safely use a customer-managed Dell
   Data Analytics Engine or Starburst Enterprise MCP endpoint from Codex. Use
   for DDAE OAuth, protected-resource discovery, Data Product search, read-only
-  Trino SQL, tool-catalog inspection, model-dependency questions, or connection
-  troubleshooting.
+  Trino SQL, tool-catalog inspection, parameterized-query configuration, or
+  connection troubleshooting.
 ---
 
 # Configure Dell Data Analytics Engine
@@ -51,15 +51,19 @@ Server 1.0.0 advertised exactly:
 That response contained one page and no `nextCursor`, so two is complete for
 the tested endpoint and identity. Do not generalize it to the DDAE product.
 Current Starburst documentation also describes built-in
-`getDataProductDetails`, optional `listParametrizedQueryTools` and
-`parametrizedQuery`, and an optional Starburst AI data-product agent tool.
-Compare live output with the supported documentation for the installed release
-and investigate missing tools through license, features, definitions, and
-authorization rather than inventing or assuming them.
+`getDataProductDetails` and optional `listParametrizedQueryTools` and
+`parametrizedQuery`. The parameterized tools require administrator action:
+set `mcp.parametrized-tools.enabled=true`, configure
+`mcp.parametrized-tools.definition-paths`, add approved YAML definitions, and
+restart because definitions load at server startup. Their absence from the
+validated live catalog means they are not enabled or not exposed on that
+endpoint. Compare live output with documentation for the installed release and
+investigate differences through release, license, configuration, definitions,
+and authorization rather than inventing or assuming tools.
 
-Neither validated tool requires a DDAE-hosted generative model. Codex can
-reason about the request and formulate SQL; DDAE performs OAuth,
-authorization, read-only enforcement, execution, limits, and audit.
+Codex can reason about the request and formulate SQL; DDAE performs OAuth,
+authorization, read-only enforcement, execution, limits, and audit. The two
+validated tools require no separate DDAE inference configuration.
 
 Read `references/validated-tool-catalog.md` for the validated schemas,
 evidence, and version caveats.

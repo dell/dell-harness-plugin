@@ -18,11 +18,13 @@ version-scoped observation is not a promise for every DDAE deployment.
 
 The current Starburst Enterprise documentation describes a broader product
 surface: the three built-in tools `queryReadOnly`, `searchDataProducts`, and
-`getDataProductDetails`; the optional `listParametrizedQueryTools` and
-`parametrizedQuery` tools when parameterized queries are enabled; and an
-optional Starburst AI data-product agent tool when a model alias is configured.
-Installed release, license, feature configuration, administrator definitions,
-and authorization determine what a customer endpoint actually advertises.
+`getDataProductDetails`, plus the optional `listParametrizedQueryTools` and
+`parametrizedQuery` tools. The optional tools require a DDAE/Starburst
+administrator to enable them in the coordinator configuration, install
+approved YAML query definitions, and restart the coordinator. They are not
+enabled on the validated pilot endpoint. Installed release, license, feature
+configuration, administrator definitions, and authorization determine what a
+customer endpoint actually advertises.
 
 ## Configure
 
@@ -52,12 +54,12 @@ client secret or manually copy bearer tokens into the plugin.
 - OAuth tokens are managed by Codex and remain outside the package.
 - DDAE authorization and query controls are the enforcement boundary; skill
   text is guidance, not a security control.
-- The two validated tools do not require a DDAE-hosted generative model. Codex
-  may formulate SQL; DDAE authenticates, authorizes, enforces read-only access,
-  executes, limits, and audits it.
+- Codex may formulate SQL; DDAE authenticates, authorizes, enforces read-only
+  access, executes, limits, and audits it. No separate DDAE inference setup is
+  required for the two validated tools.
 - Require trusted HTTPS certificates and allowlist the exact customer MCP and
   authorization-server origins. Do not package customer CA certificates.
-- Enable the DDAE AI MCP Server only after licensing, identity, authorization,
+- Enable the native DDAE MCP server only after licensing, identity, authorization,
   query-limit, data-classification, and audit requirements are approved.
 
 See the bundled `configure-dell-data-analytics-engine` skill for validation and
