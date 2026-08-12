@@ -1,12 +1,16 @@
 ---
 name: analyze-governed-data-products
-description: Discover authorized Dell Data Analytics Engine Data Products and answer business questions with grounded, bounded, read-only analysis. Use when a user wants to find governed data, choose an appropriate Data Product, run approved Trino SQL, compare results, or explain evidence and limitations.
+description: Discover authorized Dell Data Analytics Engine Data Products and answer business questions with grounded, bounded, read-only analysis. Use for explicit DDAE, Starburst Enterprise, Trino, Data Product, searchDataProducts, queryReadOnly, or parameterized-query requests. Do not use for Dell Data Search Engine, Elastic, Elasticsearch, Kibana, index, ES|QL, observability, or security-alert requests.
 ---
 
 # Analyze Governed Data Products
 
 Use the live DDAE MCP catalog. Never assume that a documented but unadvertised
 tool is available.
+
+Keep the product boundary explicit. If the request names DDSE, Elastic,
+Elasticsearch, Kibana, an index, ES|QL, Observability, or a security alert,
+do not use this DDAE workflow.
 
 ## Follow the workflow
 

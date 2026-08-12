@@ -1,12 +1,15 @@
 ---
 name: investigate-dell-search-data
-description: Investigate governed Dell Data Search Engine data across index, observability, security, cases, workflow, and knowledge tools. Use when a user wants evidence from authorized Elastic data, bounded ES|QL analysis, operational investigation, case or workflow inspection, or product and security knowledge retrieval.
+description: Investigate governed Dell Data Search Engine data across indices, observability, security, cases, workflows, and knowledge tools. Use for explicit DDSE, Elastic, Elasticsearch, Kibana, index or index-pattern, ES|QL, APM, log, trace, host, alert, case, or Security Labs requests. Do not use for DDAE, Starburst, Trino, or governed Data Product discovery.
 ---
 
 # Investigate Dell Search Data
 
 Treat live `tools/list` as authoritative. Keep every advertised tool eligible,
 then choose the smallest set that answers the user's outcome.
+
+Keep the product boundary explicit. An index name or index pattern is a DDSE
+request, not a DDAE Data Product request.
 
 ## Route the request
 
@@ -16,8 +19,10 @@ then choose the smallest set that answers the user's outcome.
   `platform_core_get_document_by_id` tool.
 - For natural-language search, ES|QL generation, or index selection, use
   `platform_core_search`, `platform_core_generate_esql`, or
-  `platform_core_index_explorer` only when their configured model dependency
-  is available. Report a prerequisite failure instead of inventing a query.
+  `platform_core_index_explorer` only after their configured model dependency
+  has been positively validated in the current environment. Do not probe these
+  tools when deterministic listing or mapping can answer the request. Report a
+  prerequisite failure instead of inventing a query.
 - For cases or workflow status, use `platform_core_cases` or
   `platform_core_get_workflow_execution_status` only for retrieval supported
   by the advertised schema. Do not infer a write capability from the name.
@@ -38,8 +43,12 @@ then choose the smallest set that answers the user's outcome.
    when the request is ambiguous.
 2. Confirm the needed tool is advertised and note its documented product,
    data, model, license, or content prerequisites.
-3. Discover indices or inspect mappings before exact ES|QL when the schema is
+3. Use `platform_core_list_indices` first when the request asks to find an
+   authorized index. Inspect its mapping before exact ES|QL when the schema is
    unknown. Do not list all indices when one named authorized index suffices.
+   If deterministic discovery returns no matching index, stop and report the
+   missing fixture or authorization boundary; do not guess another index name
+   or fall back to a model-dependent discovery tool.
 4. Use explicit fields, filters, time ranges, aggregation boundaries, and
    result limits. Avoid broad exports and unnecessary source fields.
 5. Correlate only when the returned identifiers and timestamps support it.

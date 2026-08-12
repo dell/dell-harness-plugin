@@ -1,7 +1,7 @@
 {
   "name": "dell-data-analytics-engine",
-  "version": "0.1.0+codex.20260812205351",
-  "description": "Connect to a customer-managed Dell Data Analytics Engine MCP endpoint.",
+  "version": "0.1.0+codex.20260812211934",
+  "description": "Use Dell Data Analytics Engine with a customer-registered MCP endpoint.",
   "author": {
     "name": "Dell Technologies"
   },
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "Dell Data Analytics Engine",
     "shortDescription": "Search governed data products and run read-only SQL.",
-    "longDescription": "Connects to a customer-selected Dell Data Analytics Engine MCP endpoint for governed Data Product discovery, source selection, and read-only Trino analytics through Starburst Enterprise.",
+    "longDescription": "Adds reusable workflows for a customer-registered Dell Data Analytics Engine MCP endpoint, including governed Data Product discovery, source selection, and read-only Trino analytics through Starburst Enterprise.",
     "developerName": "Dell Technologies",
     "category": "Productivity",
     "capabilities": [
@@ -20,6 +20,5 @@
       "Compare authorized data sources for this business question.",
       "Run a bounded read-only analysis and explain the calculation."
     ]
-  },
-  "mcpServers": "./.mcp.json"
+  }
 }

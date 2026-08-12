@@ -1,7 +1,7 @@
 {
   "name": "dell-data-search-engine",
-  "version": "0.1.0+codex.20260812205354",
-  "description": "Connect to a customer-managed Dell Data Search Engine MCP endpoint.",
+  "version": "0.1.0+codex.20260812211934",
+  "description": "Use Dell Data Search Engine with a customer-registered MCP endpoint.",
   "author": {
     "name": "Dell Technologies"
   },
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "Dell Data Search Engine",
     "shortDescription": "Investigate governed Elastic data with read-only tools.",
-    "longDescription": "Connects to a customer-selected Dell Data Search Engine Kibana Agent Builder MCP endpoint for governed index, ES|QL, observability, security, case, workflow, and knowledge investigation.",
+    "longDescription": "Adds reusable workflows for a customer-registered Dell Data Search Engine Kibana Agent Builder MCP endpoint, including governed index, ES|QL, observability, security, case, workflow, and knowledge investigation.",
     "developerName": "Dell Technologies",
     "category": "Productivity",
     "capabilities": [
@@ -20,6 +20,5 @@
       "Inspect relevant index mappings before running bounded ES|QL.",
       "Explain which available tools can answer this operational question."
     ]
-  },
-  "mcpServers": "./.mcp.json"
+  }
 }

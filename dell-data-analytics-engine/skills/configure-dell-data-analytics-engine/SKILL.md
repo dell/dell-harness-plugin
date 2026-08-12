@@ -22,13 +22,21 @@ Obtain from the DDAE administrator:
 - `DDAE_OAUTH_RESOURCE`: resource identifier advertised by protected-resource
   metadata, commonly the DDAE origin without `/mcp`.
 
-Never infer an endpoint from an example. Set both variables in the environment
-that launches Codex, then run:
+Never infer an endpoint from an example. The plugin intentionally does not
+embed a customer URL. Register the concrete endpoint in each customer's Codex
+configuration, then complete OAuth:
 
 ~~~bash
+codex mcp add dell_data_analytics_engine \
+  --url "$DDAE_MCP_URL" \
+  --oauth-resource "$DDAE_OAUTH_RESOURCE"
 codex mcp login dell_data_analytics_engine --scopes openid
 codex mcp get dell_data_analytics_engine --json
 ~~~
+
+For an OpenAI marketplace submission, attach these skills to the reviewed
+Universal MCP URL or approved URL template in the submission workflow. Keep
+customer-specific endpoints out of the reusable plugin package.
 
 If dynamic client registration is disabled, require an administrator-approved
 public OAuth client supporting authorization code, PKCE, and Codex's loopback

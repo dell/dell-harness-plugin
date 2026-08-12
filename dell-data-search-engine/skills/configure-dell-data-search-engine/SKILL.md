@@ -24,6 +24,26 @@ Obtain from the DDSE administrator:
 
 Never infer a customer endpoint. Never request an API key in chat or place it
 in source, `.mcp.json`, command arguments, logs, or committed environment files.
+The plugin intentionally does not embed a customer URL. Register the concrete
+endpoint in the customer's Codex configuration:
+
+~~~toml
+[mcp_servers.dell_data_search_engine]
+url = "https://<customer-kibana-host>/api/agent_builder/mcp"
+env_http_headers = { Authorization = "DDSE_MCP_AUTHORIZATION" }
+~~~
+
+Set the complete authorization value in the environment that launches Codex;
+quote it because the scheme and credential are separated by a space:
+
+~~~bash
+export DDSE_MCP_AUTHORIZATION="ApiKey <encoded-api-key>"
+codex mcp get dell_data_search_engine --json
+~~~
+
+For an OpenAI marketplace submission, attach these skills to the reviewed
+Universal MCP URL or approved URL template in the submission workflow. Keep
+customer-specific endpoints out of the reusable plugin package.
 
 Use a dedicated, least-privilege, expiring API key for the validated
 self-managed DDSE contract. Browser SSO into Kibana is not MCP OAuth. Claim

@@ -1,8 +1,10 @@
 # Dell Data Search Engine for Codex
 
-This plugin connects Codex to the native Kibana Agent Builder Streamable HTTP
-MCP endpoint in a customer-managed Dell Data Search Engine (DDSE) deployment.
-It contains no endpoint, API key, Kibana space, certificate, or customer data.
+This plugin supplies reusable Codex skills for the native Kibana Agent Builder
+Streamable HTTP MCP endpoint in a customer-managed Dell Data Search Engine
+(DDSE) deployment. The customer registers the MCP endpoint separately. The
+package contains no endpoint, API key, Kibana space, certificate, or customer
+data.
 
 ## Customer capabilities
 
@@ -38,10 +40,23 @@ https://<kibana-host>/s/<space-name>/api/agent_builder/mcp
 
 Verify registration without printing the authorization value:
 
+~~~toml
+# ~/.codex/config.toml
+[mcp_servers.dell_data_search_engine]
+url = "https://<customer-kibana-host>/api/agent_builder/mcp"
+env_http_headers = { Authorization = "DDSE_MCP_AUTHORIZATION" }
+~~~
+
+Then install and verify:
+
 ~~~bash
 codex plugin add dell-data-search-engine@dell-harness-plugin
 codex mcp get dell_data_search_engine --json
 ~~~
+
+In the OpenAI marketplace submission, attach these skills to the reviewed
+Universal MCP URL or approved URL template; do not put a customer-specific URL
+in this package.
 
 The marketplace package uses API-key authentication because that is the
 validated self-managed DDSE contract. Browser SSO into Kibana is not MCP OAuth.

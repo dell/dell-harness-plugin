@@ -1,7 +1,8 @@
 # Dell Data Analytics Engine for Codex
 
-This plugin connects Codex to the native Streamable HTTP MCP server in a
-customer-managed Dell Data Analytics Engine (DDAE) deployment. It contains no
+This plugin supplies reusable Codex skills for the native Streamable HTTP MCP
+server in a customer-managed Dell Data Analytics Engine (DDAE) deployment.
+The customer registers the MCP endpoint separately. The package contains no
 endpoint, credential, tenant identifier, certificate, or customer data.
 
 ## Customer capabilities
@@ -39,6 +40,9 @@ Install the plugin and complete native MCP OAuth:
 
 ~~~bash
 codex plugin add dell-data-analytics-engine@dell-harness-plugin
+codex mcp add dell_data_analytics_engine \
+  --url "$DDAE_MCP_URL" \
+  --oauth-resource "$DDAE_OAUTH_RESOURCE"
 codex mcp login dell_data_analytics_engine --scopes openid
 codex mcp get dell_data_analytics_engine --json
 ~~~
@@ -47,7 +51,9 @@ Confirm the resource identifier from the endpoint's protected-resource
 metadata. The authorization server must permit standards-based dynamic client
 registration or provide an administrator-approved public client ID compatible
 with authorization code, PKCE, and Codex's loopback callback. Never embed a
-client secret or manually copy bearer tokens into the plugin.
+client secret or manually copy bearer tokens into the plugin. In the OpenAI
+marketplace submission, attach these skills to the reviewed Universal MCP URL
+or approved URL template; do not put a customer-specific URL in this package.
 
 ## Marketplace and security notes
 
