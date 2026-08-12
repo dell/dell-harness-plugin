@@ -1,0 +1,55 @@
+---
+name: analyze-governed-data-products
+description: Discover authorized Dell Data Analytics Engine Data Products and answer business questions with grounded, bounded, read-only analysis. Use when a user wants to find governed data, choose an appropriate Data Product, run approved Trino SQL, compare results, or explain evidence and limitations.
+---
+
+# Analyze Governed Data Products
+
+Use the live DDAE MCP catalog. Never assume that a documented but unadvertised
+tool is available.
+
+## Follow the workflow
+
+1. Clarify the business question, measures, dimensions, filters, and time range
+   when they are material or ambiguous.
+2. Call `searchDataProducts` with a narrow business term. Do not enumerate all
+   products unless the user explicitly needs that inventory.
+3. Compare only authorized results. Prefer a product whose description,
+   ownership, and available schema support the question. State when the
+   metadata is insufficient.
+4. If `getDataProductDetails` is advertised, use it before querying when
+   column or view details are required.
+5. Prefer an approved parameterized query when
+   `listParametrizedQueryTools` and `parametrizedQuery` are advertised and a
+   matching definition exists.
+6. Otherwise, formulate one bounded statement for `queryReadOnly`. Select
+   explicit columns, add restrictive predicates and a stable row limit, and
+   avoid `SELECT *`.
+7. Check the returned columns, row count, query ID, warnings, and truncation
+   indicators before drawing a conclusion.
+8. Answer with the calculation or finding, the Data Product and query
+   identifiers returned by the server, assumptions, and material limitations.
+
+## Preserve boundaries
+
+- Use only tools advertised to the current identity.
+- Treat DDAE authorization and read-only enforcement as authoritative.
+- Never attempt DDL, DML, procedures, administrative SQL, multiple statements,
+  permission expansion, or a switch to a more privileged identity.
+- Preserve empty results and authorization denials; do not replace them with
+  guesses or data from another source.
+- Ask before broadening a time range, dataset, or requested business scope.
+
+## Format the answer
+
+Return four compact sections when analysis succeeds:
+
+1. **Finding** — direct answer and deterministic calculation.
+2. **Evidence** — Data Product name or ID, selected fields, filters, time
+   range, row count, and query ID when returned.
+3. **Method** — short description of discovery and bounded query steps.
+4. **Limitations** — missing metadata, incomplete records, truncation, or
+   authorization boundaries.
+
+If no authorized source can answer the question, say so and identify the
+missing product, metadata, or permission without revealing restricted data.

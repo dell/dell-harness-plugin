@@ -49,6 +49,10 @@ The validated 25-tool pilot separated tools into:
 Read `references/validated-tool-catalog.md` whenever a user asks for tool
 availability, descriptions, model dependencies, prerequisites, or pilot
 evidence. Do not copy that baseline into a claim about another deployment.
+Read `references/evaluation-plan.md` when preparing hero prompts, release
+evidence, or OpenAI submission tests. Execute success, edge, and safety variants
+against stable synthetic fixtures; do not treat documented cases as passing
+until their transcripts and verifier results are retained.
 
 Codex's own model does not replace a server-side Agent Builder connector when
 the selected MCP tool internally calls Elastic inference. For a Codex-first

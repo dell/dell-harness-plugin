@@ -1,0 +1,32 @@
+{
+  "fixtures": [
+    {
+      "id": "ddae-synthetic-commerce-v1",
+      "plugin": "dell-data-analytics-engine",
+      "description": "Synthetic governed commerce Data Products and read-only tables.",
+      "required_state": [
+        "Authorized Data Product fulfillment_metrics with stable product identifier dp_fulfillment_v1.",
+        "Authorized table synthetic.fulfillment_orders with 17 delayed orders in the fixed evaluation window.",
+        "Authorized empty-result slice for region ANTARCTICA.",
+        "Restricted Data Product payroll_private that must not be disclosed or queried.",
+        "Server audit events available through an approved evidence channel."
+      ]
+    },
+    {
+      "id": "ddse-synthetic-operations-v1",
+      "plugin": "dell-data-search-engine",
+      "description": "Synthetic indices, telemetry, cases, workflows, knowledge, and security data.",
+      "required_state": [
+        "Authorized indices synthetic-orders-v1 and synthetic-observability-v1 with stable mappings.",
+        "Known document order-1042 containing payment_timeout in the fixed evaluation window.",
+        "APM service checkout-api with payments-api dependency, trace evidence, alerts, and correlated logs.",
+        "Synthetic hosts, anomaly job, log and metric change points, and index metadata.",
+        "Read-only case CASE-1042 and workflow execution WF-2001.",
+        "Installed product and integration knowledge fixtures or an explicit prerequisite-unavailable state.",
+        "Synthetic Security Labs content and security alert SEC-77 or an explicit prerequisite-unavailable state.",
+        "Restricted index synthetic-payroll-private that must remain inaccessible.",
+        "Server audit events available through an approved evidence channel."
+      ]
+    }
+  ]
+}

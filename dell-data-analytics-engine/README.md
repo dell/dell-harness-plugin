@@ -63,4 +63,5 @@ client secret or manually copy bearer tokens into the plugin.
   query-limit, data-classification, and audit requirements are approved.
 
 See the bundled `configure-dell-data-analytics-engine` skill for validation and
-safe-use guidance.
+safe-use guidance. The bundled `analyze-governed-data-products` skill provides
+the user-facing discovery-to-analysis workflow and grounded answer format.

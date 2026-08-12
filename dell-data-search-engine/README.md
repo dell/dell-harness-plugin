@@ -73,4 +73,6 @@ when they do not require the Agent Builder chat model.
   or approval-gate them before a read-only deployment.
 
 See the bundled `configure-dell-data-search-engine` skill for validation and
-safe-use guidance.
+safe-use guidance. The bundled `investigate-dell-search-data` skill routes
+user outcomes across the complete advertised tool catalog and defines the
+evidence, dependency, and answer-format workflow.

@@ -32,5 +32,19 @@ No separate DDAE inference configuration is required for the two tools exposed
 by the pilot. Codex supplies conversational reasoning and can formulate SQL;
 DDAE executes governed operations.
 
+## OpenAI metadata audit — August 12, 2026
+
+A refreshed live audit confirmed both tools expose input and output schemas,
+`readOnlyHint=true`, and `destructiveHint=false`. Both omit
+`openWorldHint` and per-tool OAuth `securitySchemes`. The
+`queryReadOnly` input schema exposes `query` but does not mark it required.
+Before OpenAI review, correct those server-owned metadata gaps and rescan the
+endpoint.
+
+Safe execution passed for both tools: a deliberately no-match Data Product
+search returned structured content without error, and
+`SELECT 1 AS validation_value LIMIT 1` returned one column, one row, a query
+ID, and structured content without reading customer data.
+
 OAuth, DDAE roles, catalog permissions, row and column controls, resource
 groups, query limits, and audit policy remain authoritative.

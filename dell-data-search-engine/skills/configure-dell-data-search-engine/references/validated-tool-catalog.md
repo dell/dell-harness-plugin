@@ -1,9 +1,23 @@
 # Validated DDSE MCP catalog
 
 Observed August 10, 2026 from `elastic-mcp-server 0.0.1` using MCP protocol
-2025-06-18. The live catalog contained 25 tools. Prefer the customer's current
-`tools/list`; release, license, Kibana space, privileges, data, installed
-content, and model configuration can change it.
+2025-06-18. A refreshed audit on August 12 again returned one page and 25
+tools. Prefer the customer's current `tools/list`; release, license, Kibana
+space, privileges, data, installed content, and model configuration can change
+it.
+
+## OpenAI metadata audit — August 12, 2026
+
+All 25 tools expose input schemas. None exposes an output schema, per-tool
+security scheme, `readOnlyHint`, `destructiveHint`, or `openWorldHint`. Their
+current names and descriptions describe retrieval, search, analysis, or
+execution-status operations; no create, update, or delete tool was observed.
+That textual observation does not replace required server annotations.
+
+Before OpenAI review, correct the native server metadata, rescan the endpoint,
+and validate structured results against declared output schemas. Either
+constrain the initial review surface or prove every advertised tool and product
+dependency with stable fixtures.
 
 ## No Agent Builder chat model required for core execution
 

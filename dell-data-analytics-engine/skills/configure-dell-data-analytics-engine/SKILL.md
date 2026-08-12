@@ -67,6 +67,10 @@ validated tools require no separate DDAE inference configuration.
 
 Read `references/validated-tool-catalog.md` for the validated schemas,
 evidence, and version caveats.
+Read `references/evaluation-plan.md` when preparing hero prompts, release
+evidence, or OpenAI submission tests. Execute success, edge, and safety variants
+against stable synthetic fixtures; do not treat documented cases as passing
+until their transcripts and verifier results are retained.
 
 ## Validate before data access
 
