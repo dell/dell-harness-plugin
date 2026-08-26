@@ -9,11 +9,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
 CASES_DIR = ROOT / "evals" / "cases"
 FIXTURES_PATH = ROOT / "evals" / "fixtures" / "catalog.json"
-CASE_FILES = (CASES_DIR / "ddae.json", CASES_DIR / "ddse.json")
+CASE_FILES = (
+    CASES_DIR / "ddae.json",
+    CASES_DIR / "ddse.json",
+    CASES_DIR / "dataloop.json",
+)
 KINDS = {"success", "edge", "safety", "non_invocation"}
 SUBMISSION_CLASSES = {"positive", "negative", "not_selected"}
 INVOCATIONS = {"explicit", "implicit", "ambiguous", "misspelled", "negative"}
@@ -67,7 +70,9 @@ def validate_definitions() -> dict[str, Any]:
             f"{plugin}: fixture belongs to another plugin",
         )
         require(
-            isinstance(declared, list) and declared and len(declared) == len(set(declared)),
+            isinstance(declared, list)
+            and declared
+            and len(declared) == len(set(declared)),
             f"{plugin}: declared_tools must be a non-empty unique list",
         )
         require(
@@ -94,7 +99,9 @@ def validate_definitions() -> dict[str, Any]:
                 f"{workflow_id}: covered_tools is required",
             )
             unknown = set(workflow_tools) - set(declared)
-            require(not unknown, f"{workflow_id}: unknown covered tools {sorted(unknown)}")
+            require(
+                not unknown, f"{workflow_id}: unknown covered tools {sorted(unknown)}"
+            )
             covered.update(workflow_tools)
 
             variants = workflow.get("variants")
@@ -277,7 +284,7 @@ def check_contract(
         for tool in tools
         if isinstance(tool, dict) and isinstance(tool.get("name"), str)
     }
-    expected = set(document["declared_tools"])
+    expected = set(document.get("contract_tools", document["declared_tools"]))
     actual = set(by_name)
     failures: list[str] = []
     if expected - actual:
@@ -291,7 +298,18 @@ def check_contract(
     missing_output = sorted(
         name for name, tool in by_name.items() if not tool.get("outputSchema")
     )
-    required_annotations = {"readOnlyHint", "destructiveHint", "openWorldHint"}
+    generic_output = sorted(
+        name
+        for name, tool in by_name.items()
+        if tool.get("outputSchema", {}).get("type") == "object"
+        and not tool.get("outputSchema", {}).get("properties")
+    )
+    required_annotations = {
+        "readOnlyHint",
+        "destructiveHint",
+
+        "openWorldHint",
+    }
     missing_annotations = {
         name: sorted(required_annotations - set(tool.get("annotations", {})))
         for name, tool in by_name.items()
@@ -303,6 +321,22 @@ def check_contract(
         failures.append(f"tools without output schemas: {missing_output}")
     if review_ready and missing_annotations:
         failures.append(f"tools without required annotations: {missing_annotations}")
+    if review_ready and plugin == "dell-data-orchestration-engine" and generic_output:
+        failures.append(f"tools with generic object outputs: {generic_output}")
+    missing_read_idempotency = sorted(
+        name
+        for name, tool in by_name.items()
+        if tool.get("annotations", {}).get("readOnlyHint") is True
+        and tool.get("annotations", {}).get("idempotentHint") is not True
+    )
+    if (
+        review_ready
+        and plugin == "dell-data-orchestration-engine"
+        and missing_read_idempotency
+    ):
+        failures.append(
+            f"read-only tools without idempotentHint=true: {missing_read_idempotency}"
+        )
 
     if plugin == "dell-data-analytics-engine" and "queryReadOnly" in by_name:
         query_schema = by_name["queryReadOnly"].get("inputSchema", {})
@@ -318,6 +352,8 @@ def check_contract(
         "observations": {
             "tool_count": len(actual),
             "missing_output_schemas": missing_output,
+            "generic_output_schemas": generic_output,
+            "read_only_without_idempotency": missing_read_idempotency,
             "missing_required_annotations": missing_annotations,
         },
     }
@@ -330,11 +366,16 @@ def main() -> int:
     grade_parser = subparsers.add_parser("grade", help="grade one captured result")
     grade_parser.add_argument("result", type=Path)
     contract_parser = subparsers.add_parser(
-        "contract", help="compare a sanitized tools/list snapshot with the plugin contract"
+        "contract",
+        help="compare a sanitized tools/list snapshot with the plugin contract",
     )
     contract_parser.add_argument(
         "plugin",
-        choices=("dell-data-analytics-engine", "dell-data-search-engine"),
+        choices=(
+            "dell-data-analytics-engine",
+            "dell-data-search-engine",
+            "dell-data-orchestration-engine",
+        ),
     )
     contract_parser.add_argument("snapshot", type=Path)
     contract_parser.add_argument(

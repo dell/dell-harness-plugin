@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dell-data-orchestration-engine-mcp"
+version = "0.1.0"
+description = "Bundled MCP server for Dell Data Orchestration Engine through the Dataloop SDK"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    # MCP 2.1 wraps ordinary tool exceptions in a generic execution error,
+    # changing the server's tested error contract. Keep the validated 2.0 line
+    # until the handlers and client-facing contract are adapted for 2.1.
+    "mcp>=2.0,<2.1",
+    "dtlpy>=1.125,<2",
+    # Used directly by tools/embeddings.py to cluster feature vectors. Already a hard
+    # dependency of dtlpy, so this declares an existing transitive dep rather than adding
+    # supply-chain surface. scikit-learn was deliberately not adopted: it appears in some
+    # environments only via dtlpymetrics, so depending on it would be depending on an accident.
+    "numpy>=1.24",
+    "typing-extensions>=4.8",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+
+[project.scripts]
+dell-doe-mcp = "doe_mcp.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 110
+src = ["src", "tests"]
+# Illustrative snippets in the docs and specs are not held to the formatter's rules.
+extend-exclude = ["docs", "specs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src"]
+ignore_missing_imports = true

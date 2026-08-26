@@ -27,6 +27,10 @@ identity = { command = "docker" }
 [mcp_servers.sharepoint]
 identity = { command = "docker" }
 
+# Dell Data Orchestration Engine MCP server (plugin-bundled stdio launcher)
+[mcp_servers.dell_dataloop]
+identity = { command = "python" }
+
 # Codex feature constraints
 [features]
 hooks = true

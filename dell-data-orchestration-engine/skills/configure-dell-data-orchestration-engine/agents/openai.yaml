@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dell Data Orchestration Engine Setup"
+  short_description: "Configure and validate governed Dataloop access."
+  default_prompt: "Use $configure-dell-data-orchestration-engine to configure and validate my Dataloop connection."

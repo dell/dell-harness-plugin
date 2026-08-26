@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "dell_dataloop": {
+      "command": "python",
+      "args": [
+        "${PLUGIN_ROOT}/scripts/dataloop_mcp_launcher.py"
+      ],
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}

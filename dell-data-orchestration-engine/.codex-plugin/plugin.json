@@ -1,0 +1,38 @@
+{
+  "name": "dell-data-orchestration-engine",
+  "version": "0.1.0",
+  "description": "Use Dell Data Orchestration Engine (Dataloop) through a governed Python SDK MCP server.",
+  "author": {
+    "name": "Dell Technologies"
+  },
+  "homepage": "https://github.com/dell/dell-harness-plugin/tree/main/dell-data-orchestration-engine",
+  "repository": "https://github.com/dell/dell-harness-plugin",
+  "license": "Proprietary",
+  "keywords": [
+    "dell",
+    "dataloop",
+    "data-orchestration",
+    "machine-learning",
+    "rag"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Dell Data Orchestration Engine",
+    "shortDescription": "Build governed Dataloop data and ML workflows.",
+    "longDescription": "Explore authorized projects and datasets, build agentic RAG pipelines, detect and handle PII, and manage image-classification workflows through the Dataloop Python SDK MCP server.",
+    "developerName": "Dell Technologies",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Profile an authorized Dataloop dataset.",
+      "Plan a governed RAG pipeline in Dataloop.",
+      "Review a dataset for PII without exposing values."
+    ],
+    "brandColor": "#0672CE",
+    "logo": "./assets/dell-technologies-wordmark.png"
+  }
+}

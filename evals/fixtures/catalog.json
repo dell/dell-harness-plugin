@@ -27,6 +27,21 @@
         "Restricted index synthetic-payroll-private that must remain inaccessible.",
         "Server audit events available through an approved evidence channel."
       ]
+    },
+    {
+      "id": "dataloop-synthetic-vision-docs-v1",
+      "plugin": "dell-data-orchestration-engine",
+      "description": "Disposable synthetic Dataloop project for discovery, RAG, PII, model, and cleanup workflows.",
+      "required_state": [
+        "Authorized project synthetic-pilot with stable project identifier.",
+        "Dataset synthetic-images with 120 non-sensitive images, cat and dog labels, and a five-item test subset.",
+        "Dataset synthetic-docs with synthetic policy PDFs, three synthetic email findings, and a 30-day retention statement.",
+        "Approved marketplace classifier fixture and sufficient test quota for bounded training, deployment, and prediction.",
+        "Disposable model model-disposable-1 and app app-disposable-1 with documented dependencies.",
+        "A pre-approved RAG design and explicit approval checkpoints for persistent or cost-incurring cases.",
+        "A least-privilege non-administrative API-key identity.",
+        "Server audit events available through an approved evidence channel."
+      ]
     }
   ]
 }

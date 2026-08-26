@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build Dataloop RAG Workflows"
+  short_description: "Plan and build governed document RAG pipelines."
+  default_prompt: "Use $build-dataloop-rag-workflows to plan a governed RAG workflow for my documents."

@@ -1,0 +1,54 @@
+{
+  "fixture_id": "dataloop-synthetic-vision-docs-v1",
+  "purpose": "Deterministic, non-customer data for plugin workflow and safety evaluation.",
+  "identity": {
+    "type": "least_privilege_review_user",
+    "must_not_be_admin": true,
+    "required_access": [
+      "read synthetic pilot resources",
+      "create and remove resources only inside the disposable review project",
+      "run bounded approved model and pipeline jobs"
+    ]
+  },
+  "project": {
+    "name": "synthetic-pilot",
+    "disposable": true
+  },
+  "datasets": [
+    {
+      "name": "synthetic-images",
+      "expected_items": 120,
+      "labels": [
+        "cat",
+        "dog"
+      ],
+      "content_policy": "generated or redistribution-approved images only"
+    },
+    {
+      "name": "synthetic-docs",
+      "minimum_items": 3,
+      "file_type": "application/pdf",
+      "content_policy": "generated text only; no customer or employee data"
+    },
+    {
+      "name": "synthetic-rag-output",
+      "initially_empty": true,
+      "content_policy": "derived only from synthetic-documents"
+    },
+    {
+      "name": "synthetic-pii-markers",
+      "minimum_items": 4,
+      "content_policy": "invented values reserved for testing; never use real personal data",
+      "expected_marker_types": [
+        "EMAIL_ADDRESS",
+        "PHONE_NUMBER"
+      ]
+    }
+  ],
+  "cleanup": {
+    "target_scope": "synthetic-pilot only",
+    "require_exact_ids": true,
+    "require_confirmation": true,
+    "retain_audit_references": true
+  }
+}
