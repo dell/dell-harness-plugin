@@ -1,6 +1,6 @@
 {
   "name": "dell-data-analytics-engine",
-  "version": "0.1.0+codex.20260812211934",
+  "version": "0.2.0",
   "description": "Use Dell Data Analytics Engine with a customer-registered MCP endpoint.",
   "author": {
     "name": "Dell Technologies"

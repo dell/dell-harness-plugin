@@ -29,11 +29,10 @@ customer endpoint actually advertises.
 
 ## Configure
 
-Supply customer-selected values before starting Codex:
+Supply the customer-selected MCP endpoint before starting Codex:
 
 ~~~bash
 export DDAE_MCP_URL="https://<ddae-host>/mcp"
-export DDAE_OAUTH_RESOURCE="https://<ddae-host>"
 ~~~
 
 Install the plugin and complete native MCP OAuth:
@@ -41,19 +40,50 @@ Install the plugin and complete native MCP OAuth:
 ~~~bash
 codex plugin add dell-data-analytics-engine@dell-harness-plugin
 codex mcp add dell_data_analytics_engine \
-  --url "$DDAE_MCP_URL" \
-  --oauth-resource "$DDAE_OAUTH_RESOURCE"
+  --url "$DDAE_MCP_URL"
 codex mcp login dell_data_analytics_engine --scopes openid
 codex mcp get dell_data_analytics_engine --json
 ~~~
 
-Confirm the resource identifier from the endpoint's protected-resource
-metadata. The authorization server must permit standards-based dynamic client
-registration or provide an administrator-approved public client ID compatible
-with authorization code, PKCE, and Codex's loopback callback. Never embed a
-client secret or manually copy bearer tokens into the plugin. In the OpenAI
-marketplace submission, attach these skills to the reviewed Universal MCP URL
-or approved URL template; do not put a customer-specific URL in this package.
+The tested configuration relies on the endpoint's protected-resource metadata
+to supply the OAuth resource and authorization server. Do not also configure an
+OAuth resource override when discovery is correct: some client versions can
+otherwise place `resource` in the authorization request twice, which the
+authorization server rejects as a duplicated parameter.
+
+The authorization server should permit standards-based dynamic client
+registration (DCR) for a native public client using authorization code and
+PKCE S256. Codex receives the generated `client_id`; an administrator does not
+normally preconfigure one. A public client has no client secret. If DCR is not
+permitted, use an administrator-approved public client ID with equivalent
+grant, PKCE, and loopback-redirect behavior.
+
+Always pass the minimal explicit login scope. In the validated flow,
+`--scopes openid` produced an authorization request for `openid offline_access`
+because Codex requested refresh-token support. Omitting `--scopes` can cause a
+client to request every scope advertised by the issuer.
+
+In the OpenAI marketplace submission, attach these skills to the reviewed
+Universal MCP URL or approved URL template; do not put a customer-specific URL
+in this package. Never embed a client secret or manually copy bearer tokens
+into the plugin.
+
+## OAuth guides
+
+- [DDAE OAuth user guide](skills/configure-dell-data-analytics-engine/references/DDAE_OAUTH_USER_GUIDE.md):
+  endpoint registration, user login, connection verification, safe smoke test,
+  and user-level troubleshooting.
+- [DDAE OAuth administrator guide](skills/configure-dell-data-analytics-engine/references/DDAE_OAUTH_ADMIN_GUIDE.md):
+  protected-resource and issuer discovery, Keycloak DCR policy, audience and
+  identity claims, fallback clients, DDAE authorization, and operations.
+
+### Administrator prerequisites
+
+The DDAE and identity administrators must configure protected-resource and
+authorization-server discovery, accept the native public DCR profile, permit
+the required scopes, and ensure access tokens include the audience expected by
+DDAE. The audience mapper must apply automatically to newly registered clients;
+adding it only to one test client does not make future DCR clients usable.
 
 ## Marketplace and security notes
 

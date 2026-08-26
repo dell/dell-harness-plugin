@@ -36,6 +36,7 @@ def test_aidp_manifests_are_focused_read_only_packages():
     for name, expected in PLUGINS.items():
         manifest = load_json(ROOT / name / ".codex-plugin/plugin.json")
         assert manifest["name"] == name
+        assert "+codex." not in manifest["version"]
         assert manifest["skills"] == "./skills/"
         assert "mcpServers" not in manifest
         assert not (ROOT / name / ".mcp.json").exists()
@@ -53,7 +54,9 @@ def test_customer_mcp_registration_is_documented_without_bundled_endpoint():
     ddae = (ROOT / "dell-data-analytics-engine/skills/configure-dell-data-analytics-engine/SKILL.md").read_text(encoding="utf-8")
     assert "codex mcp add dell_data_analytics_engine" in ddae
     assert '--url "$DDAE_MCP_URL"' in ddae
-    assert '--oauth-resource "$DDAE_OAUTH_RESOURCE"' in ddae
+    assert "--oauth-resource" not in ddae
+    assert "protected-resource discovery" in ddae
+    assert "exactly one resource" in ddae
 
     ddse = (ROOT / "dell-data-search-engine/skills/configure-dell-data-search-engine/SKILL.md").read_text(encoding="utf-8")
     assert "[mcp_servers.dell_data_search_engine]" in ddse
@@ -62,6 +65,50 @@ def test_customer_mcp_registration_is_documented_without_bundled_endpoint():
 
     assert "lab9bgp" not in ddae
     assert "lab9bgp" not in ddse
+
+
+def test_ddae_oauth_guides_separate_user_and_admin_responsibilities():
+    reference_dir = (
+        ROOT
+        / "dell-data-analytics-engine/skills/configure-dell-data-analytics-engine/references"
+    )
+    user_guide = (reference_dir / "DDAE_OAUTH_USER_GUIDE.md").read_text(
+        encoding="utf-8"
+    )
+    admin_guide = (reference_dir / "DDAE_OAUTH_ADMIN_GUIDE.md").read_text(
+        encoding="utf-8"
+    )
+
+    for phrase in (
+        "codex mcp add dell_data_analytics_engine",
+        "codex mcp login dell_data_analytics_engine --scopes openid",
+        "Verify the connection",
+        "Information to give an administrator",
+        "SELECT 1 AS validation_value LIMIT 1",
+    ):
+        assert phrase in user_guide
+
+    for phrase in (
+        "token_endpoint_auth_method",
+        '"response_types": ["code"]',
+        "PKCE S256",
+        "Allowed Client Scopes",
+        "Trusted Hosts",
+        "default client scope",
+        "preferred_username",
+        "pre-registered fallback client",
+        "duplicated parameter",
+        "SELECT 1 AS validation_value LIMIT 1",
+    ):
+        assert phrase in admin_guide
+
+    assert "Trusted Hosts" not in user_guide
+    assert "codex mcp add dell_data_analytics_engine" not in admin_guide
+    assert not (reference_dir / "DDAE_OAUTH_USAGE_GUIDE.md").exists()
+    for guide in (user_guide, admin_guide):
+        assert "lab9bgp" not in guide
+        assert "SOCKS" not in guide
+        assert "SSH tunnel" not in guide
 
 
 def test_skills_require_live_catalog_authorization_and_bounded_reads():

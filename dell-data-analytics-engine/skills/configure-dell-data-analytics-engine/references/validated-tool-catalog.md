@@ -12,7 +12,7 @@ authoritative for a specific endpoint and identity.
 | Tool | Pilot status | Purpose | Enablement or prerequisite | Validation |
 |---|---|---|---|---|
 | `searchDataProducts` | Enabled and advertised | Search governed Data Products visible to the authenticated user. | Built in when Data Products are available; requires OAuth and Data Product authorization. | Authenticated no-match call returned HTTP 200 with `isError=false`. |
-| `queryReadOnly` | Enabled and advertised | Execute one synchronous read-only Trino SQL query. | Built in; subject to OAuth, data authorization, result-size, timeout, and resource controls. | Discovered and schema-validated; execute only against an approved dataset with a bounded query. |
+| `queryReadOnly` | Enabled and advertised | Execute one synchronous read-only Trino SQL query. | Built in; subject to OAuth, data authorization, result-size, timeout, and resource controls. | `SELECT 1 AS validation_value LIMIT 1` completed successfully with one integer column, one row, structured content, and a query ID. |
 | `getDataProductDetails` | Documented, not advertised by pilot | Retrieve a Data Product's metadata, views, materialized views, and columns. | Built in when supported by the installed release and Data Products are available; requires authorization to the Data Product. | Not available in the tested identity's live catalog. |
 | `listParametrizedQueryTools` | Not enabled or not exposed by pilot | List administrator-defined parameterized query templates. | Administrator must set `mcp.parametrized-tools.enabled=true`, configure definition paths, add approved YAML definitions, and restart. | Not available in the tested identity's live catalog. |
 | `parametrizedQuery` | Not enabled or not exposed by pilot | Execute an approved parameterized query with server-side typing and validation. | Same administrator configuration and restart as `listParametrizedQueryTools`; the user also needs authorization to referenced data. | Not available in the tested identity's live catalog. |
@@ -45,6 +45,27 @@ Safe execution passed for both tools: a deliberately no-match Data Product
 search returned structured content without error, and
 `SELECT 1 AS validation_value LIMIT 1` returned one column, one row, a query
 ID, and structured content without reading customer data.
+
+## OAuth and execution revalidation — August 17, 2026
+
+The endpoint was revalidated through standards-based OAuth protected-resource
+discovery and Keycloak dynamic client registration. Registration produced a
+native public client for authorization code with PKCE S256, no client secret,
+and an exact loopback callback. Browser authentication and the code exchange
+completed successfully, and a new Codex session initialized the MCP server and
+again advertised exactly `searchDataProducts` and `queryReadOnly`.
+
+The successful authorization request contained one `resource` value. A prior
+attempt with both discovered resource metadata and a manual resource override
+contained two values and was rejected as a duplicated parameter. The validated
+login command explicitly requested `openid`; Codex also requested
+`offline_access` for refresh support. A no-scope attempt requested the issuer's
+broader advertised scope set and was not used.
+
+The newly authenticated identity then executed the synthetic bounded statement
+`SELECT 1 AS validation_value LIMIT 1` through `queryReadOnly`. It returned
+`validation_value=1`, one row, no error, and a query ID. No customer catalog,
+table, or Data Product was read.
 
 OAuth, DDAE roles, catalog permissions, row and column controls, resource
 groups, query limits, and audit policy remain authoritative.

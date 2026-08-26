@@ -19,8 +19,9 @@ Obtain from the DDAE administrator:
 
 - `DDAE_MCP_URL`: complete HTTPS MCP endpoint, commonly
   `https://<ddae-host>/mcp`.
-- `DDAE_OAUTH_RESOURCE`: resource identifier advertised by protected-resource
-  metadata, commonly the DDAE origin without `/mcp`.
+- The protected-resource metadata URL and expected authorization-server issuer.
+- The resource identifier advertised by that metadata, commonly the DDAE origin
+  without `/mcp`.
 
 Never infer an endpoint from an example. The plugin intentionally does not
 embed a customer URL. Register the concrete endpoint in each customer's Codex
@@ -28,20 +29,38 @@ configuration, then complete OAuth:
 
 ~~~bash
 codex mcp add dell_data_analytics_engine \
-  --url "$DDAE_MCP_URL" \
-  --oauth-resource "$DDAE_OAUTH_RESOURCE"
+  --url "$DDAE_MCP_URL"
 codex mcp login dell_data_analytics_engine --scopes openid
 codex mcp get dell_data_analytics_engine --json
 ~~~
+
+Prefer protected-resource discovery over a manual OAuth resource override. If
+discovery already supplies the resource, an explicit override can cause some
+clients to send `resource` twice and receive `invalid_request: duplicated
+parameter`. Use a manual override only when discovery is absent or incorrect,
+and verify that the final authorization request contains exactly one resource.
+
+Keep `--scopes openid` explicit. In the validated Codex flow, the client also
+requested `offline_access` for refresh-token support. Omitting `--scopes` can
+request every scope advertised by the issuer, including scopes unrelated to
+interactive MCP access.
 
 For an OpenAI marketplace submission, attach these skills to the reviewed
 Universal MCP URL or approved URL template in the submission workflow. Keep
 customer-specific endpoints out of the reusable plugin package.
 
+Use dynamic client registration by default when the customer permits it. The
+authorization server must accept a native public client with
+`grant_types=[authorization_code]`, `token_endpoint_auth_method=none`, an exact
+loopback redirect URI, and PKCE S256. Registration returns a generated
+`client_id` and no client secret. A realm-level default client scope or
+equivalent policy must add the DDAE-required audience to every DCR-created
+client's access token.
+
 If dynamic client registration is disabled, require an administrator-approved
-public OAuth client supporting authorization code, PKCE, and Codex's loopback
-callback. Configure its ID with Codex `oauth_client_id`. Never embed a client
-secret, access token, refresh token, endpoint, tenant, or certificate.
+public OAuth client with the same authorization-code, PKCE, audience, and
+loopback behavior. Configure its ID with Codex `oauth_client_id`. Never embed a
+client secret, access token, refresh token, endpoint, tenant, or certificate.
 
 Do not confuse a Starburst CLI/JDBC browser handoff with MCP-native OAuth. Use
 an alternative token handoff only when the supported DDAE product contract and
@@ -79,6 +98,12 @@ Read `references/evaluation-plan.md` when preparing hero prompts, release
 evidence, or OpenAI submission tests. Execute success, edge, and safety variants
 against stable synthetic fixtures; do not treat documented cases as passing
 until their transcripts and verifier results are retained.
+Read `references/DDAE_OAUTH_USER_GUIDE.md` when helping a plugin user register
+the endpoint, sign in, verify tools, run a safe smoke test, or prepare a redacted
+support request.
+Read `references/DDAE_OAUTH_ADMIN_GUIDE.md` when preparing DDAE or the identity
+provider, configuring DCR or a fallback public client, mapping audience and
+identity claims, or troubleshooting server-side OAuth policy.
 
 ## Validate before data access
 
@@ -86,12 +111,16 @@ until their transcripts and verifier results are retained.
    not a general DDAE UI page.
 2. Confirm protected-resource metadata identifies the expected resource,
    authorization server, and scope.
-3. Complete OAuth as the intended non-admin user.
-4. Initialize MCP and inspect `tools/list`; do not infer tools that the server
+3. Confirm issuer metadata advertises the expected authorization, token, and
+   registration endpoints and PKCE S256 support.
+4. Complete OAuth as the intended non-admin user. Confirm a DCR-created client
+   is public, uses authorization code, has no secret, and receives the required
+   DDAE audience.
+5. Initialize MCP and inspect `tools/list`; do not infer tools that the server
    does not advertise.
-5. Exercise `searchDataProducts` with a narrow or no-match query before reading
+6. Exercise `searchDataProducts` with a narrow or no-match query before reading
    data.
-6. Run `queryReadOnly` only after the user identifies an authorized dataset and
+7. Run `queryReadOnly` only after the user identifies an authorized dataset and
    approves a bounded statement.
 
 ## Enforce safe usage
@@ -108,10 +137,19 @@ until their transcripts and verifier results are retained.
 ## Troubleshoot
 
 - `401` before login: expected; complete OAuth.
-- Protected-resource or audience error: verify `DDAE_OAUTH_RESOURCE` against
-  live metadata.
-- Dynamic registration rejected: use an administrator-approved public client.
-- Redirect rejected: verify registered loopback URIs and PKCE policy.
+- `invalid_request: duplicated parameter`: inspect the authorization URL for
+  duplicate `resource` values and remove the redundant manual override.
+- `403 insufficient_scope` from DCR: update the authorization server's allowed
+  client-scopes policy for the minimal interactive scopes; do not broaden the
+  user's DDAE permissions.
+- Protected-resource or audience error: verify live metadata and ensure the
+  DDAE-required audience mapper applies to every newly registered client.
+- Dynamic registration rejected: correct the DCR policy or use an
+  administrator-approved public client.
+- Redirect rejected: verify the exact registered loopback URI and PKCE S256
+  policy. Loopback uses `127.0.0.1`, not the DDAE hostname.
+- `invalid_grant: Code not valid`: restart login; authorization codes are
+  single-use and short-lived. Do not paste them into chat, logs, or tickets.
 - Login succeeds but resources are absent: verify DDAE roles; do not expand
   plugin permissions.
 - Timeout or oversized result: reduce the scan and result set and confirm

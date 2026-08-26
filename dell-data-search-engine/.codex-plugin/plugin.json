@@ -1,6 +1,6 @@
 {
   "name": "dell-data-search-engine",
-  "version": "0.1.0+codex.20260812211934",
+  "version": "0.1.1",
   "description": "Use Dell Data Search Engine with a customer-registered MCP endpoint.",
   "author": {
     "name": "Dell Technologies"
