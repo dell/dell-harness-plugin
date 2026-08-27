@@ -68,3 +68,67 @@ def confirm_or_elicit(ctx: "Context | None", confirm: bool, action: str, consequ
     result = anyio.from_thread.run(ctx.elicit, message, ConfirmationRequest)
     if result.action != "accept" or not result.data.confirmed:
         raise ValueError(f"Refusing to {action}: the user did not confirm.")
+
+
+#: The most feature vectors a tool may pull off the platform and process in *this* process without
+#: a human agreeing first.
+#:
+#: Set equal to the `le=` cap those tools already advertise, which is the point: today the schema
+#: cap is the binding control and this gate never fires. That is the correct state -- a hard cap an
+#: agent cannot exceed is stronger than a prompt it can click through -- and the gate exists as a
+#: tripwire for the day someone raises a cap. `tests/test_guards.py` pins the relationship, so raising
+#: `max_vectors` past this number is a deliberate act that either lowers the ceiling back or
+#: accepts the elicitation prompt.
+LOCAL_COMPUTE_VECTOR_BUDGET = 2_000
+
+
+def elicit_or_refuse(ctx: "Context | None", *, action: str, consequence: str, remedy: str) -> None:
+    """Ask the human, or refuse. No `confirm=true` escape hatch.
+
+    For decisions a model must not be able to take on its own behalf. `confirm_or_elicit` falls
+    back to trusting the model's own `confirm=true` when the client cannot elicit, which is the
+    right trade for a billable operation the user asked for — but not for "download and run a
+    third-party model in this process", where the whole question is whether a human agrees to it.
+
+    Costs nothing on the advertised surface either, since there is no parameter to declare, and
+    the tool-surface budget has no headroom. `remedy` must name the way to proceed *without* the
+    gated behaviour, so a refusal is actionable rather than a dead end.
+    """
+    if not _elicitation_supported(ctx):
+        raise ValueError(f"Refusing to {action}: {consequence}. {remedy}")
+    confirm_or_elicit(ctx, False, action, consequence)
+
+
+def gate_local_compute(ctx: "Context | None", *, requested: int, action: str, parameter: str) -> None:
+    """Gate work this server performs **in its own process** on data pulled off the platform.
+
+    A few tools (`dataset_cluster`, `dataset_visual_search`, `rag_query`) read feature vectors out
+    of DOE and compute over them here — k-means, cosine similarity — rather than on the
+    platform. That is a deliberate, reviewed exception (ADR-017) and it stays available, but past a
+    volume it stops being "a bounded diagnostic read" and becomes exactly the local computation the
+    project's conventions say a human should agree to first.
+
+    Gated on the caller's existing bound (`max_vectors`, and friends) rather than on a new
+    `confirm` parameter, for two reasons: it costs nothing on the advertised tool surface, which
+    has no headroom; and it keeps routine small reads unprompted, so the gate stays meaningful
+    instead of becoming a reflex to click through.
+
+    **What this cannot do**, and no MCP server can: gate computation the *agent* runs on its own,
+    in its own sandbox, between tool calls. The server sees tool calls and nothing else. If an
+    agent lists items and then runs its own code over them, nothing here observes it. The reachable
+    controls are this gate, the tool annotations, and the skill's declared contract — see
+    `docs/eval.md` on detection after the fact.
+    """
+    if requested <= LOCAL_COMPUTE_VECTOR_BUDGET:
+        return
+    consequence = (
+        f"it pulls up to {requested} feature vectors out of DOE and computes over them "
+        f"locally, in the doe-mcp process, rather than on the platform"
+    )
+    if not _elicitation_supported(ctx):
+        raise ValueError(
+            f"Refusing to {action}: {consequence}. Lower {parameter} to "
+            f"{LOCAL_COMPUTE_VECTOR_BUDGET} or less, or connect a client that supports "
+            "elicitation so the user can be asked directly."
+        )
+    confirm_or_elicit(ctx, False, action, consequence)

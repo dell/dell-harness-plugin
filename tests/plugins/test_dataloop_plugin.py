@@ -26,7 +26,7 @@ def load_launcher():
 def test_manifest_mcp_marketplace_and_governance_are_registered():
     manifest = load_json(PLUGIN / ".codex-plugin" / "plugin.json")
     assert manifest["name"] == "dell-data-orchestration-engine"
-    assert manifest["version"] == "0.1.0"
+    assert manifest["version"] == "0.2.0"
     assert manifest["skills"] == "./skills/"
     assert manifest["mcpServers"] == "./.mcp.json"
     assert manifest["homepage"].startswith("https://")
@@ -60,9 +60,9 @@ def test_manifest_mcp_marketplace_and_governance_are_registered():
     assert 'identity = { command = "python" }' in requirements
 
 
-def test_five_outcome_skills_have_metadata_and_no_placeholders():
+def test_six_outcome_skills_have_metadata_and_no_placeholders():
     skills = sorted((PLUGIN / "skills").glob("*/SKILL.md"))
-    assert len(skills) == 5
+    assert len(skills) == 6
     for path in skills:
         text = path.read_text(encoding="utf-8")
         assert text.startswith("---\nname:")
@@ -162,15 +162,15 @@ def test_dataloop_evaluation_definition_and_contract_inventory_validate():
         text=True,
     )
     summary = json.loads(completed.stdout)["plugins"]["dell-data-orchestration-engine"]
-    assert summary["workflows"] == 6
+    assert summary["workflows"] == 7
     assert summary["submission_cases"]["positive"] >= 5
     assert summary["submission_cases"]["negative"] >= 3
 
     definition = load_json(ROOT / "evals" / "cases" / "dataloop.json")
-    assert len(definition["contract_tools"]) == 32
+    assert len(definition["contract_tools"]) == 36
     assert definition["contract_tools"] == definition["declared_tools"]
-    assert len(definition["upstream_tools"]) == 66
-    assert len(set(definition["upstream_tools"])) == 66
+    assert len(definition["upstream_tools"]) == 70
+    assert len(set(definition["upstream_tools"])) == 70
     assert set(definition["contract_tools"]) <= set(definition["upstream_tools"])
 
 

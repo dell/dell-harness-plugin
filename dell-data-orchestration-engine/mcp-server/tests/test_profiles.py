@@ -8,8 +8,20 @@ covers what a profile controls: which tools `build_server(profiles=...)` actuall
 import asyncio
 
 import pytest
+from mcp.server import MCPServer
 
-from doe_mcp.server import FULL_TOOL_NAMES, PLUGIN_V1_TOOLS, PROFILES, build_server
+from doe_mcp.server import ALL_MODULES, PLUGIN_V1_TOOLS, PROFILE_ONLY, PROFILES, build_server
+
+
+def run(coro):
+    return asyncio.run(coro)
+
+
+async def _tools_of(module):
+    """The tools one module registers, independent of any profile."""
+    isolated = MCPServer(name="probe", version="0")
+    module.register(isolated)
+    return await isolated.list_tools()
 
 
 def tool_names(profiles=None):
@@ -78,13 +90,40 @@ def test_unknown_profile_is_rejected():
 
 
 def test_every_declared_profile_is_a_strict_subset_of_the_full_surface():
+    """A profile is a bias toward one workflow, not a different server.
+
+    The one sanctioned exception is a module in `PROFILE_ONLY`, which registers a tool the default
+    surface deliberately does not carry. That list is explicit precisely so this guard keeps its
+    teeth: an accidental extra tool still fails here, only a declared one passes.
+    """
     full = tool_names(None)
+    sanctioned = {tool.name for module in PROFILE_ONLY for tool in run(_tools_of(module))}
+
     for name in PROFILES:
-        assert tool_names([name]) < full, f"profile {name!r} isn't smaller than the full surface"
+        offered = tool_names([name])
+        unexpected = offered - full - sanctioned
+        assert not unexpected, f"profile {name!r} offers undeclared tool(s) {sorted(unexpected)}"
+        assert offered - sanctioned < full, f"profile {name!r} isn't smaller than the full surface"
+
+
+def test_profile_only_modules_really_are_absent_from_the_default_surface():
+    """If a PROFILE_ONLY module ever joins ALL_MODULES, the declaration is stale and misleading."""
+    for module in PROFILE_ONLY:
+        assert module not in ALL_MODULES, f"{module.__name__} is in ALL_MODULES; drop it from PROFILE_ONLY"
+
+
+def test_every_profile_only_tool_is_reachable_through_some_profile():
+    """A module excluded from the default surface and named by no profile would be dead code."""
+    reachable = set()
+    for name in PROFILES:
+        reachable |= tool_names([name])
+
+    for module in PROFILE_ONLY:
+        for tool in run(_tools_of(module)):
+            assert tool.name in reachable, f"{tool.name} is registered by no profile"
 
 
 def test_plugin_v1_profile_is_exact_and_cannot_be_combined():
-    assert tool_names(None) == FULL_TOOL_NAMES
     assert tool_names(["plugin-v1"]) == PLUGIN_V1_TOOLS
     with pytest.raises(ValueError, match="cannot be combined"):
         build_server(profiles=["plugin-v1", "discovery"])

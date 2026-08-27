@@ -1,6 +1,6 @@
 """Embeddings and clustering over a dataset's feature vectors.
 
-Dataloop ships a native Clustering app — the TensorBoard Embedding Projector, reachable from the
+DOE ships a native Clustering app — the TensorBoard Embedding Projector, reachable from the
 Dataset Browser. It is a *visualisation*: it renders a UMAP projection for a person to look at,
 and exposes no API that returns "here are your clusters". An agent cannot consume a picture.
 
@@ -35,7 +35,7 @@ from pydantic import Field
 
 from .. import paging
 from ..context import dataloop_call, get_dataset, get_project
-from ..guards import confirm_or_elicit
+from ..guards import confirm_or_elicit, elicit_or_refuse, gate_local_compute
 from ..progress import report_progress
 
 READ_ONLY = ToolAnnotations(
@@ -105,7 +105,26 @@ def cosine_similarity(vectors: np.ndarray, query_vector: np.ndarray) -> np.ndarr
 
 
 def encode_text_query(query: str) -> np.ndarray:
-    """Encode a natural language text query into a CLIP feature vector."""
+    """Encode a text query into a CLIP vector by running CLIP **in this process**.
+
+    This is the sharpest local-computation case in the server, and it is a standing exception
+    rather than a sanctioned design — flagged 2026-08-27, recorded in the techspec:
+
+    * it **downloads an external model at runtime** (`from_pretrained` fetches
+      `openai/clip-vit-base-patch32` from HuggingFace), against the project convention "always use
+      the models/apps installed on DOE; never download or run external/local models";
+    * it runs a neural network locally, against "never run image recognition or similar ML tasks
+      locally";
+    * `torch` and `transformers` are **not declared dependencies**, so for most installs this
+      raises rather than running at all;
+    * it has no test coverage.
+
+    The platform-side equivalent already exists — `tools/rag.py`'s `embed_query` embeds a query by
+    uploading a throwaway item and letting the *deployed* model embed it, which is comparable with
+    the stored vectors by construction. Routing `dataset_visual_search` through that (or requiring
+    `query_vector`, which it already accepts) would retire this function. Until that decision is
+    taken, callers must clear the gate at the call site.
+    """
     try:
         import torch
         from transformers import CLIPTextModelWithProjection, CLIPTokenizer
@@ -176,7 +195,7 @@ def register(mcp: MCPServer) -> None:
             "feature_sets": summaries,
             "next_step": (
                 "Cluster with dataset_cluster, or open the dataset's Clustering tab in the "
-                "Dataloop console for the platform's own visualisation."
+                "DOE console for the platform's own visualisation."
                 if summaries
                 else "No feature set on this dataset. dataset_embed extracts one, using a model "
                 "already installed in the project. That is billable."
@@ -273,6 +292,7 @@ def register(mcp: MCPServer) -> None:
             int, Field(ge=2, le=MAX_VECTORS, description="Cap on vectors pulled into this process.")
         ] = 1000,
         examples: Annotated[int, Field(ge=1, le=10, description="Example items per cluster.")] = 3,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         """Group a dataset's items by embedding similarity, so their themes can be described.
 
@@ -297,6 +317,11 @@ def register(mcp: MCPServer) -> None:
                 raise ValueError(f"Provide feature_set_id: this dataset has several — {names}.")
             feature_set_id = sets[0].id
 
+        # k-means runs here, in this process, over vectors pulled off the platform (ADR-017).
+        # Past a volume that stops being a bounded diagnostic read.
+        gate_local_compute(
+            ctx, requested=max_vectors, action="cluster this dataset locally", parameter="max_vectors"
+        )
         features, truncated = dataloop_call(
             "feature list", lambda: read_vectors(dataset, feature_set_id, max_vectors)
         )
@@ -369,6 +394,7 @@ def register(mcp: MCPServer) -> None:
         max_vectors: Annotated[
             int, Field(ge=2, le=MAX_VECTORS, description="Cap on vectors pulled into this process.")
         ] = 1000,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         """Search items in a dataset by visual/semantic embedding similarity.
 
@@ -377,6 +403,22 @@ def register(mcp: MCPServer) -> None:
         """
         if not query and not query_vector:
             raise ValueError("Provide either query or query_vector.")
+
+        if query_vector is None:
+            # Decided from the arguments alone, before any platform call: a text query with no
+            # vector means CLIP has to run *here*. Categorically heavier than the vector-budget
+            # tripwire further down, and elicitation-only on purpose -- a `confirm` parameter
+            # would let the model approve running a foreign model on its own say-so, which is
+            # precisely the decision a human has to make.
+            elicit_or_refuse(
+                ctx,
+                action="run CLIP locally to encode this query",
+                consequence=(
+                    "it downloads openai/clip-vit-base-patch32 from HuggingFace and runs it in the "
+                    "doe-mcp process, instead of using a model deployed on DOE"
+                ),
+                remedy="Pass query_vector instead, or use rag_query, to keep the work on the platform.",
+            )
 
         dataset = get_dataset(project_id, dataset_id)
         if feature_set_id is None:
@@ -397,6 +439,10 @@ def register(mcp: MCPServer) -> None:
         else:
             q_vec = encode_text_query(query or "")
 
+        # Cosine similarity over every vector pulled, computed here rather than on the platform.
+        gate_local_compute(
+            ctx, requested=max_vectors, action="run this visual search locally", parameter="max_vectors"
+        )
         features, truncated = dataloop_call(
             "feature list", lambda: read_vectors(dataset, feature_set_id, max_vectors)
         )

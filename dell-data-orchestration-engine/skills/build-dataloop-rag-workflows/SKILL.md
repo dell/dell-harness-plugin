@@ -33,7 +33,8 @@ Use this order and preserve returned IDs:
 6. `rag_add_output_node` targeting the approved dataset.
 7. `pipeline_connect_nodes` for each intended edge.
 8. Read the graph with `pipeline_get` before installation.
-9. `pipeline_install` only after the user confirms the final graph and cost or
+9. `pipeline_validate`; stop if the platform rejects the graph.
+10. `pipeline_install` only after the user confirms the final graph and cost or
    persistence implications.
 
 Generated code nodes require the server's explicit code confirmation. Show the
@@ -42,8 +43,9 @@ purpose and relevant behavior of generated code before setting
 
 ## Validate and query
 
-After installation, use `pipeline_stats` and the approved output dataset to
-check execution evidence. Run `rag_query` with a specific question and a small
+After installation, use `execution_list` and the approved output dataset to
+check execution evidence. Use `pipeline_execute` only for an explicitly approved bounded run. Run
+`rag_query` with a specific question and a small
 result limit. Distinguish retrieved evidence from the model's interpretation;
 do not invent citations or claim completeness.
 

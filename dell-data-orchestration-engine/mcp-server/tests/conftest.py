@@ -38,7 +38,7 @@ def call_tool() -> Callable[..., Any]:
 
 @pytest.fixture(autouse=True)
 def _no_real_credentials(monkeypatch: pytest.MonkeyPatch, tmp_path_factory: pytest.TempPathFactory) -> None:
-    """Make sure the tests never touch a real Dataloop login or shared state directory."""
+    """Make sure the tests never touch a real DOE login or shared state directory."""
     monkeypatch.delenv("DATALOOP_API_KEY", raising=False)
     monkeypatch.delenv("DATALOOP_GATE_URL", raising=False)
     monkeypatch.delenv("DATALOOP_VERIFY_SSL", raising=False)

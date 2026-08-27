@@ -107,3 +107,39 @@ def test_accepts_indented_source():
     source = "    def run(item):\n        return item\n"
     assert code_node.function_name_of(source) == "run"
     assert "    @staticmethod\n    def run(item):\n" in code_node.build_runner_code(source)
+
+
+def test_rejects_source_past_the_length_cap():
+    """An oversized body must fail here, not deep inside ast or on the platform.
+
+    Enforced in `function_name_of` rather than as a pydantic `max_length` so both entry points
+    (`pipeline_node_add` via CodeNodeSpec, and `pipeline_node_update`) get it, and so no
+    `maxLength` lands in the advertised JSON Schema -- the tool-surface budget has no headroom.
+    """
+    source = "def run(item):\n" + "    x = 1\n" * code_node.MAX_CODE_CHARS
+
+    with pytest.raises(ValueError, match="longer than"):
+        code_node.function_name_of(source)
+
+
+def test_parser_exhaustion_surfaces_as_the_documented_error(monkeypatch):
+    """ast.parse can fail with more than SyntaxError, and callers are promised ValueError.
+
+    Real shapes reach this: `"not " * 10000` raises MemoryError out of ast.parse on CPython 3.11,
+    and a null byte raises ValueError. Deeply nested brackets and indentation happen to raise
+    SyntaxError subclasses, so they were already handled -- these are not.
+    """
+
+    def exhausted(*args, **kwargs):
+        raise MemoryError
+
+    monkeypatch.setattr(code_node.ast, "parse", exhausted)
+
+    with pytest.raises(ValueError, match="too complex to parse"):
+        code_node.function_name_of("def run(item):\n    return item\n")
+
+
+def test_rejects_source_containing_a_null_byte():
+    """ast.parse raises ValueError, not SyntaxError, for embedded nulls."""
+    with pytest.raises(ValueError, match="not valid Python"):
+        code_node.function_name_of("def run(item):\n    return '\x00'\n")

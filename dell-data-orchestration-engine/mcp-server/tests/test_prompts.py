@@ -1,7 +1,8 @@
-"""MCP Prompts wrapping the three docs/guides/*.md workflows' opening prompts (plan §4 Phase 2)."""
+"""MCP Prompts and golden evaluation traces must share the same workflow text."""
 
 import asyncio
 
+import pytest
 from mcp import Client
 
 from doe_mcp.server import build_server
@@ -35,3 +36,21 @@ def test_each_prompt_returns_nonempty_message_text():
         assert result.messages, f"{name} returned no messages"
         text = result.messages[0].content.text
         assert len(text) > 100, f"{name}'s prompt text looks truncated"
+
+
+TRACE_PROMPTS = [
+    ("DATASET_EXPLORATION", "EXPLORE_DATASET_PROMPT"),
+    ("PII_DETECTION", "FIND_AND_HANDLE_PII_PROMPT"),
+    ("AGENTIC_RAG", "BUILD_RAG_PIPELINE_PROMPT"),
+]
+
+
+@pytest.mark.parametrize(("trace_name", "constant"), TRACE_PROMPTS)
+def test_golden_trace_and_mcp_prompt_say_the_same_thing(trace_name, constant):
+    """The evaluator must score the same instruction the MCP prompt serves."""
+    from doe_mcp import prompts as prompts_module
+    from doe_mcp.eval import traces as traces_module
+
+    trace = getattr(traces_module, trace_name)
+    prompt = getattr(prompts_module, constant)
+    assert trace.intent.strip() == prompt.strip()

@@ -36,9 +36,10 @@ MUTATING = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_wo
 PROFILE_PAGE_SIZE = 100
 PROFILE_MAX_SCAN = 1000
 
-# Mirrors dataset_update's allow-list. `metadata` here means *user* metadata: the platform's
-# own `system` block is reachable through the same attribute and is never writable from a tool.
-SAFE_ITEM_FIELDS = {"name", "description", "metadata"}
+# `metadata` on an item means *user* metadata: the platform's own `system` block is reachable
+# through the same attribute and is never writable from a tool. The writable set is enforced
+# structurally by `item_update`'s signature rather than by an allow-list constant -- there was one
+# here, unreferenced since it was written, so the check it implied never actually ran.
 SYSTEM_METADATA_KEY = "system"
 
 
@@ -234,7 +235,7 @@ def register(mcp: MCPServer) -> None:
                 )
                 # upload() returns None when it declined the file without raising.
                 if result is None:
-                    failed.append({"local_path": path, "error": "Dataloop accepted no item for this file."})
+                    failed.append({"local_path": path, "error": "DOE accepted no item for this file."})
                     continue
                 entity = result[0] if isinstance(result, list) else result
                 summary = serialize.item(entity)
@@ -278,7 +279,7 @@ def register(mcp: MCPServer) -> None:
         if description is not None:
             item.description = description
         if patch is not None:
-            # Under `user`, not at the top level. Dataloop namespaces caller-owned metadata
+            # Under `user`, not at the top level. DOE namespaces caller-owned metadata
             # there, and every query this server builds targets `metadata.user.<field>` —
             # model_set_subset's review-marker filter above all. Writing to the top level
             # produced a marker no filter could ever match, which live smoke exposed.

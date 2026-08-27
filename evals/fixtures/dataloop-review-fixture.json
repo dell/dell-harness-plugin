@@ -50,5 +50,26 @@
     "require_exact_ids": true,
     "require_confirmation": true,
     "retain_audit_references": true
+  },
+  "pipelines": [
+    {
+      "name": "synthetic-rag-pipeline",
+      "purpose": "validate and run one bounded synthetic document workflow",
+      "expected_nodes": [
+        "pdf_filter",
+        "pdf_to_text",
+        "text_to_chunks",
+        "generate_embeddings",
+        "output_storage"
+      ],
+      "require_validation_before_install": true,
+      "bounded_test_input": "one item from synthetic-docs"
+    }
+  ],
+  "execution_cases": {
+    "controlled_run": "capture and retain the platform-issued pipeline and execution IDs",
+    "stuck_run": "provision one terminable in-progress execution only in the disposable project",
+    "termination_warning": "partial writes are not rolled back",
+    "reset_after_case": true
   }
 }

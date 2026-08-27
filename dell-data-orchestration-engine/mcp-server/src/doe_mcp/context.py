@@ -25,7 +25,7 @@ def dataloop_call(action: str, func: Callable[[], T]) -> T:
         raise
     except Exception as exc:
         message = str(exc).strip() or type(exc).__name__
-        raise RuntimeError(f"Dataloop {action} failed: {message}") from exc
+        raise RuntimeError(f"DOE {action} failed: {message}") from exc
 
 
 def get_project(project_id: str) -> dl.entities.Project:

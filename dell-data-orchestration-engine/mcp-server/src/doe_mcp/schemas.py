@@ -8,7 +8,9 @@ rejects a malformed node before any platform call is made.
 
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from . import code_node, dql
 
 Position = Annotated[tuple[int, int], Field(description="Grid position (x, y) in the pipeline editor.")]
 
@@ -36,17 +38,32 @@ class DatasetNodeSpec(BaseNodeSpec):
         ),
     )
 
+    @field_validator("data_filters")
+    @classmethod
+    def _validate_data_filters(cls, value: dict[str, Any] | None) -> dict[str, Any] | None:
+        """Reject a malformed DQL query before any platform call, not after."""
+        if value is not None:
+            dql.validate_data_filters(value)
+        return value
+
 
 class CodeNodeSpec(BaseNodeSpec):
-    """A code node: a Python function that Dataloop runs on each item."""
+    """A code node: a Python function that DOE runs on each item."""
 
     node_type: Literal["code"]
     code: str = Field(
         description=(
             "Exactly one top-level function and nothing else; put imports inside it. Takes an "
-            "item, returns one, e.g. 'def run(item):\\n    return item'. Runs on Dataloop."
+            "item, returns one, e.g. 'def run(item):\\n    return item'. Runs on DOE."
         )
     )
+
+    @field_validator("code")
+    @classmethod
+    def _validate_code(cls, value: str) -> str:
+        """Reject unusable source before any platform call, not after."""
+        code_node.function_name_of(value)
+        return value
 
 
 class FunctionNodeSpec(BaseNodeSpec):

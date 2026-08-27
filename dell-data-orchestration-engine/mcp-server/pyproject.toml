@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dell-data-orchestration-engine-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "Bundled MCP server for Dell Data Orchestration Engine through the Dataloop SDK"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -27,6 +27,10 @@ dev = [
     "pytest>=8",
     "ruff>=0.6",
     "mypy>=1.11",
+    # Measurement only: scripts/measure_tool_surface.py and the budget test tokenize the
+    # advertised surface. Nothing under src/ imports it, so it adds no runtime supply-chain
+    # surface. It replaced a chars/4 estimate that under-counted the real cost by ~11%.
+    "tiktoken>=0.13,<0.14",
 ]
 
 [project.scripts]
@@ -46,5 +50,8 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.mypy]
 python_version = "3.11"
-files = ["src"]
+# scripts/ is included deliberately: doe_eval.py and live_smoke.py are the two entry points that
+# touch a live platform and real credentials, and being outside src/ meant they were the only
+# code in the repo never type-checked. `mypy` with no arguments now covers both.
+files = ["src", "scripts"]
 ignore_missing_imports = true

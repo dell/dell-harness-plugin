@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Drive the real tools against a live Dataloop instance.
+"""Drive the real tools against a live DOE instance.
 
 The offline suite stubs dtlpy at the seams, which is fast and needs no network but cannot
 see mistakes on the dtlpy side of that seam. Three real bugs hid there: labels without a
@@ -20,6 +20,7 @@ import os
 import sys
 import tempfile
 import uuid
+from typing import Any
 
 import mcp_types as types
 from mcp import Client
@@ -44,6 +45,16 @@ def check(label: str, ok: bool, detail: str = "") -> None:
     print(f"  {'PASS' if ok else 'FAIL'}  {label}{f' — {detail}' if detail else ''}")
     if not ok:
         failures.append(label)
+
+
+def _detail(result: Any, limit: int = 120) -> str:
+    """First line of a tool error, for a check's detail column.
+
+    `getattr` rather than `.text`: a content block is a union (text/image/audio/resource) and only
+    the text variant has `.text`.
+    """
+    blocks = getattr(result, "content", None) or []
+    return getattr(blocks[0], "text", "")[:limit] if blocks else ""
 
 
 async def run(project_id: str) -> None:
@@ -200,7 +211,7 @@ async def run(project_id: str) -> None:
             check(
                 "annotation_create writes a classification",
                 not res.is_error,
-                "" if not res.is_error else res.content[0].text[:200],
+                "" if not res.is_error else _detail(res, 200),
             )
 
             res = await call(
@@ -281,7 +292,7 @@ async def run(project_id: str) -> None:
             check(
                 "bulk delete removes the model's annotations",
                 not res.is_error,
-                "" if not res.is_error else res.content[0].text[:200],
+                "" if not res.is_error else _detail(res, 200),
             )
 
             # The safety claim that matters: the filter scoped to this model only.
@@ -312,7 +323,7 @@ async def run(project_id: str) -> None:
             check(
                 "pii_set_findings writes the flat map",
                 not res.is_error,
-                "" if not res.is_error else res.content[0].text[:200],
+                "" if not res.is_error else _detail(res, 200),
             )
 
             res = await call(
@@ -453,12 +464,12 @@ async def run(project_id: str) -> None:
             check(
                 "an accepted elicitation performs the delete with no confirm=true argument",
                 not res.is_error,
-                "" if not res.is_error else res.content[0].text[:200],
+                "" if not res.is_error else _detail(res, 200),
             )
 
         print("marketplace")
         res = await call("marketplace_search", {"page_size": 5})
-        models = res.structured_content if not res.is_error else {"items": [], "total": 0}
+        models: dict[str, Any] = res.structured_content if not res.is_error else {"items": [], "total": 0}
         check("marketplace_search finds model packages", models["total"] > 0, f"total={models['total']}")
         check(
             "every result provides models",
@@ -467,14 +478,16 @@ async def run(project_id: str) -> None:
 
         # Regression: the platform ignores partial-name filters, so this must be local.
         res = await call("marketplace_search", {"name": "yolo"})
-        names = [i["name"] for i in res.structured_content["items"]] if not res.is_error else []
+        by_name: dict[str, Any] = res.structured_content if not res.is_error else {"items": []}
+        names = [i["name"] for i in by_name["items"]]
         check("name search matches substrings", bool(names), f"{names[:5]}")
 
         res = await call("marketplace_search", {"name": "definitely-not-a-real-package-xyz"})
-        check("name search excludes non-matches", not res.is_error and res.structured_content["total"] == 0)
+        empty: dict[str, Any] = res.structured_content if not res.is_error else {"total": -1}
+        check("name search excludes non-matches", not res.is_error and empty["total"] == 0)
 
         res = await call("marketplace_search", {"templates_only": True, "page_size": 5})
-        templates = res.structured_content if not res.is_error else {"items": [], "total": 0}
+        templates: dict[str, Any] = res.structured_content if not res.is_error else {"items": [], "total": 0}
         check("marketplace_search can query pipeline templates", not res.is_error)
         check(
             "template search results provide templates",
@@ -486,7 +499,7 @@ async def run(project_id: str) -> None:
             res = await call("marketplace_get_dpk", {"dpk_id": first_template["id"]})
             check(
                 "marketplace_get_dpk exposes pipeline templates",
-                not res.is_error and bool(res.structured_content["pipeline_templates"]),
+                not res.is_error and bool((res.structured_content or {})["pipeline_templates"]),
             )
 
         print("paging")
@@ -496,6 +509,212 @@ async def run(project_id: str) -> None:
             a = [i["id"] for i in first.structured_content["items"]]
             b = [i["id"] for i in second.structured_content["items"]]
             check("page 1 differs from page 0", bool(a) and bool(b) and a != b)
+
+        # Graph editing, back-to-back with no pause between calls. This is the exact shape that
+        # lost a node and duplicated two connections during the 2026-08-26 agentic-rag eval run
+        # (docs/eval.md): dtlpy's Pipelines.update PATCHes the whole node list, so a read racing a
+        # recent write silently discards it. Mocked tests cannot see it -- they stub update() out --
+        # and the hand-run check that "verified" the first fix passed while the retry was in fact
+        # inert for connect/disconnect. So it belongs here, where it gets re-run.
+        print("pipeline graph editing (rapid, unpaced -- the read-modify-write race)")
+        pipeline_name = f"{name}-graph"
+        res = None
+        if dataset_id is None:
+            # Dataset nodes need a real dataset id. Without one, skip rather than assert against a
+            # None -- the same bail-out the item phases above take.
+            check("graph editing skipped, no dataset to point nodes at", True)
+        else:
+            res = await call("pipeline_create", {"project_id": project_id, "name": pipeline_name})
+        if res is not None and res.is_error:
+            check("pipeline_create for graph editing", False, _detail(res))
+        elif res is not None:
+            pipeline_id = res.structured_content["id"]
+            graph_args = {"project_id": project_id, "pipeline_id": pipeline_id}
+
+            for node_name, ds_id in (("smoke-a", dataset_id), ("smoke-b", dataset_id)):
+                res = await call(
+                    "pipeline_node_add",
+                    {
+                        **graph_args,
+                        "node": {"node_type": "dataset", "name": node_name, "dataset_id": ds_id},
+                    },
+                )
+                check(f"pipeline_node_add {node_name}", not res.is_error, _detail(res))
+
+            res = await call(
+                "pipeline_connect_nodes",
+                {**graph_args, "source_node_name": "smoke-a", "target_node_name": "smoke-b"},
+            )
+            check("pipeline_connect_nodes immediately after adding both", not res.is_error, _detail(res))
+
+            # The whole point: read back independently and count. A lost update shows up here as a
+            # missing node or a duplicated edge, not as an error on the calls above.
+            res = await call("pipeline_get", {**graph_args, "include_graph": True})
+            if res.is_error:
+                check("pipeline_get after rapid edits", False, _detail(res))
+            else:
+                graph = res.structured_content
+                names = sorted(n["name"] for n in graph["nodes"])
+                check("both nodes survived the rapid sequence", names == ["smoke-a", "smoke-b"], f"{names}")
+                check(
+                    "exactly one connection, not duplicated",
+                    len(graph["connections"]) == 1,
+                    f"{len(graph['connections'])} connections",
+                )
+
+            res = await call(
+                "pipeline_node_update", {**graph_args, "node_name": "smoke-a", "position": [2, 1]}
+            )
+            check("pipeline_node_update repositions a node", not res.is_error, _detail(res))
+
+            res = await call(
+                "pipeline_disconnect_nodes",
+                {
+                    **graph_args,
+                    "source_node_name": "smoke-a",
+                    "target_node_name": "smoke-b",
+                    "confirm": True,
+                },
+            )
+            check("pipeline_disconnect_nodes removes the edge", not res.is_error, _detail(res))
+
+            res = await call("pipeline_get", {**graph_args, "include_graph": True})
+            check(
+                "graph is stable after update and disconnect",
+                not res.is_error
+                and len(res.structured_content["nodes"]) == 2
+                and res.structured_content["connections"] == [],
+                _detail(res),
+            )
+
+            res = await call("pipeline_validate", {**graph_args})
+            if not res.is_error:
+                # Its return shape is undocumented; the tool passes it through rather than
+                # coercing it, so this run is what tells us what to expect.
+                record("Pipelines.validate returns", repr(res.structured_content.get("result"))[:160])
+            elif "Invalid roles" in _detail(res, 300):
+                # Same class as the documented /ml/models 403: this API key's JWT carries
+                # `"roles": []`, so the endpoint refuses it regardless of project ownership. The
+                # tool surfaced it cleanly, which is all that can be verified with this credential
+                # -- whether validate *works* needs a properly-roled one. Not scored as a pass.
+                record(
+                    "pipeline_validate with an API-key credential",
+                    "refused, 400 Invalid roles - unverifiable with this key, same as /ml/models",
+                )
+            else:
+                check("pipeline_validate on a two-node graph", False, _detail(res))
+
+            res = await call("pipeline_execute", {**graph_args, "confirm": True})
+            if res.is_error:
+                # An uninstalled pipeline may well refuse to run. Either answer is informative;
+                # what matters is that the failure is legible rather than a traceback.
+                record("pipeline_execute on an uninstalled pipeline", _detail(res, 160))
+            else:
+                record("pipeline_execute on an uninstalled pipeline", "accepted")
+
+            res = await call("execution_list", {"project_id": project_id, "pipeline_id": pipeline_id})
+            check("execution_list returns without error", not res.is_error, _detail(res))
+
+            res = await call(
+                "execution_terminate",
+                {
+                    "project_id": project_id,
+                    "execution_id": f"no-such-{uuid.uuid4().hex[:8]}",
+                    "confirm": True,
+                },
+            )
+            check(
+                "execution_terminate on an unknown id fails cleanly",
+                res.is_error and "traceback" not in _detail(res, 400).lower(),
+                _detail(res),
+            )
+
+            res = await call("pipeline_delete", {**graph_args, "confirm": True})
+            check("pipeline_delete cleans up the smoke pipeline", not res.is_error, _detail(res))
+
+        # --- the determinism claim, against the platform rather than in memory ---------------
+        #
+        # `doe_mcp.blueprint` derives node and port ids with uuid5 instead of letting dtlpy mint
+        # uuid4s, and everything asserted about deterministic construction assumes the platform
+        # stores them unchanged. That has only ever been verified in memory. If DOE rejects a
+        # client-supplied id, or silently rewrites it on save, the byte-identical claim is false
+        # and the guarantee has to weaken to canonical-form equality. This is the check that
+        # settles it.
+        from doe_mcp.blueprint import build_graph, fingerprint
+        from doe_mcp.tools.skills import rag_blueprint
+
+        # A blueprint needs concrete dataset ids -- they are what the fingerprint derives from --
+        # and dataset_id is None on the partial-create path, which the cleanup test exercises.
+        # Skip rather than assert, matching how the graph-editing section above handles it.
+        if dataset_id is None:
+            record("deterministic build against the platform", "skipped: no dataset was created")
+            await cleanup_dataset(dataset_id, name)
+            return
+
+        plan = rag_blueprint(
+            name=f"smoke-determinism-{uuid.uuid4().hex[:8]}",
+            source_dataset_id=dataset_id,
+            output_dataset_id=dataset_id,
+            model_id="smoke-not-a-real-model",
+            chunk_size=512,
+            chunk_overlap=50,
+            load_existing=False,
+        )
+        record("blueprint fingerprint", fingerprint(plan)[:16])
+
+        res = await call("pipeline_create", {"project_id": project_id, "name": plan.name})
+        if res.is_error:
+            check("pipeline_create for the determinism check", False, _detail(res))
+        else:
+            det_id = res.structured_content["id"]
+            det_args = {"project_id": project_id, "pipeline_id": det_id}
+            try:
+                import dtlpy as dl
+
+                live = dl.projects.get(project_id=project_id).pipelines.get(pipeline_id=det_id)
+                build_graph(live, plan)
+                expected = {node.node_id for node in live.nodes}
+                expected_ports = {
+                    port.port_id
+                    for node in live.nodes
+                    for port in (list(node.inputs or []) + list(node.outputs or []))
+                }
+                live.update()
+
+                res = await call("pipeline_get", {**det_args, "include_graph": True})
+                if res.is_error:
+                    check("read back the derived-id graph", False, _detail(res))
+                else:
+                    graph = res.structured_content
+                    stored = {n["id"] for n in graph["nodes"]}
+                    # `serialize.node` emits snake_case `port_id`; `portId` is the raw
+                    # `to_json()` spelling and is not what pipeline_get returns.
+                    stored_ports = {p["port_id"] for n in graph["nodes"] for p in n["inputs"] + n["outputs"]}
+                    check(
+                        "platform stores client-supplied node ids unchanged",
+                        stored == expected,
+                        f"{len(stored & expected)}/{len(expected)} kept; "
+                        f"rewritten={sorted(stored - expected)[:2]}",
+                    )
+                    check(
+                        "platform stores client-supplied port ids unchanged",
+                        stored_ports == expected_ports,
+                        f"{len(stored_ports & expected_ports)}/{len(expected_ports)} kept",
+                    )
+                    check(
+                        "all five blueprint nodes were written in one PATCH",
+                        len(graph["nodes"]) == 5,
+                        f"{len(graph['nodes'])} nodes",
+                    )
+                    check(
+                        "all four blueprint edges survived that PATCH",
+                        len(graph["connections"]) == 4,
+                        f"{len(graph['connections'])} connections",
+                    )
+            except Exception as exc:  # noqa: BLE001 - a live probe reports, it does not crash the run
+                check("deterministic build against the platform", False, f"{type(exc).__name__}: {exc}")
+            finally:
+                await call("pipeline_delete", {**det_args, "confirm": True})
 
         await cleanup_dataset(dataset_id, name)
 

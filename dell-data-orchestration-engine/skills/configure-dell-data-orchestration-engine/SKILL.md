@@ -50,8 +50,8 @@ OAuth is not implemented by this plugin release.
 
 ## Select only the needed tools
 
-The launcher defaults to the reviewed `plugin-v1` surface: 32 tools used by the
-six evaluated workflows. Keep that default unless a deployment has a documented
+The launcher defaults to the reviewed `plugin-v1` surface: 36 tools used by the
+seven evaluated workflows. Keep that default unless a deployment has a documented
 need for another bounded profile. Available alternatives are:
 
 - `discovery` for projects, datasets, items, and annotations.

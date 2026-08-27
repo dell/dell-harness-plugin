@@ -1,6 +1,6 @@
 # Installation and authentication
 
-## Supported deployment for version 0.1.0
+## Supported deployment for version 0.2.0
 
 The plugin starts its bundled Python MCP server as a local `stdio` subprocess.
 The server calls Dataloop through the `dtlpy` Python SDK. Each Codex runtime

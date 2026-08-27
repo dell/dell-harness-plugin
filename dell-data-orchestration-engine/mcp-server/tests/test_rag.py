@@ -1,7 +1,7 @@
 """Tests for RAG (Retrieval-Augmented Generation) pipeline tools.
 
 These tests verify that RAG pipeline creation, node addition, and querying work correctly.
-They use mocked Dataloop entities to avoid requiring a live platform instance.
+They use mocked DOE entities to avoid requiring a live platform instance.
 
 The load-bearing assertion in here is the storage contract: chunks are items, and embeddings live
 in a feature set. No generated node code may write a vector into item metadata — a vector there
@@ -17,10 +17,12 @@ from unittest.mock import MagicMock
 import dtlpy as dl
 import pytest
 
+from doe_mcp.tools import rag
+
 
 @pytest.fixture
 def mock_project():
-    """Create a mock Dataloop project."""
+    """Create a mock DOE project."""
     project = SimpleNamespace(
         id="proj-1",
         name="test_project",
@@ -33,7 +35,7 @@ def mock_project():
 
 @pytest.fixture
 def mock_pipeline():
-    """Create a mock Dataloop pipeline with nodes and update method."""
+    """Create a mock DOE pipeline with nodes and update method."""
     pipeline = dl.entities.Pipeline.from_json(
         _json={
             "id": "pipe-1",
@@ -55,7 +57,7 @@ def mock_pipeline():
 
 @pytest.fixture
 def mock_dataset():
-    """Create a mock Dataloop dataset."""
+    """Create a mock DOE dataset."""
     dataset = SimpleNamespace(
         id="ds-1",
         name="test_dataset",
@@ -67,7 +69,7 @@ def mock_dataset():
 
 
 def node_code(pipeline, node_name):
-    """The source a code node will run on Dataloop."""
+    """The source a code node will run on DOE."""
     return pipeline.nodes.get(node_name=node_name).config["package"]["code"]
 
 
@@ -116,7 +118,7 @@ def test_rag_pipeline_create(call_tool, monkeypatch, mock_project, mock_pipeline
 
 def test_rag_add_pdf_filter_node(call_tool, monkeypatch, mock_pipeline):
     """Test adding a PDF filter node with DQL filter."""
-    monkeypatch.setattr("doe_mcp.tools.rag.get_pipeline", lambda pid, ppid: mock_pipeline)
+    monkeypatch.setattr("doe_mcp.tools.pipeline_nodes.get_pipeline", lambda pid, ppid: mock_pipeline)
 
     result = call_tool(
         "rag_add_pdf_filter_node",
@@ -140,7 +142,7 @@ def test_rag_add_pdf_filter_node(call_tool, monkeypatch, mock_pipeline):
 
 def test_rag_add_duplicate_node_name_fails(call_tool, monkeypatch, mock_pipeline):
     """Adding a node with a duplicate name must return an error result."""
-    monkeypatch.setattr("doe_mcp.tools.rag.get_pipeline", lambda pid, ppid: mock_pipeline)
+    monkeypatch.setattr("doe_mcp.tools.pipeline_nodes.get_pipeline", lambda pid, ppid: mock_pipeline)
 
     call_tool(
         "rag_add_pdf_filter_node",
@@ -167,8 +169,8 @@ def test_rag_add_duplicate_node_name_fails(call_tool, monkeypatch, mock_pipeline
 
 
 def test_rag_add_pdf_to_text_node(call_tool, monkeypatch, mock_pipeline):
-    """PDF text is extracted on Dataloop and uploaded as a text item, not stuffed into metadata."""
-    monkeypatch.setattr("doe_mcp.tools.rag.get_pipeline", lambda pid, ppid: mock_pipeline)
+    """PDF text is extracted on DOE and uploaded as a text item, not stuffed into metadata."""
+    monkeypatch.setattr("doe_mcp.tools.pipeline_nodes.get_pipeline", lambda pid, ppid: mock_pipeline)
 
     result = call_tool(
         "rag_add_pdf_to_text_node",
@@ -195,7 +197,7 @@ def test_rag_add_pdf_to_text_node(call_tool, monkeypatch, mock_pipeline):
 
 def test_rag_add_text_to_chunks_node(call_tool, monkeypatch, mock_pipeline):
     """Chunks become items in the output dataset, carrying only provenance in metadata."""
-    monkeypatch.setattr("doe_mcp.tools.rag.get_pipeline", lambda pid, ppid: mock_pipeline)
+    monkeypatch.setattr("doe_mcp.tools.pipeline_nodes.get_pipeline", lambda pid, ppid: mock_pipeline)
 
     result = call_tool(
         "rag_add_text_to_chunks_node",
@@ -222,7 +224,7 @@ def test_rag_add_text_to_chunks_node(call_tool, monkeypatch, mock_pipeline):
 
 def test_rag_add_embedding_node_delegates_to_model(call_tool, monkeypatch, mock_pipeline):
     """The embedding node calls a deployed model; the model writes the feature set."""
-    monkeypatch.setattr("doe_mcp.tools.rag.get_pipeline", lambda pid, ppid: mock_pipeline)
+    monkeypatch.setattr("doe_mcp.tools.pipeline_nodes.get_pipeline", lambda pid, ppid: mock_pipeline)
 
     result = call_tool(
         "rag_add_embedding_node",
@@ -245,7 +247,7 @@ def test_rag_add_embedding_node_delegates_to_model(call_tool, monkeypatch, mock_
 
 def test_generated_node_code_never_writes_embeddings_to_metadata(call_tool, monkeypatch, mock_pipeline):
     """No node may put a vector in item metadata: the feature set is the only store."""
-    monkeypatch.setattr("doe_mcp.tools.rag.get_pipeline", lambda pid, ppid: mock_pipeline)
+    monkeypatch.setattr("doe_mcp.tools.pipeline_nodes.get_pipeline", lambda pid, ppid: mock_pipeline)
 
     call_tool(
         "rag_add_pdf_to_text_node",
@@ -279,7 +281,7 @@ def test_generated_node_code_never_writes_embeddings_to_metadata(call_tool, monk
 
 def test_rag_add_output_node(call_tool, monkeypatch, mock_pipeline):
     """Test adding output storage dataset node."""
-    monkeypatch.setattr("doe_mcp.tools.rag.get_pipeline", lambda pid, ppid: mock_pipeline)
+    monkeypatch.setattr("doe_mcp.tools.pipeline_nodes.get_pipeline", lambda pid, ppid: mock_pipeline)
 
     result = call_tool(
         "rag_add_output_node",
@@ -300,7 +302,7 @@ def test_rag_add_output_node(call_tool, monkeypatch, mock_pipeline):
 
 def test_rag_pipeline_complete_sequence(call_tool, monkeypatch, mock_pipeline):
     """Test building the complete 5-node RAG pipeline sequence."""
-    monkeypatch.setattr("doe_mcp.tools.rag.get_pipeline", lambda pid, ppid: mock_pipeline)
+    monkeypatch.setattr("doe_mcp.tools.pipeline_nodes.get_pipeline", lambda pid, ppid: mock_pipeline)
 
     call_tool(
         "rag_add_pdf_filter_node",
@@ -516,3 +518,68 @@ def test_rag_query_without_feature_set_is_an_error(call_tool, monkeypatch, mock_
     assert result.is_error is True
     assert "no feature set" in result.content[0].text
     mock_dataset.items.upload.assert_not_called()
+
+
+# --- upstream behaviour the generated code-node bodies depend on ------------------------
+
+
+def test_item_from_json_without_a_project_id_has_no_project():
+    """Pin why the generated node bodies resolve resources via dl.* instead of item.project.
+
+    The item JSON a pipeline code node receives can omit `projectId`, and dtlpy then leaves
+    `item.project` as None rather than raising or resolving it -- so `item.project.datasets.get(...)`
+    inside a code node is a latent AttributeError. The bodies use `dl.datasets.get(dataset_id=...)`
+    instead, which returns a fully project-bound Dataset, so writes are scoped by that dataset.
+
+    Note this is NOT a breach of the AGENTS.md "always use project.<repo>" rule: that governs tool
+    bodies in this server process, where `Pipelines.__init__` fabricates an empty Project. These
+    bodies run on DOE, where there is no project to resolve in the first place.
+    """
+    item = dl.entities.Item.from_json(
+        _json={"id": "it-1", "name": "a.pdf", "type": "file", "filename": "/a.pdf", "metadata": {}},
+        client_api=dl.client_api,
+        dataset=None,
+    )
+
+    assert item.project is None, "if this ever holds, the dl.* workaround can be revisited"
+
+
+@pytest.mark.parametrize(
+    "template",
+    ["PDF_TO_TEXT_CODE", "TEXT_TO_CHUNKS_CODE", "EMBEDDING_CODE"],
+)
+def test_generated_code_is_pure_ascii(template):
+    """A non-ASCII character in a code node's body is silently truncated by the platform.
+
+    Silently: no error, just a short package that fails at runtime in a confusing way. The note
+    lived in one template's comment and was asserted nowhere, so an em-dash typed into any of the
+    three would have shipped.
+    """
+    source = getattr(rag, template)
+
+    assert source.isascii(), "non-ASCII in a code-node body is silently truncated by the platform"
+
+
+@pytest.mark.parametrize(
+    "template",
+    ["PDF_TO_TEXT_CODE", "TEXT_TO_CHUNKS_CODE", "EMBEDDING_CODE"],
+)
+def test_generated_code_never_reaches_for_item_project(template):
+    """Regression guard for the workaround above, at the point it would be undone.
+
+    Checked against the parsed AST, not the raw text: every template *mentions* `item.project` in
+    the comment explaining why it is avoided, so a substring search would pass vacuously today and
+    for the wrong reason tomorrow.
+    """
+    tree = ast.parse(getattr(rag, template))
+
+    reaches = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Attribute)
+        and node.attr == "project"
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "item"
+    ]
+
+    assert reaches == [], "item.project is None inside a code-node runner; resolve via dl.* instead"

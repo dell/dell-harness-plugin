@@ -1,6 +1,6 @@
-"""Dataloop credential resolution.
+"""DOE credential resolution.
 
-Authentication is API-key only: ``DATALOOP_API_KEY`` must hold a valid Dataloop API key.
+Authentication is API-key only: ``DATALOOP_API_KEY`` must hold a valid DOE API key.
 There is deliberately no fallback to an interactive ``dlp login`` session so that the
 identity a tool call runs as is never ambiguous.
 
@@ -41,7 +41,7 @@ _lock = threading.Lock()
 
 
 class MissingCredentials(MCPError):
-    """Raised when the server has no usable Dataloop credentials.
+    """Raised when the server has no usable DOE credentials.
 
     A protocol error rather than a tool error: no amount of retrying by the model can
     supply a missing API key or state directory, so the host application is the right
@@ -90,7 +90,7 @@ def _verify_ssl_setting() -> bool:
 def _configure_environment() -> None:
     """Point the dtlpy singleton at ``DATALOOP_GATE_URL`` when one is configured.
 
-    Left unset, dtlpy keeps whatever is in its cookie, which defaults to the Dataloop
+    Left unset, dtlpy keeps whatever is in its cookie, which defaults to the DOE
     cloud. ``setenv`` refuses a URL it has never seen, so the environment is registered
     first; it is registered rather than overwritten because ``add_environment`` replaces
     the whole entry and drops any other environment sharing its alias.
@@ -118,9 +118,7 @@ def _configure_environment() -> None:
         try:
             dl.setenv(api_base)
         except ConnectionError as exc:
-            raise MissingCredentials(
-                f"Could not select the Dataloop environment {api_base!r}: {exc}"
-            ) from exc
+            raise MissingCredentials(f"Could not select the DOE environment {api_base!r}: {exc}") from exc
 
 
 def ensure_authenticated() -> None:
@@ -130,7 +128,7 @@ def ensure_authenticated() -> None:
     api_key = os.environ.get(API_KEY_ENV_VAR)
     if not api_key:
         raise MissingCredentials(
-            f"{API_KEY_ENV_VAR} is not set. Generate an API key in the Dataloop platform "
+            f"{API_KEY_ENV_VAR} is not set. Generate an API key in the DOE platform "
             f"and expose it to this server's environment."
         )
 
@@ -144,12 +142,12 @@ def ensure_authenticated() -> None:
             dl.login_api_key(api_key)
         except ValueError as exc:
             # login_api_key validates against GET /users/me and raises ValueError.
-            raise MissingCredentials(f"The {API_KEY_ENV_VAR} value was rejected by Dataloop: {exc}") from exc
+            raise MissingCredentials(f"The {API_KEY_ENV_VAR} value was rejected by DOE: {exc}") from exc
 
         client_api = dl.client_api
         if client_api.token_expired():
             # API keys are themselves JWTs with an exp claim; re-login cannot fix this.
             raise MissingCredentials(
-                f"The API key in {API_KEY_ENV_VAR} has expired. Generate a new one in the Dataloop platform."
+                f"The API key in {API_KEY_ENV_VAR} has expired. Generate a new one in the DOE platform."
             )
-        logger.info("Authenticated to Dataloop at %s", client_api.environment)
+        logger.info("Authenticated to DOE at %s", client_api.environment)

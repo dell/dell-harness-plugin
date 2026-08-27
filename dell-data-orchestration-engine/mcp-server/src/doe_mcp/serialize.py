@@ -12,6 +12,8 @@ from typing import Any
 
 import dtlpy as dl
 
+from . import outputs
+
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
 
 
@@ -295,5 +297,42 @@ def service(entity: dl.entities.Service) -> Any:
             "package_id": entity.package_id,
             "project_id": entity.project_id,
             "url": entity.url,
+        }
+    )
+
+
+def pipeline_execution(entity: Any) -> outputs.PipelineExecutionSummary:
+    """One run of a whole pipeline."""
+    return _summary(
+        {
+            "id": getattr(entity, "id", None),
+            "pipeline_id": getattr(entity, "pipeline_id", None),
+            "status": getattr(entity, "status", None),
+            "created_at": getattr(entity, "created_at", None),
+            "updated_at": getattr(entity, "updated_at", None),
+            # Per-node progress is the whole reason to look at a pipeline execution, but it is a
+            # nested blob; reduced to node -> status so a stalled stage is visible without dumping it.
+            "nodes": {
+                str(node.get("nodeId")): node.get("status")
+                for node in (getattr(entity, "nodes", None) or [])
+                if isinstance(node, dict)
+            },
+        }
+    )
+
+
+def execution(entity: Any) -> outputs.ExecutionSummary:
+    """One run of a single service function, the unit that actually gets stuck."""
+    return _summary(
+        {
+            "id": getattr(entity, "id", None),
+            "status": getattr(entity, "status", None),
+            "in_progress": getattr(entity, "in_progress", None),
+            "service_id": getattr(entity, "service_id", None),
+            "function_name": getattr(entity, "function_name", None),
+            "pipeline_id": getattr(entity, "pipeline_id", None),
+            "node_id": getattr(entity, "node_id", None),
+            "created_at": getattr(entity, "created_at", None),
+            "updated_at": getattr(entity, "updated_at", None),
         }
     )

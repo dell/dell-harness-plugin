@@ -31,7 +31,7 @@
     {
       "id": "dataloop-synthetic-vision-docs-v1",
       "plugin": "dell-data-orchestration-engine",
-      "description": "Disposable synthetic Dataloop project for discovery, RAG, PII, model, and cleanup workflows.",
+      "description": "Disposable synthetic Dataloop project for discovery, RAG, execution control, PII, model, and cleanup workflows.",
       "required_state": [
         "Authorized project synthetic-pilot with stable project identifier.",
         "Dataset synthetic-images with 120 non-sensitive images, cat and dog labels, and a five-item test subset.",
@@ -40,7 +40,9 @@
         "Disposable model model-disposable-1 and app app-disposable-1 with documented dependencies.",
         "A pre-approved RAG design and explicit approval checkpoints for persistent or cost-incurring cases.",
         "A least-privilege non-administrative API-key identity.",
-        "Server audit events available through an approved evidence channel."
+        "Server audit events available through an approved evidence channel.",
+        "An approved synthetic RAG pipeline that can be validated and run with one bounded synthetic item.",
+        "A controlled in-progress execution that can be terminated inside the disposable project for the recovery case."
       ]
     }
   ]

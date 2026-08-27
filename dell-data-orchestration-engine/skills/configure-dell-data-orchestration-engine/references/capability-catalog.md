@@ -1,15 +1,15 @@
 # Capability catalog
 
 Treat live `tools/list` as authoritative. The plugin launcher selects the focused
-`plugin-v1` profile by default. The bundled server registers 66 tools
+`plugin-v1` profile by default. The bundled server registers 70 tools
 only when `all` is explicitly selected or no profile is supplied outside the
 plugin launcher.
 
 ## Plugin v1 default profile
 
-The default contains the 32 tools listed in `evals/cases/dataloop.json` under
+The default contains the 36 tools listed in `evals/cases/dataloop.json` under
 `declared_tools`. They cover authorization discovery, bounded dataset
-exploration, RAG, PII assessment, image-classifier lifecycle, and exact cleanup.
+exploration, RAG, pipeline execution and recovery, PII assessment, image-classifier lifecycle, and exact cleanup.
 
 ## Discovery profile
 
@@ -42,6 +42,11 @@ Graph operations:
 
 - `pipeline_node_add`, `pipeline_node_update`, `pipeline_node_remove`,
   `pipeline_connect_nodes`, `pipeline_disconnect_nodes`
+
+Execution control:
+
+- `pipeline_execute`, `execution_list`, `execution_terminate`,
+  `pipeline_validate`
 
 Triggers:
 
@@ -97,8 +102,10 @@ target before invoking them.
 
 - The `dtlpy` SDK uses one authenticated identity per process.
 - The current integration uses API keys, not OAuth.
-- The complete surface is about 20,600 estimated tokens. The focused 32-tool
-  default is about 18,100 estimated tokens with typed output contracts; use an even smaller profile when a
+- The complete development surface is about 30,800 measured tokens. The
+  focused 36-tool
+  default is about 19,500 measured tokens with typed output contracts; use an
+  even smaller profile when a
   deployment needs only one functional group.
 - The focused tools have named, typed output contracts. Tools outside that
   surface remain outside the reviewed plugin profile and may still use generic output schemas.

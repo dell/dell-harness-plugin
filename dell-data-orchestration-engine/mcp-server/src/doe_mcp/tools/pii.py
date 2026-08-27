@@ -1,6 +1,6 @@
 """Answering "does this dataset contain PII?", and acting on the answer.
 
-Dataloop ships a *PII Detection & Redaction (Microsoft Presidio)* solution in its marketplace.
+DOE ships a *PII Detection & Redaction (Microsoft Presidio)* solution in its marketplace.
 It is a pipeline template, not a single node, so it is found, installed and run through the
 existing `marketplace_*` and `pipeline_*` tools — the same route the RAG templates take
 (ADR-006/ADR-007). This module deliberately does **not** own that scan.
@@ -38,7 +38,7 @@ SAMPLE_SIZE = 5
 # query is always "<TYPE> equals true" — which negates cleanly for exclusions.
 FINDINGS_KEY = "pii"
 
-# Source for the pipeline code node that performs the writeback on Dataloop's runners. Kept as
+# Source for the pipeline code node that performs the writeback on DOE's runners. Kept as
 # one top-level function with imports inside it, which is what CodeNodeSpec requires.
 WRITEBACK_CODE = '''
 def write_pii_findings(item):
@@ -212,7 +212,7 @@ def register(mcp: MCPServer) -> None:
         Add it to a pipeline with `pipeline_node_add` (which requires `confirm_code: true`),
         downstream of the Presidio anonymizer node, so every scanned item ends up carrying
         `metadata.user.pii` as a map of detected entity type to true. Review the source first: it
-        runs on Dataloop's runners, and the field it reads Presidio's output from is an
+        runs on DOE's runners, and the field it reads Presidio's output from is an
         assumption — see `reads_from`.
         """
         return {

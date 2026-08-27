@@ -21,7 +21,7 @@ where in it — which is what the DQL queries below filter on. A vector in metad
 invisible to the platform's Clustering app and to ``dataset.features``, and would bloat every
 item read.
 
-Everything expensive runs on Dataloop: extraction and chunking in code nodes, embedding in the
+Everything expensive runs on DOE: extraction and chunking in code nodes, embedding in the
 model's own service. This process only ranks vectors at query time, because `dtlpy` exposes no
 vector-distance query to delegate to (see tools/embeddings.py).
 """
@@ -34,11 +34,13 @@ from typing import Annotated, Any
 import dtlpy as dl
 import numpy as np
 from mcp.server import MCPServer
+from mcp.server.mcpserver import Context
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import outputs, paging, serialize
-from ..context import dataloop_call, get_dataset, get_pipeline, get_project
+from ..context import dataloop_call, get_dataset, get_project
+from ..guards import gate_local_compute
 from ..schemas import CodeNodeSpec, DatasetNodeSpec
 from . import pipeline_nodes
 from .embeddings import cosine_similarity, read_vectors
@@ -73,6 +75,8 @@ PDF_TO_TEXT_CODE = r'''def run(item):
     import io
     import re
     import zlib
+
+    import dtlpy as dl
 
     text = ""
     try:
@@ -134,7 +138,12 @@ PDF_TO_TEXT_CODE = r'''def run(item):
         # nothing and embed as nothing.
         raise ValueError("No text could be extracted from PDF item {}".format(item.id))
 
-    output_dataset = item.project.datasets.get(dataset_id="__OUTPUT_DATASET_ID__")
+    # item.project is unreliable here: the item JSON a pipeline code node receives can omit
+    # projectId, leaving item.project None (verified live). dl.datasets.get needs no project
+    # context to fetch by id. (Note: keep this comment ASCII-only -- a non-ASCII character
+    # here previously caused the platform to silently truncate the packaged code by a couple
+    # of bytes, corrupting the trailing statement.)
+    output_dataset = dl.datasets.get(dataset_id="__OUTPUT_DATASET_ID__")
     buffer = io.BytesIO(text.encode("utf-8"))
     base_name = item.name.rsplit(".", 1)[0]
     text_item = output_dataset.items.upload(
@@ -161,6 +170,8 @@ TEXT_TO_CHUNKS_CODE = r'''def run(item):
     """Split a text item into overlapping chunk items in the RAG output dataset."""
     import io
 
+    import dtlpy as dl
+
     chunk_size = __CHUNK_SIZE__
     chunk_overlap = __CHUNK_OVERLAP__
 
@@ -171,7 +182,10 @@ TEXT_TO_CHUNKS_CODE = r'''def run(item):
         raise ValueError("Text item {} is empty; nothing to chunk.".format(item.id))
 
     rag_metadata = (item.metadata or {}).get("user", {}).get("rag", {})
-    output_dataset = item.project.datasets.get(dataset_id="__OUTPUT_DATASET_ID__")
+    # item.project is unreliable here: the item JSON a pipeline code node receives can omit
+    # projectId, leaving item.project None (verified live). dl.datasets.get needs no project
+    # context to fetch by id.
+    output_dataset = dl.datasets.get(dataset_id="__OUTPUT_DATASET_ID__")
     base_name = item.name.rsplit(".", 1)[0]
     stride = max(1, chunk_size - chunk_overlap)
 
@@ -206,7 +220,7 @@ TEXT_TO_CHUNKS_CODE = r'''def run(item):
     if chunk_count == 0:
         raise ValueError("Text item {} produced no chunks.".format(item.id))
 
-    # Provenance only — the count, not the content, and never a vector.
+    # Provenance only -- the count, not the content, and never a vector.
     if item.metadata is None:
         item.metadata = {}
     item.metadata.setdefault("user", {}).setdefault("rag", {})["chunk_count"] = chunk_count
@@ -221,9 +235,11 @@ EMBEDDING_CODE = r'''def run(item):
 
     batch_size = __BATCH_SIZE__
 
-    project = item.project
-    model = project.models.get(model_id="__MODEL_ID__")
-    output_dataset = project.datasets.get(dataset_id="__OUTPUT_DATASET_ID__")
+    # item.project is unreliable here: the item JSON a pipeline code node receives can omit
+    # projectId, leaving item.project None (verified live). dl.models.get/dl.datasets.get need
+    # no project context to fetch by id.
+    model = dl.models.get(model_id="__MODEL_ID__")
+    output_dataset = dl.datasets.get(dataset_id="__OUTPUT_DATASET_ID__")
 
     # Chunk items are found by DQL rather than by an id list carried in metadata: a long document
     # produces thousands of chunks, and the query pages instead of growing the item document.
@@ -365,6 +381,10 @@ def register(mcp: MCPServer) -> None:
         pipeline = project.pipelines.create(name=name, project_id=project_id)
 
         if description is not None:
+            # Another whole-graph PATCH (see pipeline_nodes._retry_until_visible), deliberately
+            # left unguarded: the pipeline was created two lines above and its graph is empty, so
+            # there is no node list for a stale read to lose. Anything touching a *populated*
+            # graph must go through the retry helper instead.
             pipeline.description = description
             pipeline = project.pipelines.update(pipeline=pipeline)
 
@@ -373,20 +393,13 @@ def register(mcp: MCPServer) -> None:
     def add_node(
         project_id: str, pipeline_id: str, spec: CodeNodeSpec | DatasetNodeSpec
     ) -> outputs.PipelineNodeResult:
-        """Add one built node to a pipeline, refusing a name already in the graph."""
-        with pipeline_nodes.pipeline_lock(pipeline_id):
-            pipeline = get_pipeline(project_id, pipeline_id)
-            if pipeline.nodes.get(node_name=spec.name) is not None:
-                raise ValueError(f"Pipeline already has a node named {spec.name!r}; pick another name.")
+        """Add one built node to a pipeline. Delegates to pipeline_nodes.add_node.
 
-            built = pipeline_nodes.build_node(pipeline, spec)
-            pipeline.nodes.add(node=built)
-            updated = pipeline.update()
-
-            return {
-                "pipeline": serialize.pipeline(updated),
-                "node": serialize.node(pipeline_nodes._require_node(updated, spec.name)),
-            }
+        Shared rather than duplicated so the retry-until-visible fix for the platform's
+        read-modify-write race (see pipeline_nodes._retry_until_visible) covers every
+        rag_add_*_node tool too, not just pipeline_node_add.
+        """
+        return pipeline_nodes.add_node(project_id, pipeline_id, spec)
 
     @mcp.tool(title="Add PDF filter node to RAG pipeline", annotations=MUTATING)
     def rag_add_pdf_filter_node(
@@ -426,7 +439,7 @@ def register(mcp: MCPServer) -> None:
     ) -> outputs.PipelineNodeResult:
         """Add a code node that turns each PDF into a text item.
 
-        Extracts with pypdf on Dataloop, uploads to `/rag/text` tagged with the source id, and
+        Extracts with pypdf on DOE, uploads to `/rag/text` tagged with the source id, and
         returns that item. A PDF yielding no text fails the execution.
         """
         code = PDF_TO_TEXT_CODE.replace("__OUTPUT_DATASET_ID__", output_dataset_id).replace(
@@ -536,6 +549,7 @@ def register(mcp: MCPServer) -> None:
             float, Field(ge=-1.0, le=1.0, description="Minimum cosine similarity.")
         ] = 0.0,
         max_vectors: Annotated[int, Field(ge=2, le=2000, description="Cap on vectors scanned.")] = 1000,
+        ctx: Context | None = None,
     ) -> outputs.RagQueryResult:
         """Rank chunk items against a query by vector similarity over the feature set.
 
@@ -549,6 +563,11 @@ def register(mcp: MCPServer) -> None:
         resolved_set = resolve_feature_set(dataset, model_id, feature_set_id)
 
         query_vector = embed_query(dataset, model, query, resolved_set)
+        # Ranking happens here, not on the platform (dtlpy has no vector-distance query), so the
+        # same tripwire applies as for dataset_cluster: see guards.gate_local_compute.
+        gate_local_compute(
+            ctx, requested=max_vectors, action="rank these chunks locally", parameter="max_vectors"
+        )
         features, truncated = dataloop_call(
             "feature list", lambda: read_vectors(dataset, resolved_set, max_vectors)
         )

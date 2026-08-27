@@ -5,7 +5,7 @@
 a real file. An MCP client sends code as *text*, and the obvious workaround of ``exec``-ing
 that text does not help: a function built that way has no source file, so
 ``getsourcelines`` raises ``OSError``. Executing model-authored code inside this server
-would also be a needless risk, given the code is only ever meant to run on Dataloop's
+would also be a needless risk, given the code is only ever meant to run on DOE's
 runners.
 
 So the node payload is assembled from the string directly. The output is byte-for-byte what
@@ -28,6 +28,11 @@ def _main_partial() -> str:
         return handle.read()
 
 
+#: Upper bound on a code node's source. Generous next to the templates in ``tools/rag.py`` (the
+#: largest is well under 4k) but small enough that a runaway generation fails fast and locally.
+MAX_CODE_CHARS = 20_000
+
+
 def function_name_of(source: str) -> str:
     """Validate the source and return the name of the function it defines.
 
@@ -35,11 +40,26 @@ def function_name_of(source: str) -> str:
     Exactly one top-level function is required: everything is indented into the
     ``ServiceRunner`` class body, so stray module-level statements would land somewhere
     they do not belong. Imports and helpers go inside the function.
+
+    The length cap lives here rather than as a pydantic ``max_length`` on ``CodeNodeSpec.code``
+    for two reasons: ``pipeline_node_update`` takes ``code`` as a plain argument and would
+    otherwise skip it, and a ``maxLength`` keyword would land in the advertised JSON Schema,
+    which the tool-surface budget has no room for.
     """
+    if len(source) > MAX_CODE_CHARS:
+        raise ValueError(
+            f"The code is longer than {MAX_CODE_CHARS} characters. A pipeline code node is meant "
+            "to be a single small function; move anything larger into a package or an app."
+        )
     try:
         tree = ast.parse(textwrap.dedent(source))
     except SyntaxError as exc:
         raise ValueError(f"The code is not valid Python: {exc}") from exc
+    except (ValueError, RecursionError, MemoryError) as exc:
+        # ast.parse does not only raise SyntaxError: a null byte gives ValueError, and a
+        # pathological but syntactically legal shape ("not " * 10000) exhausts the parser with
+        # MemoryError. Callers are promised ValueError, so translate rather than leak either.
+        raise ValueError(f"The code is too complex to parse ({type(exc).__name__}).") from exc
 
     functions = [node for node in tree.body if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)]
     if len(functions) != 1 or len(tree.body) != 1:

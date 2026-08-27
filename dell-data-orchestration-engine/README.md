@@ -45,8 +45,8 @@ verify the effective identity and authorization boundary.
 
 ## Limit the tool surface
 
-The launcher defaults to the reviewed `plugin-v1` profile: the 32 tools used by
-the plugin's six evaluated workflows. This keeps tool-selection context bounded
+The launcher defaults to the reviewed `plugin-v1` profile: the 36 tools used by
+the plugin's seven evaluated workflows. This keeps tool-selection context bounded
 while retaining the complete bundled server for deliberate development use.
 
 Set `DATALOOP_MCP_PROFILES` to a comma-separated selection of `discovery`,
@@ -57,7 +57,7 @@ surface. For example:
 export DATALOOP_MCP_PROFILES=discovery,models
 ```
 
-Set the value to `all` only when the complete 66-tool server is deliberately
+Set the value to `all` only when the complete 70-tool server is deliberately
 required. Prefer the default or the smallest profile set that supports the work.
 
 ## Security defaults
@@ -67,8 +67,9 @@ required. Prefer the default or the smallest profile set that supports the work.
   configuration and SDK-state paths.
 - On Windows, keep the configuration in the user's profile and apply a
   user-only ACL through the managed deployment.
-- Destructive, long-running, and billable actions require a user-visible plan
-  and the server's confirmation field.
+- State-changing, destructive, long-running, and billable actions require a
+  user-visible plan and explicit approval. Critical operations also enforce a
+  confirmation field or elicitation at the server boundary.
 - Project IDs, dataset IDs, model IDs, and pipeline IDs are resolved before a
   write. Names are not treated as authorization.
 - PII workflows return types and counts, not raw detected values.

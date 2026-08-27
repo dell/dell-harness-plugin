@@ -328,7 +328,7 @@ def test_writeback_code_declares_the_input_field_it_assumes(call_tool):
 
 
 def test_writeback_code_compiles_and_produces_the_flat_map(call_tool):
-    """It runs on Dataloop's runners, so compiling it here is the only offline check."""
+    """It runs on DOE's runners, so compiling it here is the only offline check."""
     body = call_tool("pii_writeback_code", {}).structured_content
     namespace: dict = {}
     exec(compile(body["code"], "<writeback>", "exec"), namespace)  # noqa: S102

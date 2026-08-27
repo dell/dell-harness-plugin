@@ -81,6 +81,84 @@ def test_live_smoke_cleans_up_partial_create_by_name(monkeypatch):
     assert any(
         tool == "dataset_list" and args["name"].startswith("live-smoke-") for tool, args in client.calls
     )
-    # A failed dataset_create leaves no dataset, so the item-dependent phases must be skipped
-    # rather than run against a None dataset id.
-    assert not any(tool.startswith(("item_", "annotation_", "pii_")) for tool, _ in client.calls)
+    # A failed dataset_create leaves no dataset, so the dataset-dependent phases must be skipped
+    # rather than run against a None dataset id. Graph editing builds dataset nodes, so it counts.
+    assert not any(tool.startswith(("item_", "annotation_", "pii_", "pipeline_")) for tool, _ in client.calls)
+
+
+class GraphClient(FakeClient):
+    """A client where dataset_create succeeds, so the graph-editing phase actually runs.
+
+    Models a *well-behaved* platform: every write is immediately visible to the next read. The
+    point of the assertions below is that the smoke script reads the graph back and counts it,
+    rather than trusting the mutating calls' own success -- that is the check that would have
+    caught the connect/disconnect retry being inert.
+    """
+
+    def __init__(self, _server):
+        super().__init__(_server)
+        self.nodes: list[str] = []
+        self.connections: list[dict] = []
+
+    async def call_tool(self, tool, args=None):
+        args = args or {}
+        if tool == "dataset_create":
+            self.calls.append((tool, args))
+            return SimpleNamespace(is_error=False, structured_content={"id": "ds-1"})
+        if tool.startswith("pipeline_"):
+            self.calls.append((tool, args))
+            if tool == "pipeline_create":
+                return SimpleNamespace(is_error=False, structured_content={"id": "pipe-1"})
+            if tool == "pipeline_node_add":
+                self.nodes.append(args["node"]["name"])
+            if tool == "pipeline_connect_nodes":
+                self.connections.append({"source": args["source_node_name"]})
+            if tool == "pipeline_disconnect_nodes":
+                self.connections.clear()
+            if tool == "pipeline_get":
+                return SimpleNamespace(
+                    is_error=False,
+                    structured_content={
+                        "nodes": [{"name": n} for n in self.nodes],
+                        "connections": list(self.connections),
+                    },
+                )
+            return SimpleNamespace(is_error=False, structured_content={})
+        try:
+            return await super().call_tool(tool, args)
+        except AssertionError:
+            # Everything downstream of a successful dataset_create that this test does not care
+            # about. An error result makes each of those phases take its own bail-out branch,
+            # keeping this test scoped to the graph sequence.
+            self.calls.append((tool, args))
+            return SimpleNamespace(is_error=True, content=[SimpleNamespace(text="not stubbed")])
+
+
+def test_live_smoke_reads_the_graph_back_after_rapid_edits(monkeypatch):
+    """The graph phase must verify by independent read, not by trusting the mutating calls."""
+    client = GraphClient(None)
+    # The elicitation phase builds its own Client with an elicitation_callback, so accept kwargs.
+    monkeypatch.setattr(live_smoke, "Client", lambda server, **kwargs: client)
+    monkeypatch.setattr(live_smoke, "build_server", lambda: object())
+    live_smoke.failures.clear()
+
+    run(live_smoke.run("proj-1"))
+
+    tools = [tool for tool, _ in client.calls]
+    assert tools.count("pipeline_node_add") == 2
+    assert "pipeline_connect_nodes" in tools
+    # Adds and the connect happen with no intervening read: that unpaced sequence is the shape
+    # that lost graph state live, and pacing it would defeat the purpose of the check.
+    first_read = tools.index("pipeline_get")
+    assert tools.index("pipeline_connect_nodes") < first_read
+    assert "pipeline_node_update" in tools and "pipeline_disconnect_nodes" in tools
+    assert ("pipeline_delete", {"project_id": "proj-1", "pipeline_id": "pipe-1", "confirm": True}) in (
+        client.calls
+    )
+    # The graph checks specifically must pass: nodes survived, exactly one edge, stable afterwards.
+    graph_checks = [
+        "both nodes survived the rapid sequence",
+        "exactly one connection, not duplicated",
+        "graph is stable after update and disconnect",
+    ]
+    assert [name for name in graph_checks if name in live_smoke.failures] == []

@@ -169,10 +169,9 @@ def register(mcp: MCPServer) -> None:
             paging.DEFAULT_LIMIT
         ),
     ) -> paging.ListResult:
-        """List every trigger in a project.
+        """List a project's triggers: automations that run a pipeline when data changes.
 
-        Scoped to the project, not to this session, so automation left behind by someone else is
-        still discoverable.
+        Project-scoped, not session-scoped: automation someone else left behind still shows up.
         """
         project = get_project(project_id)
         listed = dataloop_call("trigger list", lambda: project.triggers.list())

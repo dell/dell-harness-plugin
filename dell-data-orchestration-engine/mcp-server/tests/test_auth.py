@@ -74,7 +74,7 @@ def test_rejected_key_is_reported_as_protocol_error(monkeypatch):
 
     monkeypatch.setattr(auth.dl, "login_api_key", reject)
 
-    with pytest.raises(auth.MissingCredentials, match="rejected by Dataloop"):
+    with pytest.raises(auth.MissingCredentials, match="rejected by DOE"):
         auth.ensure_authenticated()
 
 

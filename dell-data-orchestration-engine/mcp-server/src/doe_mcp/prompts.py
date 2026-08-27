@@ -1,23 +1,13 @@
-"""MCP Prompts for the three documented workflows in docs/guides/.
+"""MCP Prompts for the three evaluated plugin workflows.
 
-Each prompt's text is the guide's own "Appendix B: opening prompt" verbatim, so a host that
-surfaces MCP prompts can start one of these sessions with a single pick instead of the user
-having to paste text from the docs. The guides are the source of truth — if a guide's Appendix B
-changes, update the matching prompt here too; this module does not read the markdown files at
-runtime, since docs/ is not part of the installed package (see pyproject.toml's package config).
+The constants are module-level so the live prompt and matching golden trace use
+the same instruction text. Full operating guidance is provided by the plugin
+skills; the installed Python package does not depend on repository-only docs.
 """
 
 from mcp.server import MCPServer
 
-
-def register(mcp: MCPServer) -> None:
-    @mcp.prompt(
-        title="Explore a dataset",
-        description="Read-only walkthrough: list datasets, profile one, and get an executive "
-        "summary of its contents. See docs/guides/dataset-exploration-workflow.md.",
-    )
-    def explore_dataset() -> str:
-        return """\
+EXPLORE_DATASET_PROMPT = """\
 Using the doe-mcp MCP server, help me understand what is in one of my datasets.
 
 Start read-only. Ask me which project rather than guessing, then list the datasets with their
@@ -36,13 +26,7 @@ installed in this project and let me choose, tell me what it will cost and that 
 written back onto the items as annotations, and run over a small sample before anything larger.
 """
 
-    @mcp.prompt(
-        title="Find and handle PII",
-        description="Human-gated walkthrough: plan first, then scan a dataset for PII, record "
-        "findings, and route or exclude flagged items. See docs/guides/pii-detection-workflow.md.",
-    )
-    def find_and_handle_pii() -> str:
-        return """\
+FIND_AND_HANDLE_PII_PROMPT = """\
 Using the doe-mcp MCP server, help me find out whether a dataset contains PII and then deal with it.
 
 Phase 0 — planning only. Read-only tools are fine; do not create, upload, update, delete, install,
@@ -64,29 +48,49 @@ contains PII. Never report a zero result as "clean" without saying why it might 
 describe copying items to a quarantine dataset as "moving" them.
 """
 
+BUILD_RAG_PIPELINE_PROMPT = """\
+Using the doe-mcp MCP server, help me build a RAG setup on DOE from my PDFs.
+
+Phase 0 — planning only. Read-only tools are fine; do not create, update, delete, install or
+deploy anything until I reply "approved". In this phase:
+  1. Tell me which parts of this the server supports directly and which it does not.
+  2. Call project_list, then for the project I pick show datasets, existing pipelines, and the
+     models already installed (app_list, model_list).
+  3. Propose a plan using the direct RAG tools (rag_pipeline_create, rag_add_pdf_filter_node,
+     rag_add_pdf_to_text_node, rag_add_text_to_chunks_node, rag_add_embedding_node,
+     rag_add_output_node). If those don't fit, propose marketplace templates or hand-built
+     pipelines as alternatives.
+  4. Name every object you would create, the output dataset the text items, chunk items and
+     vectors would land in, the chunk configuration you would use, and which already-deployed
+     model you would embed with (by id) — or say plainly that no deployed model is available.
+
+Then stop and wait. I may approve only part of the plan; honour that scope exactly.
+After approval, work one phase at a time and show me each pipeline graph before running it.
+Tell me plainly whenever something I ask for is not supported instead of substituting something else.
+"""
+
+
+def register(mcp: MCPServer) -> None:
+    @mcp.prompt(
+        title="Explore a dataset",
+        description="Read-only walkthrough: list datasets, profile one, and get an executive "
+        "summary of its contents. Use the dataset exploration skill for full guidance.",
+    )
+    def explore_dataset() -> str:
+        return EXPLORE_DATASET_PROMPT
+
+    @mcp.prompt(
+        title="Find and handle PII",
+        description="Human-gated walkthrough: plan first, then scan a dataset for PII, record "
+        "findings, and route or exclude flagged items. Use the PII skill for full guidance.",
+    )
+    def find_and_handle_pii() -> str:
+        return FIND_AND_HANDLE_PII_PROMPT
+
     @mcp.prompt(
         title="Build a RAG pipeline",
         description="Human-gated walkthrough: plan first, then build a PDF/RAG pipeline with the "
-        "direct rag_* tools and query it. See docs/guides/agentic-rag-workflow.md.",
+        "direct rag_* tools and query it. Use the RAG skill for full guidance.",
     )
     def build_rag_pipeline() -> str:
-        return """\
-Using the doe-mcp MCP server, help me build a RAG setup on Dataloop from my PDFs.
-
-Before you change anything: stay in planning mode. Read-only tools are fine — use them to ground
-the plan — but do not create, update, delete, install or deploy anything until I say "approved".
-
-Start by telling me which parts of this the server supports directly and which it doesn't. Use
-project_list, then for the project I pick, show me: the datasets, any pipelines that already
-exist, and the models already installed. Also search the marketplace for RAG pipeline templates
-with templates_only=true. Then give me a plan.
-
-Prefer the direct rag_* tools (rag_pipeline_create, rag_add_pdf_filter_node,
-rag_add_pdf_to_text_node, rag_add_text_to_chunks_node, rag_add_embedding_node,
-rag_add_output_node) over marketplace templates unless I ask for the template path specifically.
-
-Show me the exact PDF-filter code or node configuration before anything runs on Dataloop, and
-name every object you will create. Reply "approved" only proceeds the plan I actually agreed to —
-honour a narrower approval exactly. Validate on a small dataset before a large one, and tell me
-plainly if something I asked for is not supported instead of substituting something else quietly.
-"""
+        return BUILD_RAG_PIPELINE_PROMPT

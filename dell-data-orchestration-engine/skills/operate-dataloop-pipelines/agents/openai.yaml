@@ -1,0 +1,4 @@
+interface:
+  display_name: "Operate DOE Pipelines"
+  short_description: "Run and recover governed DOE pipelines"
+  default_prompt: "Use $operate-dataloop-pipelines to validate and run an approved pipeline, then report its execution status."

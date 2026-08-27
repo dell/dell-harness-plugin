@@ -9,6 +9,7 @@ import argparse
 import logging
 import sys
 from types import ModuleType
+from typing import Any
 
 from mcp.server import MCPServer
 
@@ -17,6 +18,7 @@ from .tools import (
     annotations,
     datasets,
     embeddings,
+    executions,
     items,
     marketplace,
     models,
@@ -25,6 +27,7 @@ from .tools import (
     pipelines,
     projects,
     rag,
+    skills,
     triggers,
 )
 
@@ -40,6 +43,7 @@ ALL_MODULES: tuple[ModuleType, ...] = (
     triggers,
     pii,
     embeddings,
+    executions,
     rag,
 )
 
@@ -53,13 +57,37 @@ ALL_MODULES: tuple[ModuleType, ...] = (
 PROFILES: dict[str, tuple[ModuleType, ...]] = {
     "discovery": (projects, datasets, items, annotations),
     "plugin-v1": ALL_MODULES,
-    "pipelines": (pipelines, pipeline_nodes, triggers),
+    "pipelines": (pipelines, pipeline_nodes, triggers, executions),
     "models": (marketplace, models, embeddings, pii),
-    "rag": (rag, pipelines, pipeline_nodes, marketplace),
+    "rag": (rag, pipelines, pipeline_nodes, marketplace, executions),
+    # Prototype (plan §4 Phase 4, reopened on determinism grounds). Deliberately absent from
+    # ALL_MODULES: a skill is an *alternative* to the fine-grained node tools, not an addition, so
+    # registering it everywhere would grow the default surface while making it more confusing.
+    # `rag` is intentionally not included here -- the point of the profile is to measure what a
+    # session costs with the skill *instead of* the six rag_add_*_node tools.
+    "skills": (skills, projects, datasets, pipelines, marketplace, executions),
 }
 
-# Focused surface used by the Dell plugin. The full server remains available when
-# no profile is selected, preserving compatibility for existing SDK users.
+#: Modules a profile may register that are deliberately absent from `ALL_MODULES`, and so from the
+#: default surface. Declared explicitly rather than inferred, so "this profile adds a tool nobody
+#: else has" stays a reviewed decision instead of an accident -- `tests/test_profiles.py` allows
+#: exactly these to break the otherwise-strict "a profile is a subset of the full surface" rule.
+#:
+#: `skills` is here because a skill *replaces* the fine-grained node tools rather than adding to
+#: them: a session with `rag_pipeline_build` has no use for six `rag_add_*_node` tools, and putting
+#: both in the default surface would grow it past its ceiling while making it more confusing. The
+#: open question this prototype exists to answer is whether the eventual shape is the inverse --
+#: skills in the default surface, node tools moved out to an opt-in profile.
+#:
+#: `executions` was here for one release for a blunter reason -- no headroom -- and has since been
+#: promoted to the default surface, paid for by stripping advisory schema titles (17.8% of the
+#: surface, `strip_schema_titles`). Running and unsticking a pipeline is not a specialist activity
+#: and does not belong behind a flag.
+PROFILE_ONLY: tuple[ModuleType, ...] = (skills,)
+
+# Focused surface used by the Dell plugin. Execution controls close the
+# run/inspect/terminate gap found by upstream live evaluation while retaining a
+# bounded, reviewable tool contract. Prototype skill-router tools stay excluded.
 PLUGIN_V1_TOOLS = frozenset(
     {
         "project_list",
@@ -79,6 +107,10 @@ PLUGIN_V1_TOOLS = frozenset(
         "pipeline_connect_nodes",
         "pipeline_get",
         "pipeline_install",
+        "pipeline_execute",
+        "execution_list",
+        "execution_terminate",
+        "pipeline_validate",
         "rag_query",
         "pii_report",
         "pii_set_findings",
@@ -94,84 +126,13 @@ PLUGIN_V1_TOOLS = frozenset(
         "model_get",
         "model_delete",
         "app_uninstall",
-    }
-)
-
-FULL_TOOL_NAMES = frozenset(
-    {
-        "project_list",
-        "project_get",
-        "dataset_list",
-        "dataset_get",
-        "dataset_create",
-        "dataset_update",
-        "dataset_delete",
-        "dataset_profile",
-        "item_list",
-        "item_get",
-        "item_upload",
-        "item_update",
-        "annotation_list",
-        "annotation_get",
-        "annotation_labels",
-        "annotation_create",
-        "annotation_delete",
-        "annotation_delete_by_model",
-        "pipeline_list",
-        "pipeline_get",
-        "pipeline_create",
-        "pipeline_create_from_template",
-        "pipeline_delete",
-        "pipeline_install",
-        "pipeline_pause",
-        "pipeline_reset",
-        "pipeline_stats",
-        "pipeline_update_settings",
-        "pipeline_node_add",
-        "pipeline_node_update",
-        "pipeline_node_remove",
-        "pipeline_connect_nodes",
-        "pipeline_disconnect_nodes",
-        "marketplace_search",
-        "marketplace_get_dpk",
-        "model_install",
-        "app_list",
-        "model_create",
-        "model_deploy",
-        "model_train",
-        "model_predict",
-        "model_set_subset",
-        "model_delete_subset",
-        "model_list",
-        "model_get",
-        "model_delete",
-        "app_uninstall",
-        "trigger_create",
-        "trigger_list",
-        "trigger_get",
-        "trigger_delete",
-        "pii_report",
-        "pii_set_findings",
-        "pii_writeback_code",
-        "pii_filter",
-        "dataset_embeddings_status",
-        "dataset_embed",
-        "dataset_cluster",
-        "dataset_visual_search",
-        "rag_pipeline_create",
-        "rag_add_pdf_filter_node",
-        "rag_add_pdf_to_text_node",
-        "rag_add_text_to_chunks_node",
-        "rag_add_embedding_node",
-        "rag_add_output_node",
-        "rag_query",
     }
 )
 
 logger = logging.getLogger("doe_mcp")
 
 INSTRUCTIONS = """\
-Manage a Dataloop account: datasets, pipelines, and marketplace models.
+Manage a DOE account: datasets, pipelines, and marketplace models.
 
 Almost every tool is project-scoped; call `project_list` first for a `project_id` unless given one.
 
@@ -211,7 +172,52 @@ def resolve_modules(profiles: list[str] | None) -> tuple[ModuleType, ...]:
             f"Unknown profile(s): {', '.join(unknown)}. Available profiles: {', '.join(sorted(PROFILES))}."
         )
     wanted = {module for name in profiles for module in PROFILES[name]}
-    return tuple(module for module in ALL_MODULES if module in wanted)
+    resolved = [module for module in ALL_MODULES if module in wanted]
+    # A profile may name a module that is deliberately absent from ALL_MODULES -- `skills` is,
+    # because a skill replaces the fine-grained node tools rather than adding to them, so it must
+    # not join the default surface. Filtering by ALL_MODULES alone dropped those silently: the
+    # profile resolved, the server started, and the tool simply was not there. Appended after the
+    # ALL_MODULES ones, in profile order, so registration order stays deterministic.
+    for name in profiles:
+        for module in PROFILES[name]:
+            if module not in resolved:
+                resolved.append(module)
+    return tuple(resolved)
+
+
+def _without_titles(schema: Any) -> Any:
+    """A JSON Schema with every advisory `title` removed, recursively.
+
+    Pydantic derives a `title` for every field and model from its name, so the advertised surface
+    carries `"title": "Project Id"` next to `"description": "Project that owns the dataset."` —
+    the same information, spelled worse, on every parameter of every tool. Measured with a real
+    tokenizer it is **4,067 tokens, 17.8% of the whole surface**, and it tells a model nothing.
+
+    `title` is advisory in JSON Schema: nothing validates against it, and argument validation here
+    runs through the pydantic model rather than the emitted schema, so removing it cannot change
+    what a call accepts. The tool's *own* `title` (the human label in the picker) is a different
+    field on the Tool object and is untouched.
+    """
+    if isinstance(schema, dict):
+        return {k: _without_titles(v) for k, v in schema.items() if k != "title"}
+    if isinstance(schema, list):
+        return [_without_titles(item) for item in schema]
+    return schema
+
+
+def strip_schema_titles(mcp: MCPServer) -> None:
+    """Drop advisory titles from every registered tool's schemas.
+
+    Reaches into `_tool_manager._tools`, which is private SDK surface: the MCP server exposes no
+    hook for rewriting a schema after registration. `tests/test_tool_surface_budget.py` asserts the
+    stripping actually happened, so an SDK change that moves this internal fails loudly there
+    rather than silently restoring 4,067 tokens.
+    """
+    for tool in mcp._tool_manager._tools.values():
+        if getattr(tool, "parameters", None):
+            tool.parameters = _without_titles(tool.parameters)
+        if getattr(tool, "output_schema", None):
+            tool.output_schema = _without_titles(tool.output_schema)
 
 
 def build_server(profiles: list[str] | None = None) -> MCPServer:
@@ -222,21 +228,26 @@ def build_server(profiles: list[str] | None = None) -> MCPServer:
 
     mcp = MCPServer(
         name="doe-mcp",
-        title="Dataloop",
+        title="DOE",
         instructions=INSTRUCTIONS,
         version=__version__,
     )
     for module in resolve_modules(profiles):
         module.register(mcp)
     if selected == {"plugin-v1"}:
-        for tool_name in FULL_TOOL_NAMES - PLUGIN_V1_TOOLS:
+        registered = frozenset(mcp._tool_manager._tools)
+        missing = PLUGIN_V1_TOOLS - registered
+        if missing:
+            raise RuntimeError(f"Plugin profile references missing tools: {sorted(missing)}")
+        for tool_name in registered - PLUGIN_V1_TOOLS:
             mcp.remove_tool(tool_name)
     prompts.register(mcp)
+    strip_schema_titles(mcp)
     return mcp
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="doe-mcp", description="Dataloop MCP server")
+    parser = argparse.ArgumentParser(prog="doe-mcp", description="DOE MCP server")
     parser.add_argument(
         "--transport",
         choices=["stdio", "streamable-http", "sse"],

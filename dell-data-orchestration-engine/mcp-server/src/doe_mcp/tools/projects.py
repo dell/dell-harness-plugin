@@ -27,7 +27,7 @@ def register(mcp: MCPServer) -> None:
             paging.DEFAULT_LIMIT
         ),
     ) -> paging.ListResult:
-        """List the Dataloop projects this account can access.
+        """List the DOE projects this account can access.
 
         Start here: nearly every other tool needs a project_id.
         """

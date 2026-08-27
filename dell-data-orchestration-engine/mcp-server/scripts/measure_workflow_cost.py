@@ -285,7 +285,7 @@ class WorkflowHarness:
         self.project, self.dpks = build_fixture()
 
     def __enter__(self) -> "WorkflowHarness":
-        self._patches = [
+        self._patches: list[Any] = [
             patch.object(context, "ensure_authenticated", lambda: None),
             # projects.py imports ensure_authenticated directly rather than through context.*,
             # so it needs its own patch target too.
@@ -348,7 +348,7 @@ def run_dataset_exploration() -> WorkflowResult:
     the dataset, so it is not part of a baseline "explore my data" turn count.
     """
     with WorkflowHarness():
-        calls = [
+        calls: list[tuple[str, dict[str, Any]]] = [
             ("project_list", {}),
             ("dataset_list", {"project_id": "proj-1"}),
             ("dataset_get", {"project_id": "proj-1", "dataset_id": "ds-1"}),
@@ -367,7 +367,7 @@ def run_pii_detection() -> WorkflowResult:
     of which downstream action is chosen.
     """
     with WorkflowHarness():
-        calls = [
+        calls: list[tuple[str, dict[str, Any]]] = [
             ("project_list", {}),
             ("dataset_list", {"project_id": "proj-1"}),
             ("pipeline_list", {"project_id": "proj-1"}),
@@ -395,7 +395,7 @@ def run_rag_pipeline() -> WorkflowResult:
     happy path, not the fallback.
     """
     with WorkflowHarness():
-        calls = [
+        calls: list[tuple[str, dict[str, Any]]] = [
             ("project_list", {}),
             ("dataset_list", {"project_id": "proj-1"}),
             ("marketplace_search", {"templates_only": True}),

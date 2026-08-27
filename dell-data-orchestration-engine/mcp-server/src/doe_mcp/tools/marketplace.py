@@ -1,7 +1,7 @@
-"""Browsing the Dataloop marketplace.
+"""Browsing the DOE marketplace.
 
 There is no distinct "marketplace" API. The marketplace is the app registry: published
-DPKs (Dataloop Package Kits) queried through ``/app-registry``. A DPK carrying model
+DPKs (DOE Package Kits) queried through ``/app-registry``. A DPK carrying model
 components is what ``model_install`` turns into a usable model.
 """
 

@@ -6,7 +6,7 @@ resolves that choice (ADR-002) as **classification only** for v1 — whole-image
 coordinates, so the write path can be validated end to end without depending on what a given
 model emits. Geometry types are refused rather than approximated.
 
-Labels are checked against the dataset's own ontology before writing (Ambiguity 8): Dataloop's
+Labels are checked against the dataset's own ontology before writing (Ambiguity 8): DOE's
 behaviour for unknown labels is unverified, and quietly accumulating labels the ontology cannot
 resolve is worse than one extra read per write.
 

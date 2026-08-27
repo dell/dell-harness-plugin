@@ -119,7 +119,7 @@ def register(mcp: MCPServer) -> None:
     ) -> dict[str, Any]:
         """Create a dataset.
 
-        With no labels, ontology or recipe, Dataloop attaches a default recipe.
+        With no labels, ontology or recipe, DOE attaches a default recipe.
         """
         project = get_project(project_id)
         dataset = project.datasets.create(

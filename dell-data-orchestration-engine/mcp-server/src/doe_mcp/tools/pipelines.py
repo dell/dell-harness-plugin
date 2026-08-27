@@ -216,7 +216,7 @@ def register(mcp: MCPServer) -> None:
         validation = project.pipelines.validate(pipeline_json=pipeline_json)
         if not validation_passed(validation):
             raise RuntimeError(
-                f"Dataloop rejected the {pipeline_name!r} pipeline template as invalid: "
+                f"DOE rejected the {pipeline_name!r} pipeline template as invalid: "
                 f"{serialize.json_safe(validation)}"
             )
 

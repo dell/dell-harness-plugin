@@ -281,3 +281,44 @@ class RagQueryResult(TypedDict):
     scan_truncated: bool
     results_count: int
     results: list[RagQueryMatch]
+
+
+class PipelineExecutionSummary(TypedDict):
+    id: str | None
+    pipeline_id: str | None
+    status: str | None
+    created_at: str | int | float | None
+    updated_at: str | int | float | None
+    nodes: dict[str, Any]
+
+
+class PipelineExecutionResult(TypedDict):
+    execution: PipelineExecutionSummary
+
+
+class ExecutionSummary(TypedDict):
+    id: str | None
+    status: str | None
+    in_progress: bool | None
+    service_id: str | None
+    function_name: str | None
+    pipeline_id: str | None
+    node_id: str | None
+    created_at: str | int | float | None
+    updated_at: str | int | float | None
+
+
+class ExecutionTerminationResult(TypedDict):
+    terminated: bool
+    execution: ExecutionSummary
+
+
+class PipelineValidationResult(TypedDict):
+    pipeline_id: str
+    result: Any
+
+
+class PipelineNodeRemovalResult(TypedDict):
+    removed: bool
+    node_name: str
+    pipeline: PipelineStatusSummary
