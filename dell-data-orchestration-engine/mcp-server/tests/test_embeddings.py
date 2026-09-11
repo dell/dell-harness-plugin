@@ -39,16 +39,22 @@ class FakeFeatures:
         self.filters_seen.append(filters)
         index = getattr(filters, "page", 0)
         page = self._pages[index] if index < len(self._pages) else []
-        return SimpleNamespace(items=page, has_next_page=index < len(self._pages) - 1)
+        return SimpleNamespace(
+            items=page,
+            items_count=sum(len(values) for values in self._pages),
+            has_next_page=index < len(self._pages) - 1,
+        )
 
 
 def build_dataset(monkeypatch, sets=(), feature_pages=(), items_count=10):
+    items = SimpleNamespace(get=lambda item_id=None, **_: SimpleNamespace(id=item_id))
     ds = SimpleNamespace(
         id="ds-1",
         name="photos",
         items_count=items_count,
         feature_sets=FakeFeatureSets(sets),
         features=FakeFeatures(list(feature_pages)),
+        items=items,
     )
     monkeypatch.setattr(embeddings, "get_dataset", lambda project_id, dataset_id: ds)
     return ds
@@ -68,12 +74,17 @@ def test_status_reports_no_embeddings_and_points_at_extraction(monkeypatch, call
 
 
 def test_status_reports_an_existing_feature_set(monkeypatch, call_tool):
-    build_dataset(monkeypatch, sets=[fake_feature_set()])
+    build_dataset(
+        monkeypatch,
+        sets=[fake_feature_set()],
+        feature_pages=[[fake_feature("item-1", [1.0, 0.0])]],
+    )
 
     body = call_tool("dataset_embeddings_status", ARGS).structured_content
 
     assert body["has_embeddings"] is True
     assert body["feature_sets"][0]["name"] == "clip"
+    assert body["feature_sets"][0]["vector_count"] == 1
     # The platform's own Clustering tab is the other consumer worth mentioning.
     assert "Clustering tab" in body["next_step"]
 
@@ -132,6 +143,8 @@ def test_embed_runs_when_confirmed_and_within_the_ceiling(monkeypatch, project, 
     assert body["trigger_attached"] is False
     # Asynchronous: a caller must not cluster immediately on the strength of this return.
     assert "asynchronously" in body["note"]
+    assert body["vectors_written"] is None
+    assert "vector_count" in body["note"]
 
 
 def test_embed_names_the_standing_cost_when_attaching_a_trigger(monkeypatch, project, call_tool):
@@ -333,3 +346,24 @@ def test_visual_search_respects_min_similarity(monkeypatch, call_tool):
 
     assert body["matches_count"] == 1
     assert body["results"][0]["item_id"] == "item-1"
+
+
+def test_visual_search_refuses_text_query_without_human_elicitation(monkeypatch, call_tool):
+    build_dataset(monkeypatch, sets=[fake_feature_set()])
+
+    result = call_tool("dataset_visual_search", {**ARGS, "query": "a red car"})
+
+    assert result.is_error is True
+    assert "query_vector" in result.content[0].text
+
+
+def test_visual_search_rejects_unknown_feature_set(monkeypatch, call_tool):
+    build_dataset(monkeypatch, sets=[fake_feature_set()])
+
+    result = call_tool(
+        "dataset_visual_search",
+        {**ARGS, "feature_set_id": "fs-missing", "query_vector": [1.0, 0.0]},
+    )
+
+    assert result.is_error is True
+    assert "not in dataset" in result.content[0].text

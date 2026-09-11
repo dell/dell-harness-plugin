@@ -1,0 +1,3 @@
+The governed data product for fulfilment delays is **`fulfillment_metrics`** (`dp_fulfillment_v1`). It provides governed order-fulfillment metrics, including delayed-order analysis.
+
+Returned evidence is synthetic, non-customer evaluation data.

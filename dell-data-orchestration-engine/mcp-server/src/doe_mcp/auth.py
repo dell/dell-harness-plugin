@@ -39,6 +39,10 @@ _FALSE_VALUES = frozenset({"0", "false", "no", "off"})
 # disk, so logins are serialized even though tool bodies run in worker threads.
 _lock = threading.Lock()
 
+STATE_DIR_MODE = 0o700
+TOKEN_FILE_MODE = 0o600
+COOKIE_FILE_NAME = "cookie.json"
+
 
 class MissingCredentials(MCPError):
     """Raised when the server has no usable DOE credentials.
@@ -59,13 +63,31 @@ def _require_state_directory() -> str:
             f"{STATE_DIR_ENV_VAR} is not set. Point it at a private dtlpy state directory "
             f"before starting the server, for example $HOME/.doe-mcp/dataloop."
         )
+    if os.path.islink(state_dir):
+        raise MissingCredentials(
+            f"Refusing symbolic-link dtlpy state directory at {state_dir!r}; "
+            "use a private directory owned by this identity."
+        )
     try:
         os.makedirs(state_dir, exist_ok=True)
+        if os.name == "posix":
+            # mkdir(mode=...) does not repair a pre-existing loose directory.
+            os.chmod(state_dir, STATE_DIR_MODE)
     except OSError as exc:
         raise MissingCredentials(
             f"Could not create or access the dtlpy state directory at {state_dir!r}: {exc}"
         ) from exc
     return state_dir
+
+
+def _protect_token_file(state_dir: str) -> None:
+    """Restrict the bearer-token cookie dtlpy persists after login."""
+    cookie = os.path.join(state_dir, COOKIE_FILE_NAME)
+    try:
+        if os.path.exists(cookie) and os.name == "posix":
+            os.chmod(cookie, TOKEN_FILE_MODE)
+    except OSError as exc:
+        logger.warning("Could not restrict permissions on %s: %s", cookie, exc)
 
 
 def _normalize_gate_url(raw: str) -> tuple[str, str]:
@@ -123,7 +145,10 @@ def _configure_environment() -> None:
 
 def ensure_authenticated() -> None:
     """Make sure the shared dtlpy client holds a valid token."""
-    _require_state_directory()
+    state_dir = _require_state_directory()
+    # Repair a cookie left by an older run even when the cached token is valid
+    # and no new login occurs in this process.
+    _protect_token_file(state_dir)
 
     api_key = os.environ.get(API_KEY_ENV_VAR)
     if not api_key:
@@ -143,6 +168,7 @@ def ensure_authenticated() -> None:
         except ValueError as exc:
             # login_api_key validates against GET /users/me and raises ValueError.
             raise MissingCredentials(f"The {API_KEY_ENV_VAR} value was rejected by DOE: {exc}") from exc
+        _protect_token_file(state_dir)
 
         client_api = dl.client_api
         if client_api.token_expired():

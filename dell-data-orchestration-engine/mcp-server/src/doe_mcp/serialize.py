@@ -16,6 +16,8 @@ from . import outputs
 
 JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
 
+_NOT_ENUM_LIKE = object()
+
 
 def json_safe(value: Any) -> JsonValue:
     """Normalize dtlpy values into MCP structured-content primitives."""
@@ -29,8 +31,15 @@ def json_safe(value: Any) -> JsonValue:
         return {str(key): json_safe(item) for key, item in value.items()}
     if isinstance(value, Sequence) and not isinstance(value, str | bytes | bytearray):
         return [json_safe(item) for item in value]
-    if hasattr(value, "value"):
-        return json_safe(value.value)
+    # Some dtlpy objects expose computed properties that raise when read. Treat
+    # enum-like ``.value`` objects consistently without letting one unsafe
+    # property turn a successful platform operation into a serialization error.
+    try:
+        inner = value.value if hasattr(value, "value") else _NOT_ENUM_LIKE
+    except Exception:
+        return str(value)
+    if inner is not _NOT_ENUM_LIKE:
+        return json_safe(inner)
     return str(value)
 
 

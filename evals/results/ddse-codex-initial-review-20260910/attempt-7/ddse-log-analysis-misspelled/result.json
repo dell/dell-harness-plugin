@@ -1,0 +1,45 @@
+{
+  "audit_event_id": "ddse-eval-71a300e5-42e3-401a-b845-3d9efdef61df,ddse-eval-4b6667ce-3f6d-449b-ba32-ce1552ce5831",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddse-log-analysis-misspelled",
+  "codex_exit_code": 0,
+  "final_answer": "The evidence is synthetic.\n\nCheckout logs rose from 10 to 34\u2014a 240% increase. The current window contained 24 `payment_timeout` logs, exactly matching the 24-log increase.\n\nSo the spike was entirely attributable to `payment_timeout` messages within the requested evidence scope. This identifies the log category driving the increase, but not the underlying cause of those timeouts.",
+  "fixture": "ddse-synthetic-operations-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 17708,
+  "manual_checks": {
+    "Interpret the typo and preserve the evaluation time window.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a08d72-068d-7012-bfbc-e3ee435f7d11",
+  "tool_calls": [
+    {
+      "arguments": {
+        "comparison_end": "2026-08-01T00:00:00Z",
+        "comparison_start": "2026-07-31T23:00:00Z",
+        "current_end": "2026-08-01T01:00:00Z",
+        "current_start": "2026-08-01T00:00:00Z",
+        "service_name": "checkout"
+      },
+      "name": "observability_run_log_rate_analysis",
+      "status": "completed"
+    },
+    {
+      "arguments": {
+        "end": "2026-08-01T01:00:00Z",
+        "service_name": "checkout",
+        "start": "2026-08-01T00:00:00Z"
+      },
+      "name": "observability_get_log_categories",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/ddse-codex-initial-review-20260910/attempt-7/ddse-log-analysis-misspelled/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 55424,
+    "input_tokens": 67538,
+    "output_tokens": 458,
+    "reasoning_output_tokens": 97
+  }
+}

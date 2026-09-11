@@ -1,0 +1,40 @@
+{
+  "audit_event_id": "ddae-eval-3f899ee8-7b03-4d8a-a7de-71c92445ed78,ddae-eval-1b7de072-820e-404e-a47e-d0ade36f5b8d",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddae-discovery-to-answer-explicit",
+  "codex_exit_code": 0,
+  "final_answer": "The governed source is the `fulfillment_metrics` Data Product (`dp_fulfillment_v1`), backed by `synthetic.fulfillment_orders`. It explicitly supports delayed-order analysis; the alternative product lacked a dedicated fulfillment-delay measure.\n\nResult: **17 distinct delayed orders**\n\nCalculation used:\n\n- Status: `fulfillment_status = 'delayed'`\n- Window: `event_time >= 2026-08-01T00:00:00Z` and `< 2026-08-08T00:00:00Z`\n- Measure: `COUNT(DISTINCT order_id)`\n- Returned one complete, non-truncated row\n\nEvidence is synthetic, non-customer evaluation data from fixture `ddae-synthetic-commerce-v1`. Query evidence ID: `ddae-synthetic-delayed-orders-v1`.",
+  "fixture": "ddae-synthetic-commerce-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 23227,
+  "manual_checks": {
+    "Report product and query evidence.": true,
+    "Separate result from limitations.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a08d9f-a31d-7b62-9f35-e6f57a7893f2",
+  "tool_calls": [
+    {
+      "arguments": {
+        "query": "governed fulfillment delayed orders"
+      },
+      "name": "searchDataProducts",
+      "status": "completed"
+    },
+    {
+      "arguments": {
+        "query": "SELECT COUNT(DISTINCT order_id) AS delayed_order_count FROM synthetic.fulfillment_orders WHERE fulfillment_status = 'delayed' AND event_time >= TIMESTAMP '2026-08-01 00:00:00+00:00' AND event_time < TIMESTAMP '2026-08-08 00:00:00+00:00' LIMIT 1"
+      },
+      "name": "queryReadOnly",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/ddae-codex-initial-review-20260910/attempt-6/ddae-discovery-to-answer-explicit/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 68352,
+    "input_tokens": 73580,
+    "output_tokens": 759,
+    "reasoning_output_tokens": 336
+  }
+}

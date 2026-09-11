@@ -5,6 +5,11 @@ credentials.env
 .env
 .env.*
 
+# Local-only private-network testing helpers
+MCP_PRIVATE_NETWORK_TESTING.md
+scripts/fixed_socks_connect_proxy.py
+tests/plugins/test_fixed_socks_connect_proxy.py
+
 # Python
 __pycache__/
 *.py[cod]
@@ -13,4 +18,19 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
-evals/results/
+evals/results/*
+!evals/results/ddae-codex-initial-review-20260910/
+evals/results/ddae-codex-initial-review-20260910/*
+!evals/results/ddae-codex-initial-review-20260910/REVIEW.md
+!evals/results/ddae-codex-initial-review-20260910/live-safe-smoke.json
+!evals/results/ddae-codex-initial-review-20260910/attempt-6/
+!evals/results/ddae-codex-initial-review-20260910/attempt-6/**
+!evals/results/ddse-codex-initial-review-20260910/
+evals/results/ddse-codex-initial-review-20260910/*
+!evals/results/ddse-codex-initial-review-20260910/REVIEW.md
+!evals/results/ddse-codex-initial-review-20260910/attempt-7/
+!evals/results/ddse-codex-initial-review-20260910/attempt-7/**
+!evals/results/doe-initial-review-20260911/
+evals/results/doe-initial-review-20260911/*
+!evals/results/doe-initial-review-20260911/REVIEW.md
+!evals/results/doe-initial-review-20260911/contract.json

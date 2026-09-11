@@ -17,10 +17,16 @@ do not use this DDAE workflow.
 1. Clarify the business question, measures, dimensions, filters, and time range
    when they are material or ambiguous.
 2. Call `searchDataProducts` with a narrow business term. Do not enumerate all
-   products unless the user explicitly needs that inventory.
+   products unless the user explicitly needs that inventory. Always send a
+   non-empty search term. Reuse a successful
+   result set; do not repeat the search merely to try synonymous wording. Refine
+   once only when the first result has no relevant authorized product and the
+   user's intent supports a narrower term.
 3. Compare only authorized results. Prefer a product whose description,
    ownership, and available schema support the question. State when the
-   metadata is insufficient.
+   metadata is insufficient. When the request is only to find, compare, or
+   recommend a source, stop after the recommendation; do not query its data
+   unless the user also asks for a calculation or finding.
 4. If `getDataProductDetails` is advertised, use it before querying when
    column or view details are required.
 5. Prefer an approved parameterized query when

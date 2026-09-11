@@ -88,7 +88,11 @@ def register(mcp: MCPServer) -> None:
         dataset_id: Annotated[str, Field(description="Dataset that holds the item.")],
         item_id: Annotated[str, Field(description="Item whose annotations to list.")],
         label: Annotated[str | None, Field(description="Only annotations carrying this label.")] = None,
-        limit: Annotated[int, Field(ge=1, le=paging.MAX_LIMIT, description="Max annotations.")] = (
+        page: Annotated[int, Field(ge=0, description="Zero-based page number.")] = 0,
+        page_size: Annotated[
+            int, Field(ge=1, le=paging.MAX_LIMIT, description="Annotations per page.")
+        ] = paging.DEFAULT_LIMIT,
+        limit: Annotated[int, Field(ge=1, le=paging.MAX_LIMIT, description="Max annotations to return.")] = (
             paging.DEFAULT_LIMIT
         ),
         fields: Annotated[list[str] | None, Field(description=paging.FIELDS_DESCRIPTION)] = None,
@@ -96,15 +100,26 @@ def register(mcp: MCPServer) -> None:
         """List the annotations on one item, e.g. to review what a classifier tagged it with."""
         dataset = get_dataset(project_id, dataset_id)
         item = dataloop_call("item lookup", lambda: dataset.items.get(item_id=item_id))
-        filters = None
+        filters = dl.Filters(resource=dl.FiltersResource.ANNOTATION)
         if label is not None:
-            filters = dl.Filters(resource=dl.FiltersResource.ANNOTATION)
             filters.add(field="label", values=label)
-        listed = dataloop_call("annotation list", lambda: item.annotations.list(filters=filters))
+        listed = dataloop_call(
+            "annotation list",
+            lambda: item.annotations.list(filters=filters, page_offset=page, page_size=page_size),
+        )
         # item.annotations.list returns an AnnotationCollection (or a paged shape when filtered);
         # both expose the entities through .items.
         entities = getattr(listed, "annotations", None) or getattr(listed, "items", None) or []
-        return paging.from_list(entities, serialize.annotation, limit=limit, page_size=limit, fields=fields)
+        if hasattr(listed, "items"):
+            return paging.from_paged(listed, serialize.annotation, limit=limit, fields=fields)
+        return paging.from_list(
+            entities,
+            serialize.annotation,
+            limit=limit,
+            page=page,
+            page_size=page_size,
+            fields=fields,
+        )
 
     @mcp.tool(title="Get annotation", annotations=READ_ONLY)
     def annotation_get(

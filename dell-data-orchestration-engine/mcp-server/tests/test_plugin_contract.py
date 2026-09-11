@@ -24,3 +24,16 @@ def test_every_read_only_tool_is_marked_idempotent():
         annotations = tool.annotations
         if annotations and annotations.read_only_hint:
             assert annotations.idempotent_hint is True, tool.name
+
+
+def test_default_contract_exposes_new_safety_and_pagination_inputs():
+    by_name = {tool.name: tool for tool in listed_plugin_tools()}
+
+    install = by_name["pipeline_install"].input_schema["properties"]
+    create_model = by_name["model_create"].input_schema["properties"]
+    annotations = by_name["annotation_list"].input_schema["properties"]
+
+    assert install["confirm"]["default"] is False
+    assert create_model["confirm"]["default"] is False
+    assert annotations["page"]["default"] == 0
+    assert annotations["page_size"]["default"] > 0

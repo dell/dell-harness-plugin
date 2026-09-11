@@ -262,9 +262,19 @@ def register(mcp: MCPServer) -> None:
             ResumeOption | None,
             Field(description="What to do with cycles from a previous run."),
         ] = None,
+        confirm: Annotated[
+            bool,
+            Field(description="Must be true: an installed pipeline keeps running and consuming compute."),
+        ] = False,
         ctx: Context | None = None,
     ) -> outputs.PipelineStatusSummary:
-        """Install (start) a pipeline so its nodes begin processing."""
+        """Install a pipeline after confirmation; it keeps processing until paused or deleted."""
+        confirm_or_elicit(
+            ctx,
+            confirm,
+            "install this pipeline",
+            "it starts processing and keeps consuming compute until it is paused or deleted",
+        )
         pipeline = get_pipeline(project_id, pipeline_id)
         report_progress(ctx, 0, 100, f"Installing pipeline {pipeline.name!r}...")
         installed = pipeline.project.pipelines.install(pipeline=pipeline, resume_option=resume_option)

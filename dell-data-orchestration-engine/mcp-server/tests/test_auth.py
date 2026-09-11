@@ -1,5 +1,7 @@
 """Credential handling."""
 
+import os
+import stat
 from typing import Any
 
 import pytest
@@ -63,6 +65,39 @@ def test_missing_state_directory_is_reported(monkeypatch):
 
     with pytest.raises(auth.MissingCredentials, match=auth.STATE_DIR_ENV_VAR):
         auth.ensure_authenticated()
+
+
+def test_state_directory_permissions_are_repaired(monkeypatch, tmp_path):
+    state = tmp_path / "state"
+    state.mkdir()
+    state.chmod(0o755)
+    monkeypatch.setenv(auth.STATE_DIR_ENV_VAR, str(state))
+
+    assert auth._require_state_directory() == str(state)
+    if os.name == "posix":
+        assert stat.S_IMODE(state.stat().st_mode) == auth.STATE_DIR_MODE
+
+
+def test_cookie_permissions_are_repaired(monkeypatch, tmp_path):
+    cookie = tmp_path / auth.COOKIE_FILE_NAME
+    cookie.write_text('{"token": "test"}', encoding="utf-8")
+    cookie.chmod(0o644)
+
+    auth._protect_token_file(str(tmp_path))
+
+    if os.name == "posix":
+        assert stat.S_IMODE(cookie.stat().st_mode) == auth.TOKEN_FILE_MODE
+
+
+def test_symlinked_state_directory_is_refused(monkeypatch, tmp_path):
+    target = tmp_path / "target"
+    target.mkdir()
+    link = tmp_path / "state"
+    link.symlink_to(target, target_is_directory=True)
+    monkeypatch.setenv(auth.STATE_DIR_ENV_VAR, str(link))
+
+    with pytest.raises(auth.MissingCredentials, match="symbolic-link"):
+        auth._require_state_directory()
 
 
 def test_rejected_key_is_reported_as_protocol_error(monkeypatch):

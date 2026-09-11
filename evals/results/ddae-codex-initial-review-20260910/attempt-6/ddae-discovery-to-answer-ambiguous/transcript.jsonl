@@ -1,0 +1,8 @@
+{"type":"thread.started","thread_id":"01a08d9f-fc6f-7481-b4e2-1388b517721b"}
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"Configured value for `web_search_mode` is disallowed by requirements; falling back to required value Live. Details: invalid value for `web_search_mode`: `Cached` is not in the allowed set [Disabled, Live] (set by enterprise-managed requirements Baseline (b2d8d4c8-fb8a-4674-996f-d57ca07c76ef))"}}
+{"type":"item.completed","item":{"id":"item_1","type":"error","message":"Configured value for `web_search_mode` is disallowed by requirements; falling back to required value Live. Details: invalid value for `web_search_mode`: `Cached` is not in the allowed set [Disabled, Live] (set by enterprise-managed requirements Baseline (b2d8d4c8-fb8a-4674-996f-d57ca07c76ef))"}}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_2","type":"agent_message","text":"Clarification is required. What business measure should “performance” refer to—such as revenue, margin, throughput, or SLA—and what scope should be analyzed, such as product, region, and time period?\n\nAny returned evidence will be synthetic."}}
+{"type":"turn.completed","usage":{"input_tokens":16093,"cached_input_tokens":10496,"cache_write_input_tokens":0,"output_tokens":75,"reasoning_output_tokens":20}}
+
+Reading additional input from stdin...

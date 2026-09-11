@@ -19,9 +19,10 @@ quarters of a sample corpus. A better router (a frontier model, or a fine-tuned 
 in behind the same protocol.
 
 **If that better router is a model, it belongs on DOE.** This project's convention is to use
-models deployed on the platform rather than downloading and running them here; the one standing
-exception is gated and slated for removal (see `guards.elicit_or_refuse`). A routing model should
-be a DOE model called through `model.predict`, not weights loaded into this process.
+models deployed on the platform rather than downloading and running them here. The former local
+CLIP exception was retired: text-query visual search now uses a model deployed on Dataloop.
+A routing model should likewise be a DOE model called through `model.predict`, not weights
+loaded into this process.
 """
 
 from __future__ import annotations

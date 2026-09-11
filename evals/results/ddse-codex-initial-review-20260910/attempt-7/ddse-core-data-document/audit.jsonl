@@ -1,0 +1,1 @@
+{"arguments": {"document_id": "order-1042", "index": "synthetic-orders-v1"}, "case_id": "ddse-core-data-document", "event_id": "ddse-eval-f2dc1a78-4b0e-4f28-b8d1-be58b8368f13", "event_type": "mcp_tool_call", "sequence": 1, "source": "codex_jsonl_transcript", "status": "completed", "timestamp": "2026-09-10T22:29:08.034010+00:00", "tool": "platform_core_get_document_by_id"}

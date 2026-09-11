@@ -17,15 +17,21 @@ from .auth import ensure_authenticated
 T = TypeVar("T")
 
 
+class DoeError(RuntimeError):
+    """A platform failure already normalized by :func:`dataloop_call`."""
+
+
 def dataloop_call(action: str, func: Callable[[], T]) -> T:
     """Normalize common dtlpy failures without hiding local validation errors."""
     try:
         return func()
-    except (MCPError, ValueError):
+    except (MCPError, ValueError, DoeError):
+        # Nested lookups are already normalized. Re-wrapping them would obscure the
+        # original operation with a second ``DOE <action> failed`` prefix.
         raise
     except Exception as exc:
         message = str(exc).strip() or type(exc).__name__
-        raise RuntimeError(f"DOE {action} failed: {message}") from exc
+        raise DoeError(f"DOE {action} failed: {message}") from exc
 
 
 def get_project(project_id: str) -> dl.entities.Project:

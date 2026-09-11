@@ -38,12 +38,16 @@ class FakeAnnotations:
         self.uploaded = None
         self._matched = matched
 
-    def list(self, filters=None):
+    def list(self, filters=None, page_offset=None, page_size=None):
         self.list_filters = filters
+        self.list_page = page_offset
+        self.list_page_size = page_size
         return SimpleNamespace(
             annotations=[fake_annotation(), fake_annotation("ann-2", "car")],
             items=[fake_annotation(), fake_annotation("ann-2", "car")],
             items_count=self._matched,
+            page_offset=page_offset,
+            page_size=page_size,
         )
 
     def get(self, annotation_id=None):
@@ -94,6 +98,14 @@ def test_annotation_list_filters_by_label(dataset, call_tool):
 
     item = dataset.items.get()
     assert item.annotations.list_filters is not None
+
+
+def test_annotation_list_threads_page_inputs_to_platform(dataset, call_tool):
+    call_tool("annotation_list", {**ARGS, "page": 2, "page_size": 10})
+
+    item = dataset.items.get()
+    assert item.annotations.list_page == 2
+    assert item.annotations.list_page_size == 10
 
 
 def test_annotation_list_projects_down_to_requested_fields(dataset, call_tool):

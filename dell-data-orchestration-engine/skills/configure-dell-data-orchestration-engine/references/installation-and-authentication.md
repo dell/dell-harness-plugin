@@ -1,6 +1,6 @@
 # Installation and authentication
 
-## Supported deployment for version 0.2.0
+## Supported deployment for version 0.3.0
 
 The plugin starts its bundled Python MCP server as a local `stdio` subprocess.
 The server calls Dataloop through the `dtlpy` Python SDK. Each Codex runtime
@@ -36,9 +36,26 @@ The helper asks for:
 - an optional administrator-approved external executable override.
 
 On POSIX systems it writes `~/.config/dell-mcp/dataloop.json` with mode 0600
-and creates a mode 0700 SDK state directory. On Windows, store the file in the
-user profile and apply a user-only ACL. Do not copy it to a repository or shared
-filesystem.
+and creates a mode 0700 SDK state directory. Server startup repairs the state
+directory to mode 0700 and dtlpy's `cookie.json` to mode 0600, including state
+left by an older release. Symbolic-link state paths are refused. On Windows,
+store the file in the user profile and apply a user-only ACL. Do not copy it to
+a repository or shared filesystem.
+
+For multiple Dataloop gates, create one state directory and configuration file
+per deployment:
+
+```bash
+STATE_PATH="$(python dell-data-orchestration-engine/scripts/dataloop_state_dir.py cto-lab \
+  --gate-url https://gate.example.com/api/v1)"
+python dell-data-orchestration-engine/scripts/configure_dataloop.py \
+  --config ~/.config/dell-mcp/dataloop-cto-lab.json \
+  --state-path "$STATE_PATH" \
+  --gate-url https://gate.example.com/api/v1
+```
+
+Reusing an alias with another gate URL fails instead of mixing cookies and the
+SDK's currently selected deployment.
 
 For managed deployment, provide the equivalent settings through a secret
 manager or protected process environment. Environment variables override the

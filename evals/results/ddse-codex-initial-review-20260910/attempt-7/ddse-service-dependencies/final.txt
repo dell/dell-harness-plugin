@@ -1,0 +1,4 @@
+Synthetic evidence for `2026-08-01T00:00:00Z`–`01:00:00Z`:
+
+- Service found: `checkout-api`
+- Downstream dependency: `payments-api`

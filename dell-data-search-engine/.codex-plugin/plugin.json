@@ -1,10 +1,21 @@
 {
   "name": "dell-data-search-engine",
-  "version": "0.1.1",
-  "description": "Use Dell Data Search Engine with a customer-registered MCP endpoint.",
+  "version": "0.2.0",
+  "description": "Investigate governed Dell Data Search Engine indices, observability, and security data with bounded read-only workflows.",
   "author": {
-    "name": "Dell Technologies"
+    "name": "Dell Technologies",
+    "url": "https://www.dell.com/"
   },
+  "homepage": "https://www.dell.com/support/product-details/en-us/product/dell-data-lakehouse/overview",
+  "repository": "https://github.com/dell/dell-harness-plugin",
+  "license": "Proprietary",
+  "keywords": [
+    "dell",
+    "data-search",
+    "elastic",
+    "observability",
+    "security"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Dell Data Search Engine",
@@ -15,10 +26,16 @@
     "capabilities": [
       "Read"
     ],
+    "websiteURL": "https://www.dell.com/support/product-details/en-us/product/dell-data-lakehouse/overview",
+    "privacyPolicyURL": "https://www.dell.com/en-us/lp/legal/policies-privacy",
+    "termsOfServiceURL": "https://www.dell.com/en-us/lp/legal/site-terms-of-use",
     "defaultPrompt": [
       "Investigate checkout errors in the last hour and cite the evidence.",
       "Inspect relevant index mappings before running bounded ES|QL.",
       "Explain which available tools can answer this operational question."
-    ]
+    ],
+    "brandColor": "#0672CE",
+    "composerIcon": "./assets/dell-technologies-wordmark.png",
+    "logo": "./assets/dell-technologies-wordmark.png"
   }
 }

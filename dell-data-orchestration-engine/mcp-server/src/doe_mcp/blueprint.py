@@ -95,6 +95,11 @@ class PipelineBlueprint(BaseModel):
         return self
 
 
+def _digest(payload: dict[str, Any]) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode()).hexdigest()
+
+
 def fingerprint(plan: PipelineBlueprint) -> str:
     """A stable digest of every choice in the blueprint.
 
@@ -107,8 +112,12 @@ def fingerprint(plan: PipelineBlueprint) -> str:
         "nodes": [node.model_dump(mode="json") for node in plan.nodes],
         "edges": [[edge.source, edge.target, edge.action] for edge in plan.edges],
     }
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(encoded.encode()).hexdigest()
+    return _digest(payload)
+
+
+def _node_fingerprint(plan_name: str, node: NodeSpec) -> str:
+    """Digest one node within one pipeline, so sibling edits keep stable IDs."""
+    return _digest({"plan": plan_name, "node": node.model_dump(mode="json")})
 
 
 def _derived_id(*parts: str) -> str:
@@ -144,12 +153,11 @@ def build_graph(
     """
     from .tools.pipeline_nodes import build_node
 
-    digest = fingerprint(plan)
     built: dict[str, Any] = {}
 
     for spec in plan.nodes:
         node = build_node(pipeline, spec)
-        _apply_derived_ids(node, digest)
+        _apply_derived_ids(node, _node_fingerprint(plan.name, spec))
         built[spec.name] = node
 
     # Added in blueprint order, so the first node listed becomes the start node (Nodes.add sets it

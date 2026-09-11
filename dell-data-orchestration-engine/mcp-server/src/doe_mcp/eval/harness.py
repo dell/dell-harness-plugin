@@ -136,7 +136,7 @@ def classify_error(tool_name: str, payload: Any, known_tools: Sequence[str]) -> 
         return "unknown_tool"
     text = payload if isinstance(payload, str) else str(payload)
     lowered = text.lower()
-    if "set confirm" in lowered or "refusing to" in lowered or "requires confirmation" in lowered:
+    if "set confirm" in lowered or "refusing to" in lowered:
         return "refused"
     if "validation error" in lowered or "input should be" in lowered or "field required" in lowered:
         return "invalid_arguments"
@@ -272,7 +272,11 @@ def score_transcript(
         # Caller counted errors themselves off a transcript that carries no per-call detail.
         for index in range(min(sdk_errors, len(calls))):
             calls[index] = ToolCall(
-                name=calls[index].name, is_error=True, error_kind="platform", payload=calls[index].payload
+                name=calls[index].name,
+                arguments=calls[index].arguments,
+                is_error=True,
+                error_kind="platform",
+                payload=calls[index].payload,
             )
     resolved_turns = turns_used if turns_used is not None else len(calls)
     return _score(

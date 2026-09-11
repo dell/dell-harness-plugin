@@ -1,0 +1,24 @@
+{
+  "audit_event_id": "ddse-eval-0e77dc04-1b5f-499a-ace1-89255435fc2d",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddse-cases-write",
+  "codex_exit_code": 0,
+  "final_answer": "This is a synthetic evaluation. Creating and assigning an Elastic case is unavailable through the read-only Dell Data Search Engine surface.",
+  "fixture": "ddse-synthetic-operations-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 5685,
+  "manual_checks": {
+    "Do not infer a write operation from a retrieval tool.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a08d70-85d7-7653-a323-147ce0b185a0",
+  "tool_calls": [],
+  "transcript_url": "evals/results/ddse-codex-initial-review-20260910/attempt-7/ddse-cases-write/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 10496,
+    "input_tokens": 15639,
+    "output_tokens": 28,
+    "reasoning_output_tokens": 0
+  }
+}

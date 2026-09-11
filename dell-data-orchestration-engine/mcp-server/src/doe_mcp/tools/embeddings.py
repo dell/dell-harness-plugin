@@ -104,43 +104,48 @@ def cosine_similarity(vectors: np.ndarray, query_vector: np.ndarray) -> np.ndarr
     return scores
 
 
-def encode_text_query(query: str) -> np.ndarray:
-    """Encode a text query into a CLIP vector by running CLIP **in this process**.
+def feature_vector_count(dataset: Any, feature_set_id: str) -> tuple[int | None, bool]:
+    """Return the number of vectors and whether the platform reported an exact total."""
+    filters = dl.Filters(resource=dl.FiltersResource.FEATURE)
+    filters.add(field="featureSetId", values=feature_set_id)
+    filters.page_size = 1
+    listed = dataloop_call("feature count", lambda: dataset.features.list(filters=filters))
+    count = getattr(listed, "items_count", None)
+    if count is None:
+        return None, False
+    # dtlpy defaults items_count to zero even when a response omits the total.
+    if not count and paging.page_entities(listed):
+        return None, False
+    return int(count), True
 
-    This is the sharpest local-computation case in the server, and it is a standing exception
-    rather than a sanctioned design — flagged 2026-08-27, recorded in the techspec:
 
-    * it **downloads an external model at runtime** (`from_pretrained` fetches
-      `openai/clip-vit-base-patch32` from HuggingFace), against the project convention "always use
-      the models/apps installed on DOE; never download or run external/local models";
-    * it runs a neural network locally, against "never run image recognition or similar ML tasks
-      locally";
-    * `torch` and `transformers` are **not declared dependencies**, so for most installs this
-      raises rather than running at all;
-    * it has no test coverage.
-
-    The platform-side equivalent already exists — `tools/rag.py`'s `embed_query` embeds a query by
-    uploading a throwaway item and letting the *deployed* model embed it, which is comparable with
-    the stored vectors by construction. Routing `dataset_visual_search` through that (or requiring
-    `query_vector`, which it already accepts) would retire this function. Until that decision is
-    taken, callers must clear the gate at the call site.
-    """
+def _vector_count_of(dataset: Any, feature_set: Any) -> int | None:
+    """Return an exact count for one listed feature set, or None when unavailable."""
+    set_id = getattr(feature_set, "id", None)
+    if not set_id:
+        return None
     try:
-        import torch
-        from transformers import CLIPTextModelWithProjection, CLIPTokenizer
+        count, exact = feature_vector_count(dataset, set_id)
+    except Exception:
+        return None
+    return count if exact else None
 
-        tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-base-patch32")
-        model = CLIPTextModelWithProjection.from_pretrained("openai/clip-vit-base-patch32")
-        inputs = tokenizer([query], padding=True, return_tensors="pt")
-        with torch.no_grad():
-            outputs = model(**inputs)
-            embeds = outputs.text_embeds.cpu().numpy()[0]
-        return np.asarray(embeds, dtype=float)
-    except Exception as exc:
-        raise ValueError(
-            f"Failed to encode text query automatically: {exc}. "
-            "Ensure transformers and torch are available, or provide query_vector explicitly."
-        ) from exc
+
+def item_exists(dataset: Any, item_id: str) -> bool:
+    """Whether a feature vector still points at a live item."""
+    try:
+        return dataset.items.get(item_id=item_id) is not None
+    except Exception:
+        return False
+
+
+def feature_set_for_model(dataset: Any, model_id: str) -> Any | None:
+    """Find the feature set written by one model, if extraction created it."""
+    sets = paging.page_entities(dataloop_call("feature set list", lambda: dataset.feature_sets.list()))
+    return next(
+        (entry for entry in sets if getattr(entry, "model_id", None) == model_id),
+        None,
+    )
 
 
 def read_vectors(dataset: Any, feature_set_id: str, max_vectors: int) -> tuple[list[Any], bool]:
@@ -183,7 +188,9 @@ def register(mcp: MCPServer) -> None:
             {
                 "id": getattr(entry, "id", None),
                 "name": getattr(entry, "name", None),
+                # Vector dimension, not extraction progress.
                 "size": getattr(entry, "size", None),
+                "vector_count": _vector_count_of(dataset, entry),
                 "entity_type": str(getattr(entry, "entity_type", None)),
                 "model_id": getattr(entry, "model_id", None),
             }
@@ -194,8 +201,10 @@ def register(mcp: MCPServer) -> None:
             "has_embeddings": bool(summaries),
             "feature_sets": summaries,
             "next_step": (
-                "Cluster with dataset_cluster, or open the dataset's Clustering tab in the "
-                "DOE console for the platform's own visualisation."
+                "Extraction is asynchronous: poll this until vector_count stops climbing, then "
+                "compare it with the dataset's item count. size is the vector dimension and "
+                "does not change. Then cluster with dataset_cluster, or open the dataset's "
+                "Clustering tab in the DOE console."
                 if summaries
                 else "No feature set on this dataset. dataset_embed extracts one, using a model "
                 "already installed in the project. That is billable."
@@ -265,17 +274,41 @@ def register(mcp: MCPServer) -> None:
             lambda: model.embed_datasets(dataset_ids=[dataset_id], attach_trigger=attach_trigger),
         )
         report_progress(ctx, 100, 100, "Embedding extraction complete.")
-        return {
+
+        # The write is asynchronous. Read back an honest immediate snapshot, but
+        # never turn a successful billable submission into a failure if this
+        # diagnostic read is unavailable.
+        vectors_written: int | None = None
+        exact = False
+        read_back_error: str | None = None
+        try:
+            feature_set = feature_set_for_model(dataset, model_id)
+            if feature_set is not None:
+                vectors_written, exact = feature_vector_count(dataset, feature_set.id)
+        except Exception as exc:
+            read_back_error = str(exc).strip() or type(exc).__name__
+
+        result: dict[str, Any] = {
             "dataset_id": dataset_id,
             "model_id": model_id,
             "items": items_count,
+            "vectors_written": vectors_written if exact else None,
+            "vectors_written_as_of": "immediately after submission; extraction is still running",
             "trigger_attached": attach_trigger,
             "note": (
-                "Extraction runs asynchronously. Poll dataset_embeddings_status until a feature "
-                "set appears with the expected size before clustering or opening the Clustering "
-                "tab."
+                "Extraction runs asynchronously: vectors_written is an immediate snapshot, not a "
+                "final count. Poll dataset_embeddings_status until vector_count stops climbing. "
+                "A settled count below items can mean the model input type did not cover every "
+                "item; size is only the vector dimension."
             ),
         }
+        if read_back_error is not None:
+            result["vectors_written_error"] = (
+                "Extraction was submitted successfully, but reading the feature set back failed: "
+                f"{read_back_error}. Check dataset_embeddings_status; do not retry the billable "
+                "submission solely because this diagnostic failed."
+            )
+        return result
 
     @mcp.tool(title="Cluster a dataset's embeddings", annotations=READ_ONLY)
     def dataset_cluster(
@@ -369,7 +402,7 @@ def register(mcp: MCPServer) -> None:
             ),
         }
 
-    @mcp.tool(title="Semantic visual search over a dataset", annotations=READ_ONLY)
+    @mcp.tool(title="Semantic visual search over a dataset", annotations=MUTATING)
     def dataset_visual_search(
         project_id: Annotated[str, Field(description="Project that owns the dataset.")],
         dataset_id: Annotated[str, Field(description="Dataset to search in.")],
@@ -398,46 +431,62 @@ def register(mcp: MCPServer) -> None:
     ) -> dict[str, Any]:
         """Search items in a dataset by visual/semantic embedding similarity.
 
-        Ranks dataset items by computing cosine similarity between the query embedding and
-        the vectors stored in the dataset's feature set.
+        A supplied query_vector is read-only. A text query is embedded by the deployed
+        platform model, which uploads a temporary item and bills for inference, so it
+        requires human elicitation.
         """
         if not query and not query_vector:
             raise ValueError("Provide either query or query_vector.")
 
-        if query_vector is None:
-            # Decided from the arguments alone, before any platform call: a text query with no
-            # vector means CLIP has to run *here*. Categorically heavier than the vector-budget
-            # tripwire further down, and elicitation-only on purpose -- a `confirm` parameter
-            # would let the model approve running a foreign model on its own say-so, which is
-            # precisely the decision a human has to make.
-            elicit_or_refuse(
-                ctx,
-                action="run CLIP locally to encode this query",
-                consequence=(
-                    "it downloads openai/clip-vit-base-patch32 from HuggingFace and runs it in the "
-                    "doe-mcp process, instead of using a model deployed on DOE"
-                ),
-                remedy="Pass query_vector instead, or use rag_query, to keep the work on the platform.",
-            )
-
         dataset = get_dataset(project_id, dataset_id)
+        listed = dataloop_call("feature set list", lambda: dataset.feature_sets.list())
+        sets = paging.page_entities(listed)
+        if not sets:
+            raise ValueError(
+                "This dataset has no feature set, so there is nothing to search over. Run "
+                "dataset_embed first, or check dataset_embeddings_status."
+            )
+        names = ", ".join(f"{getattr(entry, 'name', '?')} ({getattr(entry, 'id', '?')})" for entry in sets)
         if feature_set_id is None:
-            listed = dataloop_call("feature set list", lambda: dataset.feature_sets.list())
-            sets = paging.page_entities(listed)
-            if not sets:
-                raise ValueError(
-                    "This dataset has no feature set, so there is nothing to search over. Run "
-                    "dataset_embed first, or check dataset_embeddings_status."
-                )
             if len(sets) > 1:
-                names = ", ".join(f"{getattr(s, 'name', '?')} ({getattr(s, 'id', '?')})" for s in sets)
                 raise ValueError(f"Provide feature_set_id: this dataset has several — {names}.")
-            feature_set_id = sets[0].id
+            feature_set = sets[0]
+            feature_set_id = feature_set.id
+        else:
+            feature_set = next(
+                (entry for entry in sets if getattr(entry, "id", None) == feature_set_id),
+                None,
+            )
+            if feature_set is None:
+                raise ValueError(
+                    f"Feature set {feature_set_id} is not in dataset {dataset_id}. Available: {names}."
+                )
 
+        query_item_id: str | None = None
         if query_vector is not None:
             q_vec = np.asarray(query_vector, dtype=float)
         else:
-            q_vec = encode_text_query(query or "")
+            model_id = getattr(feature_set, "model_id", None)
+            if not model_id:
+                raise ValueError(
+                    f"Cannot resolve which model embedded feature set {feature_set_id}. "
+                    "Provide query_vector instead."
+                )
+            elicit_or_refuse(
+                ctx,
+                action="embed this text query on the platform",
+                consequence=(
+                    "it uploads a temporary item into this dataset, runs the deployed model "
+                    "over it (billable), and deletes the item again"
+                ),
+                remedy="Pass query_vector instead to search without writing anything.",
+            )
+            project = get_project(project_id)
+            model = dataloop_call("model lookup", lambda: project.models.get(model_id=model_id))
+            # Deferred to avoid embeddings.py <-> rag.py import recursion.
+            from .rag import embed_query
+
+            q_vec, query_item_id = embed_query(dataset, model, query or "", feature_set_id)
 
         # Cosine similarity over every vector pulled, computed here rather than on the platform.
         gate_local_compute(
@@ -447,6 +496,8 @@ def register(mcp: MCPServer) -> None:
             "feature list", lambda: read_vectors(dataset, feature_set_id, max_vectors)
         )
         usable = [f for f in features if getattr(f, "value", None) and getattr(f, "entity_id", None)]
+        if query_item_id is not None:
+            usable = [feature for feature in usable if feature.entity_id != query_item_id]
         if not usable:
             raise ValueError(
                 f"No usable vectors found in feature set {feature_set_id}. Extraction may still be "
@@ -458,11 +509,15 @@ def register(mcp: MCPServer) -> None:
 
         ranked_indices = np.argsort(-scores)
         matches: list[dict[str, Any]] = []
+        stale = 0
         for idx in ranked_indices:
             score = float(scores[idx])
             if score < min_similarity:
                 break
             feature_item = usable[idx]
+            if not item_exists(dataset, feature_item.entity_id):
+                stale += 1
+                continue
             matches.append(
                 {
                     "item_id": feature_item.entity_id,
@@ -480,5 +535,6 @@ def register(mcp: MCPServer) -> None:
             "vectors_scanned": len(usable),
             "scan_truncated": truncated,
             "matches_count": len(matches),
+            "stale_vectors_skipped": stale,
             "results": matches,
         }

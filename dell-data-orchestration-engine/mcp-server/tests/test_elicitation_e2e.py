@@ -130,7 +130,11 @@ def test_progress_notifications_reach_a_client_that_asked_for_them(monkeypatch):
         async with Client(build_server(), mode="legacy") as client:
             return await client.call_tool(
                 "pipeline_install",
-                {"project_id": "proj-1", "pipeline_id": "pipe-1"},
+                {
+                    "project_id": "proj-1",
+                    "pipeline_id": "pipe-1",
+                    "confirm": True,
+                },
                 progress_callback=on_progress,
             )
 

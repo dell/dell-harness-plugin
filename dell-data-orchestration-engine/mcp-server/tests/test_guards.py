@@ -178,17 +178,17 @@ def test_the_refusal_says_the_work_would_happen_off_platform():
 
 
 def test_elicit_or_refuse_has_no_confirm_escape_hatch():
-    """A model must not be able to approve running a third-party model on its own say-so.
+    """A model must not approve a billable temporary write on its own say-so.
 
     `confirm_or_elicit` deliberately falls back to trusting `confirm=true` when the client cannot
     elicit -- right for a billable op the user asked for, wrong here, where whether a human agrees
     *is* the question. So there is no parameter to set: a client that cannot ask, refuses.
     """
-    with pytest.raises(ValueError, match="Refusing to run CLIP locally"):
+    with pytest.raises(ValueError, match="Refusing to embed this text query"):
         guards.elicit_or_refuse(
             None,
-            action="run CLIP locally",
-            consequence="it downloads a model from HuggingFace",
+            action="embed this text query",
+            consequence="it uploads a temporary item and bills for inference",
             remedy="Pass query_vector instead.",
         )
 
@@ -197,28 +197,3 @@ def test_a_refusal_names_the_way_to_proceed_without_it():
     """A dead-end refusal just gets retried; an actionable one redirects to the platform path."""
     with pytest.raises(ValueError, match="Pass query_vector instead"):
         guards.elicit_or_refuse(None, action="x", consequence="y", remedy="Pass query_vector instead.")
-
-
-def test_visual_search_refuses_a_text_query_it_would_have_to_encode_locally(monkeypatch):
-    """The previously-untested path: text query, no query_vector, no elicitation -> refuse.
-
-    Regression guard for a real finding: this ran CLIP in-process via undeclared torch/transformers
-    dependencies, downloading the weights at runtime, with no gate at all.
-    """
-    import asyncio
-
-    from mcp import Client
-
-    from doe_mcp.server import build_server
-
-    async def call():
-        async with Client(build_server()) as client:
-            return await client.call_tool(
-                "dataset_visual_search",
-                {"project_id": "proj-1", "dataset_id": "ds-1", "query": "a red car"},
-            )
-
-    result = asyncio.run(call())
-
-    assert result.is_error is True
-    assert "query_vector" in result.content[0].text

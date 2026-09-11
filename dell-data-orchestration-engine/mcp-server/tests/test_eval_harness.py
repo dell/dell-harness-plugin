@@ -244,6 +244,21 @@ def test_score_transcript_fails_on_reported_sdk_errors():
     assert "returned an error" in result.failure_reason
 
 
+def test_score_transcript_preserves_arguments_when_reconciling_sdk_errors():
+    seen_arguments: list[Any] = []
+
+    def _check(calls):
+        seen_arguments.append(calls[0].arguments)
+        return ""
+
+    trace = _trace(required_tools=("a",), outcome_check=_check)
+    calls = [ToolCall(name="a", arguments={"project_id": "proj-1"})]
+
+    score_transcript(trace, calls, sdk_errors=1)
+
+    assert seen_arguments == [{"project_id": "proj-1"}]
+
+
 def test_score_transcript_fails_when_required_tools_are_missing():
     trace = _trace(required_tools=("a", "b"))
 
@@ -370,7 +385,11 @@ def test_every_required_and_forbidden_tool_exists_on_the_server():
             return {tool.name for tool in (await client.list_tools()).tools}
 
     available = run_coro(_names())
-    referenced = {name for trace in GOLDEN_TRACES for name in trace.required_tools + trace.forbidden_tools}
+    referenced = {
+        name
+        for trace in GOLDEN_TRACES
+        for name in (trace.required_tools + trace.forbidden_tools + trace.forbidden_before_approval)
+    }
 
     assert referenced <= available, f"traces reference tools that do not exist: {referenced - available}"
 

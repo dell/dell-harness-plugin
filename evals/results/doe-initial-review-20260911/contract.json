@@ -1,0 +1,6620 @@
+{
+  "profile": "plugin-v1",
+  "tools": [
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "List the DOE projects this account can access.\n\nStart here: nearly every other tool needs a project_id.\n",
+      "inputSchema": {
+        "properties": {
+          "limit": {
+            "default": 50,
+            "description": "Max projects to return.",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "page": {
+            "default": 0,
+            "description": "Zero-based page number.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "page_size": {
+            "default": 50,
+            "description": "Projects per page.",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "name": "project_list",
+      "outputSchema": {
+        "properties": {
+          "has_more": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "page_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "returned": {
+            "type": "integer"
+          },
+          "scan_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scan_truncated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scanned": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "returned",
+          "total",
+          "has_more",
+          "page",
+          "page_size",
+          "scanned",
+          "scan_limit",
+          "scan_truncated"
+        ],
+        "type": "object"
+      },
+      "title": "List projects"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Fetch a single project by id.",
+      "inputSchema": {
+        "properties": {
+          "project_id": {
+            "description": "Id of the project to fetch.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id"
+        ],
+        "type": "object"
+      },
+      "name": "project_get",
+      "outputSchema": {
+        "properties": {
+          "archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "creator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "created_at",
+          "creator",
+          "role",
+          "archived"
+        ],
+        "type": "object"
+      },
+      "title": "Get project"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "List datasets in a project.",
+      "inputSchema": {
+        "properties": {
+          "fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Return only these fields per entity (id always included). Omit for all fields."
+          },
+          "limit": {
+            "default": 50,
+            "description": "Max datasets to return.",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Filter by exact dataset name."
+          },
+          "page": {
+            "default": 0,
+            "description": "Zero-based page number.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "page_size": {
+            "default": 50,
+            "description": "Datasets per page.",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "project_id": {
+            "description": "Project whose datasets to list.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id"
+        ],
+        "type": "object"
+      },
+      "name": "dataset_list",
+      "outputSchema": {
+        "properties": {
+          "has_more": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "page_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "returned": {
+            "type": "integer"
+          },
+          "scan_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scan_truncated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scanned": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "returned",
+          "total",
+          "has_more",
+          "page",
+          "page_size",
+          "scanned",
+          "scan_limit",
+          "scan_truncated"
+        ],
+        "type": "object"
+      },
+      "title": "List datasets"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Fetch one dataset by id.",
+      "inputSchema": {
+        "properties": {
+          "dataset_id": {
+            "description": "Id of the dataset to fetch.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project that owns the dataset.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "dataset_id"
+        ],
+        "type": "object"
+      },
+      "name": "dataset_get",
+      "outputSchema": {
+        "properties": {
+          "annotations_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "creator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "index_driver": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "items_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "readonly": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "items_count",
+          "annotations_count",
+          "readonly",
+          "index_driver",
+          "creator",
+          "created_at",
+          "updated_at",
+          "url"
+        ],
+        "type": "object"
+      },
+      "title": "Get dataset"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Summarise what a dataset holds: file types, folders, and how much is annotated.\n\nAnswers \"what kind of files are in here\" without running any model, so it costs nothing\nand mutates nothing. Feed the result to a caller that can write prose \u2014 this returns\nfacts, not a narrative.\n\nThe platform offers no aggregation API, so counts come from a bounded client-side scan.\nCheck `scan_truncated`: above the cap the numbers are proportions of a sample, not a\ncensus of the dataset, and must be described that way.\n",
+      "inputSchema": {
+        "properties": {
+          "dataset_id": {
+            "description": "Dataset to profile.",
+            "type": "string"
+          },
+          "max_scan": {
+            "default": 500,
+            "description": "Cap on items inspected. Counts are a sample above this.",
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "project_id": {
+            "description": "Project that owns the dataset.",
+            "type": "string"
+          },
+          "sample": {
+            "default": 5,
+            "description": "How many example filenames to include.",
+            "maximum": 25,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "project_id",
+          "dataset_id"
+        ],
+        "type": "object"
+      },
+      "name": "dataset_profile",
+      "outputSchema": {
+        "$defs": {
+          "DatasetProfileDataset": {
+            "properties": {
+              "annotations_count": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "type": "string"
+              },
+              "items_count": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "items_count",
+              "annotations_count"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "annotated_items": {
+            "type": "integer"
+          },
+          "caveat": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dataset": {
+            "$ref": "#/$defs/DatasetProfileDataset"
+          },
+          "directories": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "file_types": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "item_kinds": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "sample_filenames": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "scan_limit": {
+            "type": "integer"
+          },
+          "scan_truncated": {
+            "type": "boolean"
+          },
+          "scanned": {
+            "type": "integer"
+          },
+          "unannotated_items": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dataset",
+          "file_types",
+          "item_kinds",
+          "directories",
+          "annotated_items",
+          "unannotated_items",
+          "sample_filenames",
+          "scanned",
+          "scan_limit",
+          "scan_truncated",
+          "caveat"
+        ],
+        "type": "object"
+      },
+      "title": "Profile a dataset's contents"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "List items in a dataset, newest first.\n\nResponses are bounded, so check `has_more` and page rather than assuming a short list\nmeans a small dataset.\n",
+      "inputSchema": {
+        "properties": {
+          "annotated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Only annotated items, or only unannotated ones."
+          },
+          "dataset_id": {
+            "description": "Dataset whose items to list.",
+            "type": "string"
+          },
+          "fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Return only these fields per entity (id always included). Omit for all fields."
+          },
+          "limit": {
+            "default": 50,
+            "description": "Max items to return.",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Filter by filename, e.g. '/folder/photo.jpg' or a '*.pdf' pattern."
+          },
+          "page": {
+            "default": 0,
+            "description": "Zero-based page number.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "page_size": {
+            "default": 50,
+            "description": "Items per page.",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "project_id": {
+            "description": "Project that owns the dataset.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "dataset_id"
+        ],
+        "type": "object"
+      },
+      "name": "item_list",
+      "outputSchema": {
+        "properties": {
+          "has_more": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "page_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "returned": {
+            "type": "integer"
+          },
+          "scan_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scan_truncated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scanned": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "returned",
+          "total",
+          "has_more",
+          "page",
+          "page_size",
+          "scanned",
+          "scan_limit",
+          "scan_truncated"
+        ],
+        "type": "object"
+      },
+      "title": "List items"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "List the annotations on one item, e.g. to review what a classifier tagged it with.",
+      "inputSchema": {
+        "properties": {
+          "dataset_id": {
+            "description": "Dataset that holds the item.",
+            "type": "string"
+          },
+          "fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Return only these fields per entity (id always included). Omit for all fields."
+          },
+          "item_id": {
+            "description": "Item whose annotations to list.",
+            "type": "string"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Only annotations carrying this label."
+          },
+          "limit": {
+            "default": 50,
+            "description": "Max annotations to return.",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "page": {
+            "default": 0,
+            "description": "Zero-based page number.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "page_size": {
+            "default": 50,
+            "description": "Annotations per page.",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "project_id": {
+            "description": "Project that owns the dataset.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "dataset_id",
+          "item_id"
+        ],
+        "type": "object"
+      },
+      "name": "annotation_list",
+      "outputSchema": {
+        "properties": {
+          "has_more": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "page_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "returned": {
+            "type": "integer"
+          },
+          "scan_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scan_truncated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scanned": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "returned",
+          "total",
+          "has_more",
+          "page",
+          "page_size",
+          "scanned",
+          "scan_limit",
+          "scan_truncated"
+        ],
+        "type": "object"
+      },
+      "title": "List item annotations"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "List the labels this dataset's recipe defines.\n\nThese are the only labels `annotation_create` will accept, so check here before tagging.\n",
+      "inputSchema": {
+        "properties": {
+          "dataset_id": {
+            "description": "Dataset whose ontology to read.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project that owns the dataset.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "dataset_id"
+        ],
+        "type": "object"
+      },
+      "name": "annotation_labels",
+      "outputSchema": {
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "dataset_id": {
+            "type": "string"
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "dataset_id",
+          "labels",
+          "count"
+        ],
+        "type": "object"
+      },
+      "title": "List dataset ontology labels"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Fetch a pipeline. Set include_graph to inspect or edit its nodes.",
+      "inputSchema": {
+        "properties": {
+          "include_graph": {
+            "default": false,
+            "description": "Include nodes, connections and start nodes.",
+            "type": "boolean"
+          },
+          "pipeline_id": {
+            "description": "Id of the pipeline to fetch.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project that owns the pipeline.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "pipeline_id"
+        ],
+        "type": "object"
+      },
+      "name": "pipeline_get",
+      "outputSchema": {
+        "$defs": {
+          "ConnectionEndpoint": {
+            "properties": {
+              "node_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "port_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "node_id",
+              "port_id"
+            ],
+            "type": "object"
+          },
+          "ConnectionSummary": {
+            "properties": {
+              "action": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "source": {
+                "$ref": "#/$defs/ConnectionEndpoint"
+              },
+              "target": {
+                "$ref": "#/$defs/ConnectionEndpoint"
+              }
+            },
+            "required": [
+              "source",
+              "target",
+              "action"
+            ],
+            "type": "object"
+          },
+          "NodeSummary": {
+            "properties": {
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "inputs": {
+                "items": {
+                  "$ref": "#/$defs/PortSummary"
+                },
+                "type": "array"
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "outputs": {
+                "items": {
+                  "$ref": "#/$defs/PortSummary"
+                },
+                "type": "array"
+              },
+              "type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "type",
+              "inputs",
+              "outputs"
+            ],
+            "type": "object"
+          },
+          "PortSummary": {
+            "properties": {
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "port_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "port_id",
+              "name",
+              "type"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "connections": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/$defs/ConnectionSummary"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "node_count": {
+            "type": "integer"
+          },
+          "nodes": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/$defs/NodeSummary"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "start_nodes": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "project_id",
+          "description",
+          "created_at",
+          "updated_at",
+          "node_count",
+          "url"
+        ],
+        "type": "object"
+      },
+      "title": "Get pipeline"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Install a pipeline after confirmation; it keeps processing until paused or deleted.",
+      "inputSchema": {
+        "properties": {
+          "confirm": {
+            "default": false,
+            "description": "Must be true: an installed pipeline keeps running and consuming compute.",
+            "type": "boolean"
+          },
+          "pipeline_id": {
+            "description": "Id of the pipeline to start.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project that owns the pipeline.",
+            "type": "string"
+          },
+          "resume_option": {
+            "anyOf": [
+              {
+                "enum": [
+                  "terminateExistingCycles",
+                  "resumeExistingCycles"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "What to do with cycles from a previous run."
+          }
+        },
+        "required": [
+          "project_id",
+          "pipeline_id"
+        ],
+        "type": "object"
+      },
+      "name": "pipeline_install",
+      "outputSchema": {
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "node_count": {
+            "type": "integer"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "project_id",
+          "description",
+          "created_at",
+          "updated_at",
+          "node_count",
+          "url"
+        ],
+        "type": "object"
+      },
+      "title": "Install pipeline"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Connect one node's output to another node's input.\n\nCall pipeline_get with include_graph=true to see node names and port ids.\n",
+      "inputSchema": {
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Action that moves items along this edge, e.g. 'complete' or 'discard'."
+          },
+          "pipeline_id": {
+            "description": "Pipeline to wire up.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project that owns the pipeline.",
+            "type": "string"
+          },
+          "source_node_name": {
+            "description": "Node the output comes from.",
+            "type": "string"
+          },
+          "source_port_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Output port id. Defaults to the node's first output."
+          },
+          "target_node_name": {
+            "description": "Node the input goes to.",
+            "type": "string"
+          },
+          "target_port_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Input port id. Defaults to the node's first input."
+          }
+        },
+        "required": [
+          "project_id",
+          "pipeline_id",
+          "source_node_name",
+          "target_node_name"
+        ],
+        "type": "object"
+      },
+      "name": "pipeline_connect_nodes",
+      "outputSchema": {
+        "$defs": {
+          "ConnectionEndpoint": {
+            "properties": {
+              "node_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "port_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "node_id",
+              "port_id"
+            ],
+            "type": "object"
+          },
+          "ConnectionSummary": {
+            "properties": {
+              "action": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "source": {
+                "$ref": "#/$defs/ConnectionEndpoint"
+              },
+              "target": {
+                "$ref": "#/$defs/ConnectionEndpoint"
+              }
+            },
+            "required": [
+              "source",
+              "target",
+              "action"
+            ],
+            "type": "object"
+          },
+          "NodeSummary": {
+            "properties": {
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "inputs": {
+                "items": {
+                  "$ref": "#/$defs/PortSummary"
+                },
+                "type": "array"
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "outputs": {
+                "items": {
+                  "$ref": "#/$defs/PortSummary"
+                },
+                "type": "array"
+              },
+              "type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "type",
+              "inputs",
+              "outputs"
+            ],
+            "type": "object"
+          },
+          "PortSummary": {
+            "properties": {
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "port_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "port_id",
+              "name",
+              "type"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "connections": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/$defs/ConnectionSummary"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "node_count": {
+            "type": "integer"
+          },
+          "nodes": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/$defs/NodeSummary"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "start_nodes": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "project_id",
+          "description",
+          "created_at",
+          "updated_at",
+          "node_count",
+          "url"
+        ],
+        "type": "object"
+      },
+      "title": "Connect pipeline nodes"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Search the marketplace for installable packages (DPKs).\n\nDefaults to packages that provide models. Set templates_only to find pipeline\ntemplate packages instead. Follow up with marketplace_get_dpk to see which model\ncomponents or pipeline templates a package offers before installing it.\n",
+      "inputSchema": {
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional DPK category, e.g. 'Application'. Unreliable for models: many have no Category at all, so prefer models_only."
+          },
+          "limit": {
+            "default": 50,
+            "description": "Max DPKs to return.",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "models_only": {
+            "default": true,
+            "description": "Only packages providing model components. Set false to browse everything.",
+            "type": "boolean"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Case-insensitive substring of the name/display name. Omit to browse all."
+          },
+          "page": {
+            "default": 0,
+            "description": "Zero-based page number.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "page_size": {
+            "default": 50,
+            "description": "DPKs per page.",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "public": {
+            "default": true,
+            "description": "Search the shared catalogue, not only your own published DPKs.",
+            "type": "boolean"
+          },
+          "templates_only": {
+            "default": false,
+            "description": "Only packages providing pipeline templates. Overrides models_only, since template packages usually ship no models.",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "name": "marketplace_search",
+      "outputSchema": {
+        "properties": {
+          "has_more": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "page_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "returned": {
+            "type": "integer"
+          },
+          "scan_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scan_truncated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scanned": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "returned",
+          "total",
+          "has_more",
+          "page",
+          "page_size",
+          "scanned",
+          "scan_limit",
+          "scan_truncated"
+        ],
+        "type": "object"
+      },
+      "title": "Search marketplace"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Fetch one marketplace package, including the model components it provides.\n\nThe `models[].name` values here are what model_create takes as dpk_model_name.\n",
+      "inputSchema": {
+        "properties": {
+          "dpk_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Id of the DPK. Provide this or dpk_name."
+          },
+          "dpk_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Name of the DPK."
+          },
+          "dpk_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Specific version. Defaults to the latest."
+          }
+        },
+        "type": "object"
+      },
+      "name": "marketplace_get_dpk",
+      "outputSchema": {
+        "$defs": {
+          "PipelineTemplateSummary": {
+            "properties": {
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "node_count": {
+                "type": "integer"
+              },
+              "node_names": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              "node_types": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "name",
+              "description",
+              "node_count",
+              "node_names",
+              "node_types"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "attributes": {},
+          "base_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "creator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pipeline_templates": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/$defs/PipelineTemplateSummary"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "provides_models": {
+            "type": "boolean"
+          },
+          "provides_pipeline_templates": {
+            "type": "boolean"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tags": {},
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "base_id",
+          "name",
+          "display_name",
+          "version",
+          "description",
+          "scope",
+          "attributes",
+          "tags",
+          "creator",
+          "provides_models",
+          "provides_pipeline_templates"
+        ],
+        "type": "object"
+      },
+      "title": "Get marketplace package"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Install a marketplace package (DPK) as an app in a project.\n\nInstalling does not create a model. Follow with model_create, using one of the\nmodel component names from marketplace_get_dpk.\n",
+      "inputSchema": {
+        "properties": {
+          "app_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Name for the installed app."
+          },
+          "confirm": {
+            "default": false,
+            "description": "Required with custom_installation.",
+            "type": "boolean"
+          },
+          "custom_installation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Overrides: components, compute, settings."
+          },
+          "dpk_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Id of the DPK. Provide this or dpk_name."
+          },
+          "dpk_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Name of the DPK to install."
+          },
+          "dpk_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Version to install. Defaults to latest."
+          },
+          "project_id": {
+            "description": "Project to install the package into.",
+            "type": "string"
+          },
+          "wait": {
+            "default": true,
+            "description": "Wait for installation to finish. Installation runs as a platform command and can take a while; set false to return immediately.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_id"
+        ],
+        "type": "object"
+      },
+      "name": "model_install",
+      "outputSchema": {
+        "properties": {
+          "available_model_components": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "dpk_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dpk_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "project_id",
+          "dpk_name",
+          "dpk_version",
+          "scope",
+          "available_model_components"
+        ],
+        "type": "object"
+      },
+      "title": "Install marketplace package"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "List apps installed in a project, i.e. what has been installed from the marketplace.",
+      "inputSchema": {
+        "properties": {
+          "limit": {
+            "default": 50,
+            "description": "Max apps to return.",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "page": {
+            "default": 0,
+            "description": "Zero-based page number.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "page_size": {
+            "default": 50,
+            "description": "Apps per page.",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "project_id": {
+            "description": "Project whose installed apps to list.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id"
+        ],
+        "type": "object"
+      },
+      "name": "app_list",
+      "outputSchema": {
+        "properties": {
+          "has_more": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "page_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "returned": {
+            "type": "integer"
+          },
+          "scan_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scan_truncated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scanned": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "returned",
+          "total",
+          "has_more",
+          "page",
+          "page_size",
+          "scanned",
+          "scan_limit",
+          "scan_truncated"
+        ],
+        "type": "object"
+      },
+      "title": "List installed apps"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Create a model from a component of an installed app.\n\nA model must come from an installed app: install the package first with\nmodel_install. dpk_model_name must match one of that package's model components.\n\n`output_type` defaults to the component's, which `dtlpy` ignores \u2014 it would register even\nan embedding model like CLIP as a classification model.\n",
+      "inputSchema": {
+        "properties": {
+          "app_id": {
+            "description": "Installed app id, from model_install.",
+            "type": "string"
+          },
+          "configuration": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Configuration overrides. Defaults to the component's. Requires confirm=true."
+          },
+          "confirm": {
+            "default": false,
+            "description": "Required when configuration overrides are provided.",
+            "type": "boolean"
+          },
+          "dataset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Dataset to bind the model to; required for training."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional description."
+          },
+          "dpk_model_name": {
+            "description": "Model component name in the app's DPK, from marketplace_get_dpk.",
+            "type": "string"
+          },
+          "labels": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Labels the model predicts. Defaults to the component's."
+          },
+          "model_name": {
+            "description": "Name for the new model.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "ontology_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Take labels from this ontology instead."
+          },
+          "output_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "e.g. 'embedding'. Defaults to the component's."
+          },
+          "project_id": {
+            "description": "Project to create the model in.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "app_id",
+          "dpk_model_name",
+          "model_name"
+        ],
+        "type": "object"
+      },
+      "name": "model_create",
+      "outputSchema": {
+        "properties": {
+          "dataset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "input_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "labels": {},
+          "module_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "output_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tags": {},
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "version",
+          "project_id",
+          "dataset_id",
+          "input_type",
+          "output_type",
+          "labels",
+          "tags",
+          "description",
+          "module_name",
+          "url"
+        ],
+        "type": "object"
+      },
+      "title": "Create model"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Deploy a model as a running service that serves predictions.\n\nThis provisions compute and can take a few minutes.\n",
+      "inputSchema": {
+        "properties": {
+          "confirm": {
+            "default": false,
+            "description": "Must be true: deploying provisions billable compute.",
+            "type": "boolean"
+          },
+          "model_id": {
+            "description": "Id of the model to deploy.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project that owns the model.",
+            "type": "string"
+          },
+          "service_config": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Supported service overrides: runtime, autoscaler, concurrency, replicas and resources."
+          }
+        },
+        "required": [
+          "project_id",
+          "model_id"
+        ],
+        "type": "object"
+      },
+      "name": "model_deploy",
+      "outputSchema": {
+        "$defs": {
+          "ServiceSummary": {
+            "properties": {
+              "active": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "module_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "package_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "project_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "url": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "active",
+              "module_name",
+              "package_id",
+              "project_id",
+              "url"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "model_id": {
+            "type": "string"
+          },
+          "service": {
+            "$ref": "#/$defs/ServiceSummary"
+          }
+        },
+        "required": [
+          "model_id",
+          "service"
+        ],
+        "type": "object"
+      },
+      "title": "Deploy model"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Start a training run for a model.\n\nThe model needs a dataset and train/validation subsets configured. Training runs\nasynchronously on the platform.\n",
+      "inputSchema": {
+        "properties": {
+          "confirm": {
+            "default": false,
+            "description": "Must be true: training runs are billable.",
+            "type": "boolean"
+          },
+          "model_id": {
+            "description": "Id of the model to train.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project that owns the model.",
+            "type": "string"
+          },
+          "service_config": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Supported service overrides: runtime, autoscaler, concurrency, replicas and resources."
+          }
+        },
+        "required": [
+          "project_id",
+          "model_id"
+        ],
+        "type": "object"
+      },
+      "name": "model_train",
+      "outputSchema": {
+        "properties": {
+          "dataset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "input_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "labels": {},
+          "module_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "output_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tags": {},
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "version",
+          "project_id",
+          "dataset_id",
+          "input_type",
+          "output_type",
+          "labels",
+          "tags",
+          "description",
+          "module_name",
+          "url"
+        ],
+        "type": "object"
+      },
+      "title": "Train model"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Run an installed model over items so its predictions land as annotations.\n\nUse this to learn what is actually *in* a dataset when filenames and labels do not say.\n\nTwo consequences to state before confirming. Inference is **billable**, per item over a\nwhole dataset. And predictions are **written onto the items as annotations**, so a dataset\nsomeone only wanted to explore comes back changed; `annotation_delete_by_model` undoes\nexactly this model's contribution.\n",
+      "inputSchema": {
+        "properties": {
+          "confirm": {
+            "default": false,
+            "description": "Must be true: inference is billable and writes annotations.",
+            "type": "boolean"
+          },
+          "dataset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Run over an entire dataset. Cost scales with its item count."
+          },
+          "item_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Items to run over. Provide this or dataset_id, not both."
+          },
+          "model_id": {
+            "description": "An installed, deployed model; model_list shows status.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project that owns the model.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "model_id"
+        ],
+        "type": "object"
+      },
+      "name": "model_predict",
+      "outputSchema": {
+        "properties": {
+          "execution_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model_id": {
+            "type": "string"
+          },
+          "model_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "note": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "model_id",
+          "model_status",
+          "scope",
+          "execution_id",
+          "note"
+        ],
+        "type": "object"
+      },
+      "title": "Run a deployed model over items"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Define which of a model's dataset items it trains or validates on.\n\nWithout this, training draws on whatever the dataset holds \u2014 including items whose\nannotations nobody has reviewed, and items a PII scan flagged. Filtering on a review\nmarker written through `item_update` is what makes a review step actually bind;\n`exclude_pii` is what keeps flagged data out of a training run.\n",
+      "inputSchema": {
+        "$defs": {
+          "PiiMarkerSpec": {
+            "description": "How a PII scan records its verdict on an item. Caller-supplied; exactly one shape required.",
+            "properties": {
+              "annotation_label": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Annotation label carried when PII is found, e.g. 'pii'."
+              },
+              "entity_types": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Entity types counting as PII, e.g. ['US_SSN', 'CREDIT_CARD']. Matches metadata.user.pii \u2014 the shape this server's own writeback produces."
+              },
+              "metadata_field": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "User metadata field another scanner sets, e.g. 'pii_detected'."
+              },
+              "metadata_value": {
+                "default": true,
+                "description": "Value that field takes when found. Default true."
+              }
+            },
+            "type": "object"
+          }
+        },
+        "properties": {
+          "annotated_only": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Restrict to items that carry annotations."
+          },
+          "directory": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Restrict to items under this folder."
+          },
+          "exclude_pii": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/PiiMarkerSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Exclude items a PII scan flagged. Same marker shape as pii_report."
+          },
+          "metadata_field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Only items whose user metadata carries this field, e.g. 'reviewed'."
+          },
+          "metadata_value": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Required value for metadata_field. Defaults to true."
+          },
+          "model_id": {
+            "description": "Model whose subset to define.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project that owns the model.",
+            "type": "string"
+          },
+          "subset": {
+            "description": "Which subset this filter defines.",
+            "enum": [
+              "train",
+              "validation"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "model_id",
+          "subset"
+        ],
+        "type": "object"
+      },
+      "name": "model_set_subset",
+      "outputSchema": {
+        "properties": {
+          "matched_items": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model_id": {
+            "type": "string"
+          },
+          "pii_excluded": {
+            "type": "boolean"
+          },
+          "subset": {
+            "type": "string"
+          },
+          "warning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "model_id",
+          "subset",
+          "matched_items",
+          "pii_excluded",
+          "warning"
+        ],
+        "type": "object"
+      },
+      "title": "Define a training or validation subset"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Fetch one model by id.",
+      "inputSchema": {
+        "properties": {
+          "model_id": {
+            "description": "Id of the model.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project that owns the model.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "model_id"
+        ],
+        "type": "object"
+      },
+      "name": "model_get",
+      "outputSchema": {
+        "properties": {
+          "dataset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "input_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "labels": {},
+          "module_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "output_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tags": {},
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "version",
+          "project_id",
+          "dataset_id",
+          "input_type",
+          "output_type",
+          "labels",
+          "tags",
+          "description",
+          "module_name",
+          "url"
+        ],
+        "type": "object"
+      },
+      "title": "Get model"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Delete a model. Does not uninstall the app it came from.",
+      "inputSchema": {
+        "properties": {
+          "confirm": {
+            "default": false,
+            "description": "Must be true to proceed. Ask the user before deleting a model.",
+            "type": "boolean"
+          },
+          "model_id": {
+            "description": "Id of the model to delete.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project that owns the model.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "model_id"
+        ],
+        "type": "object"
+      },
+      "name": "model_delete",
+      "outputSchema": {
+        "properties": {
+          "deleted": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "deleted",
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "title": "Delete model"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Uninstall an app from a project.\n\nModels created from the app stop working, so delete or migrate them first.\n",
+      "inputSchema": {
+        "properties": {
+          "app_id": {
+            "description": "Id of the installed app to remove.",
+            "type": "string"
+          },
+          "confirm": {
+            "default": false,
+            "description": "Must be true to proceed. Ask the user before uninstalling.",
+            "type": "boolean"
+          },
+          "project_id": {
+            "description": "Project that owns the app.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "app_id"
+        ],
+        "type": "object"
+      },
+      "name": "app_uninstall",
+      "outputSchema": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "uninstalled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "uninstalled",
+          "id"
+        ],
+        "type": "object"
+      },
+      "title": "Uninstall app"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Answer \"does this dataset contain PII?\" for a dataset a PII scan has already run over.\n\nReports how many items carry the marker, out of how many, with a sample. A zero count\nmeans *no item carries the marker* \u2014 which is not the same as \"no PII is present\" if the\nscan never ran or the marker convention is wrong, so the response states both counts and\nthe exact filter used, for the caller to sanity-check.\n",
+      "inputSchema": {
+        "$defs": {
+          "PiiMarkerSpec": {
+            "description": "How a PII scan records its verdict on an item. Caller-supplied; exactly one shape required.",
+            "properties": {
+              "annotation_label": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Annotation label carried when PII is found, e.g. 'pii'."
+              },
+              "entity_types": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Entity types counting as PII, e.g. ['US_SSN', 'CREDIT_CARD']. Matches metadata.user.pii \u2014 the shape this server's own writeback produces."
+              },
+              "metadata_field": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "User metadata field another scanner sets, e.g. 'pii_detected'."
+              },
+              "metadata_value": {
+                "default": true,
+                "description": "Value that field takes when found. Default true."
+              }
+            },
+            "type": "object"
+          }
+        },
+        "properties": {
+          "dataset_id": {
+            "description": "Dataset to report on.",
+            "type": "string"
+          },
+          "marker": {
+            "$ref": "#/$defs/PiiMarkerSpec",
+            "description": "How a PII finding is recorded \u2014 an annotation label or a metadata field."
+          },
+          "project_id": {
+            "description": "Project that owns the dataset.",
+            "type": "string"
+          },
+          "sample": {
+            "default": 5,
+            "description": "How many flagged items to show.",
+            "maximum": 200,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "project_id",
+          "dataset_id",
+          "marker"
+        ],
+        "type": "object"
+      },
+      "name": "pii_report",
+      "outputSchema": {
+        "$defs": {
+          "ItemSummary": {
+            "properties": {
+              "annotated": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "annotations_count": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "created_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "dataset_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "dir": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "filename": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "metadata": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "mimetype": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "url": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "dir",
+              "type",
+              "mimetype",
+              "filename",
+              "dataset_id",
+              "annotated",
+              "annotations_count",
+              "created_at",
+              "metadata",
+              "url"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "caveat": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dataset_id": {
+            "type": "string"
+          },
+          "dataset_items": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "flagged_count_is_exact": {
+            "type": "boolean"
+          },
+          "flagged_items": {
+            "type": "integer"
+          },
+          "marker": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "sample": {
+            "items": {
+              "$ref": "#/$defs/ItemSummary"
+            },
+            "type": "array"
+          },
+          "verdict": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dataset_id",
+          "verdict",
+          "flagged_items",
+          "flagged_count_is_exact",
+          "dataset_items",
+          "marker",
+          "sample",
+          "caveat"
+        ],
+        "type": "object"
+      },
+      "title": "Report PII findings in a dataset"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Write which kinds of PII were found to the source item's `metadata.user.pii`.\n\nThe map holds detected entity types only \u2014 `{\"US_SSN\": true}` \u2014 never counts, scores, or\nmatched values. An undetected type is absent rather than false, so a query is always\n\"<TYPE> is true\", which negates cleanly and gives a dependable exclusion.\n\nAn item scanned with nothing found gets an empty map. That empty map is the only record\nthat the scan ran, so do not strip it.\n",
+      "inputSchema": {
+        "$defs": {
+          "PiiFindingsSpec": {
+            "description": "What a PII scan found on one item.\n\nWritten to `metadata.user.pii` as a flat map of detected entity type to `true` \u2014 e.g.\n``{\"US_SSN\": true, \"EMAIL_ADDRESS\": true}``. Nothing else goes in that map: no counts, no\nscores, and above all none of the matched strings. The map answers \"which kinds of PII are\nin here\", which is what routing and exclusion need; the values themselves are the PII, and\ncopying them into metadata would put them somewhere more queryable and more exportable than\nthe document they came from.\n\nAn entity type that was not detected is **absent**, not `false`. The map's presence is what\nrecords that a scan ran, so a scanned-clean item carries an empty map.",
+            "properties": {
+              "entity_types": {
+                "description": "Entity types detected on this item, e.g. ['US_SSN', 'EMAIL_ADDRESS']. Each becomes a `<TYPE>: true` pair. Empty means scanned and nothing found.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "properties": {
+          "dataset_id": {
+            "description": "Dataset that holds the item.",
+            "type": "string"
+          },
+          "findings": {
+            "$ref": "#/$defs/PiiFindingsSpec",
+            "description": "Entity types detected. Each becomes a `<TYPE>: true` pair."
+          },
+          "item_id": {
+            "description": "Source item to record findings on.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project that owns the dataset.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "dataset_id",
+          "item_id",
+          "findings"
+        ],
+        "type": "object"
+      },
+      "name": "pii_set_findings",
+      "outputSchema": {
+        "$defs": {
+          "ItemSummary": {
+            "properties": {
+              "annotated": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "annotations_count": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "created_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "dataset_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "dir": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "filename": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "metadata": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "mimetype": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "url": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "dir",
+              "type",
+              "mimetype",
+              "filename",
+              "dataset_id",
+              "annotated",
+              "annotations_count",
+              "created_at",
+              "metadata",
+              "url"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "detected_entity_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "findings": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object"
+          },
+          "item": {
+            "$ref": "#/$defs/ItemSummary"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "marker_hint": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "written_to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "written_to",
+          "detected_entity_types",
+          "findings",
+          "marker_hint",
+          "item"
+        ],
+        "type": "object"
+      },
+      "title": "Record PII findings on an item"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Trigger one run of an installed pipeline, instead of waiting for a trigger to fire.\n\nThe pipeline must already be installed. Returns the run's id and per-node status; poll\nwith execution_list.\n",
+      "inputSchema": {
+        "properties": {
+          "confirm": {
+            "default": false,
+            "description": "Must be true: a run consumes compute and can write data.",
+            "type": "boolean"
+          },
+          "execution_input": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Input for the pipeline's start node, e.g. {'item': '<item_id>'}."
+          },
+          "pipeline_id": {
+            "description": "Pipeline to run.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project that owns the pipeline.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "pipeline_id"
+        ],
+        "type": "object"
+      },
+      "name": "pipeline_execute",
+      "outputSchema": {
+        "$defs": {
+          "PipelineExecutionSummary": {
+            "properties": {
+              "created_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "nodes": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "pipeline_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "updated_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "pipeline_id",
+              "status",
+              "created_at",
+              "updated_at",
+              "nodes"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "execution": {
+            "$ref": "#/$defs/PipelineExecutionSummary"
+          }
+        },
+        "required": [
+          "execution"
+        ],
+        "type": "object"
+      },
+      "title": "Run a pipeline once"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "List individual function runs and their status, with in_progress_only to narrow.\n\nA pipeline run reports a node's state; the execution beneath it is the finer level, and\nits id is what other execution tools take.\n",
+      "inputSchema": {
+        "properties": {
+          "in_progress_only": {
+            "default": false,
+            "description": "Only executions still running \u2014 the ones that can be stuck.",
+            "type": "boolean"
+          },
+          "page": {
+            "default": 0,
+            "description": "Zero-based page.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "page_size": {
+            "default": 50,
+            "description": "Executions per page.",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "pipeline_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Only executions belonging to this pipeline."
+          },
+          "project_id": {
+            "description": "Project to look in.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id"
+        ],
+        "type": "object"
+      },
+      "name": "execution_list",
+      "outputSchema": {
+        "properties": {
+          "has_more": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "page_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "returned": {
+            "type": "integer"
+          },
+          "scan_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scan_truncated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scanned": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "returned",
+          "total",
+          "has_more",
+          "page",
+          "page_size",
+          "scanned",
+          "scan_limit",
+          "scan_truncated"
+        ],
+        "type": "object"
+      },
+      "title": "List service executions"
+    },
+    {
+      "annotations": {
+        "destructiveHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Stop a stuck or hung execution, so it stops blocking a delete.\n\nWhatever it was part-way through is abandoned; anything already written stays written.\nFind the id with execution_list.\n",
+      "inputSchema": {
+        "properties": {
+          "confirm": {
+            "default": false,
+            "description": "Must be true: the execution's work is abandoned mid-flight.",
+            "type": "boolean"
+          },
+          "execution_id": {
+            "description": "Execution to stop.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project that owns the execution.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "execution_id"
+        ],
+        "type": "object"
+      },
+      "name": "execution_terminate",
+      "outputSchema": {
+        "$defs": {
+          "ExecutionSummary": {
+            "properties": {
+              "created_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "function_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "in_progress": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "node_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "pipeline_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "service_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "updated_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "status",
+              "in_progress",
+              "service_id",
+              "function_name",
+              "pipeline_id",
+              "node_id",
+              "created_at",
+              "updated_at"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "execution": {
+            "$ref": "#/$defs/ExecutionSummary"
+          },
+          "terminated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "terminated",
+          "execution"
+        ],
+        "type": "object"
+      },
+      "title": "Terminate a running execution"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Ask the platform whether a pipeline is installable, without installing it.\n\nCheaper than learning from a failed install. Run it after building and before\npipeline_install.\n",
+      "inputSchema": {
+        "properties": {
+          "pipeline_id": {
+            "description": "Pipeline whose graph to check.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project that owns the pipeline.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "pipeline_id"
+        ],
+        "type": "object"
+      },
+      "name": "pipeline_validate",
+      "outputSchema": {
+        "properties": {
+          "pipeline_id": {
+            "type": "string"
+          },
+          "result": {}
+        },
+        "required": [
+          "pipeline_id",
+          "result"
+        ],
+        "type": "object"
+      },
+      "title": "Validate a pipeline graph"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Create an empty RAG pipeline: PDFs -> text items -> chunk items -> embeddings.\n\nAdd stages with rag_add_*, wire with pipeline_connect_nodes, then pipeline_install.\n",
+      "inputSchema": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Pipeline description."
+          },
+          "name": {
+            "description": "Name for the RAG pipeline.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "output_dataset_id": {
+            "description": "Dataset for the text and chunk items; not the source dataset.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project to create the RAG pipeline in.",
+            "type": "string"
+          },
+          "source_dataset_id": {
+            "description": "Dataset of PDFs to process.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "name",
+          "source_dataset_id",
+          "output_dataset_id"
+        ],
+        "type": "object"
+      },
+      "name": "rag_pipeline_create",
+      "outputSchema": {
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "node_count": {
+            "type": "integer"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "project_id",
+          "description",
+          "created_at",
+          "updated_at",
+          "node_count",
+          "url"
+        ],
+        "type": "object"
+      },
+      "title": "Create RAG pipeline"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Add the pipeline's entry node: the source dataset, DQL-filtered to PDFs.",
+      "inputSchema": {
+        "properties": {
+          "load_existing": {
+            "default": false,
+            "description": "Feed the dataset's existing PDFs in on install, not just new ones.",
+            "type": "boolean"
+          },
+          "node_name": {
+            "default": "pdf_filter",
+            "description": "Node name.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "pipeline_id": {
+            "description": "Pipeline to add the node to.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project owning the pipeline.",
+            "type": "string"
+          },
+          "source_dataset_id": {
+            "description": "Dataset of PDFs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "pipeline_id",
+          "source_dataset_id"
+        ],
+        "type": "object"
+      },
+      "name": "rag_add_pdf_filter_node",
+      "outputSchema": {
+        "$defs": {
+          "NodeSummary": {
+            "properties": {
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "inputs": {
+                "items": {
+                  "$ref": "#/$defs/PortSummary"
+                },
+                "type": "array"
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "outputs": {
+                "items": {
+                  "$ref": "#/$defs/PortSummary"
+                },
+                "type": "array"
+              },
+              "type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "type",
+              "inputs",
+              "outputs"
+            ],
+            "type": "object"
+          },
+          "PipelineStatusSummary": {
+            "properties": {
+              "created_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "node_count": {
+                "type": "integer"
+              },
+              "project_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "updated_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "url": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "status",
+              "project_id",
+              "description",
+              "created_at",
+              "updated_at",
+              "node_count",
+              "url"
+            ],
+            "type": "object"
+          },
+          "PortSummary": {
+            "properties": {
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "port_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "port_id",
+              "name",
+              "type"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "node": {
+            "$ref": "#/$defs/NodeSummary"
+          },
+          "pipeline": {
+            "$ref": "#/$defs/PipelineStatusSummary"
+          }
+        },
+        "required": [
+          "pipeline",
+          "node"
+        ],
+        "type": "object"
+      },
+      "title": "Add PDF filter node to RAG pipeline"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Add a code node that turns each PDF into a text item.\n\nExtracts with pypdf on DOE, uploads to `/rag/text` tagged with the source id, and\nreturns that item. A PDF yielding no text fails the execution.\n",
+      "inputSchema": {
+        "properties": {
+          "node_name": {
+            "default": "pdf_to_text",
+            "description": "Node name.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "output_dataset_id": {
+            "description": "Dataset the text item is written to.",
+            "type": "string"
+          },
+          "pipeline_id": {
+            "description": "Pipeline to add the node to.",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Grid position (x, y)."
+          },
+          "project_id": {
+            "description": "Project owning the pipeline.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "pipeline_id",
+          "output_dataset_id"
+        ],
+        "type": "object"
+      },
+      "name": "rag_add_pdf_to_text_node",
+      "outputSchema": {
+        "$defs": {
+          "NodeSummary": {
+            "properties": {
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "inputs": {
+                "items": {
+                  "$ref": "#/$defs/PortSummary"
+                },
+                "type": "array"
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "outputs": {
+                "items": {
+                  "$ref": "#/$defs/PortSummary"
+                },
+                "type": "array"
+              },
+              "type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "type",
+              "inputs",
+              "outputs"
+            ],
+            "type": "object"
+          },
+          "PipelineStatusSummary": {
+            "properties": {
+              "created_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "node_count": {
+                "type": "integer"
+              },
+              "project_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "updated_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "url": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "status",
+              "project_id",
+              "description",
+              "created_at",
+              "updated_at",
+              "node_count",
+              "url"
+            ],
+            "type": "object"
+          },
+          "PortSummary": {
+            "properties": {
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "port_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "port_id",
+              "name",
+              "type"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "node": {
+            "$ref": "#/$defs/NodeSummary"
+          },
+          "pipeline": {
+            "$ref": "#/$defs/PipelineStatusSummary"
+          }
+        },
+        "required": [
+          "pipeline",
+          "node"
+        ],
+        "type": "object"
+      },
+      "title": "Add PDF-to-text conversion node"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Add a code node that splits a text item into overlapping chunk items.\n\nEach chunk is an item under `/rag/chunks`, tagged with its source and offsets: a\nfeature vector attaches to an entity, so chunk-level retrieval needs chunk items.\n",
+      "inputSchema": {
+        "properties": {
+          "chunk_overlap": {
+            "default": 50,
+            "description": "Overlap between chunks, in characters.",
+            "maximum": 500,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "chunk_size": {
+            "default": 512,
+            "description": "Chunk size in characters.",
+            "maximum": 4000,
+            "minimum": 100,
+            "type": "integer"
+          },
+          "node_name": {
+            "default": "text_to_chunks",
+            "description": "Node name.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "output_dataset_id": {
+            "description": "Dataset the chunk items go to.",
+            "type": "string"
+          },
+          "pipeline_id": {
+            "description": "Pipeline to add the node to.",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Grid position (x, y)."
+          },
+          "project_id": {
+            "description": "Project owning the pipeline.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "pipeline_id",
+          "output_dataset_id"
+        ],
+        "type": "object"
+      },
+      "name": "rag_add_text_to_chunks_node",
+      "outputSchema": {
+        "$defs": {
+          "NodeSummary": {
+            "properties": {
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "inputs": {
+                "items": {
+                  "$ref": "#/$defs/PortSummary"
+                },
+                "type": "array"
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "outputs": {
+                "items": {
+                  "$ref": "#/$defs/PortSummary"
+                },
+                "type": "array"
+              },
+              "type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "type",
+              "inputs",
+              "outputs"
+            ],
+            "type": "object"
+          },
+          "PipelineStatusSummary": {
+            "properties": {
+              "created_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "node_count": {
+                "type": "integer"
+              },
+              "project_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "updated_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "url": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "status",
+              "project_id",
+              "description",
+              "created_at",
+              "updated_at",
+              "node_count",
+              "url"
+            ],
+            "type": "object"
+          },
+          "PortSummary": {
+            "properties": {
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "port_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "port_id",
+              "name",
+              "type"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "node": {
+            "$ref": "#/$defs/NodeSummary"
+          },
+          "pipeline": {
+            "$ref": "#/$defs/PipelineStatusSummary"
+          }
+        },
+        "required": [
+          "pipeline",
+          "node"
+        ],
+        "type": "object"
+      },
+      "title": "Add text-to-chunks node"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Add a code node that embeds a document's chunk items with a deployed model.\n\nThe model service writes each vector into its own feature set; nothing goes into item\nmetadata. Billable, and the model must already be deployed.\n",
+      "inputSchema": {
+        "properties": {
+          "model_id": {
+            "description": "A deployed embedding model in this project; model_list finds one.",
+            "type": "string"
+          },
+          "node_name": {
+            "default": "generate_embeddings",
+            "description": "Node name.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "output_dataset_id": {
+            "description": "Dataset holding the chunks.",
+            "type": "string"
+          },
+          "pipeline_id": {
+            "description": "Pipeline to add the node to.",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Grid position (x, y)."
+          },
+          "project_id": {
+            "description": "Project owning the pipeline.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "pipeline_id",
+          "output_dataset_id",
+          "model_id"
+        ],
+        "type": "object"
+      },
+      "name": "rag_add_embedding_node",
+      "outputSchema": {
+        "$defs": {
+          "NodeSummary": {
+            "properties": {
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "inputs": {
+                "items": {
+                  "$ref": "#/$defs/PortSummary"
+                },
+                "type": "array"
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "outputs": {
+                "items": {
+                  "$ref": "#/$defs/PortSummary"
+                },
+                "type": "array"
+              },
+              "type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "type",
+              "inputs",
+              "outputs"
+            ],
+            "type": "object"
+          },
+          "PipelineStatusSummary": {
+            "properties": {
+              "created_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "node_count": {
+                "type": "integer"
+              },
+              "project_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "updated_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "url": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "status",
+              "project_id",
+              "description",
+              "created_at",
+              "updated_at",
+              "node_count",
+              "url"
+            ],
+            "type": "object"
+          },
+          "PortSummary": {
+            "properties": {
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "port_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "port_id",
+              "name",
+              "type"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "node": {
+            "$ref": "#/$defs/NodeSummary"
+          },
+          "pipeline": {
+            "$ref": "#/$defs/PipelineStatusSummary"
+          }
+        },
+        "required": [
+          "pipeline",
+          "node"
+        ],
+        "type": "object"
+      },
+      "title": "Add embedding generation node"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Add a dataset node terminating the pipeline on the output dataset.\n\nThe code nodes upload the items themselves; this is where further automation hangs.\n",
+      "inputSchema": {
+        "properties": {
+          "node_name": {
+            "default": "output_storage",
+            "description": "Node name.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "output_dataset_id": {
+            "description": "Dataset the pipeline terminates on.",
+            "type": "string"
+          },
+          "pipeline_id": {
+            "description": "Pipeline to add the node to.",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Grid position (x, y)."
+          },
+          "project_id": {
+            "description": "Project owning the pipeline.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "pipeline_id",
+          "output_dataset_id"
+        ],
+        "type": "object"
+      },
+      "name": "rag_add_output_node",
+      "outputSchema": {
+        "$defs": {
+          "NodeSummary": {
+            "properties": {
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "inputs": {
+                "items": {
+                  "$ref": "#/$defs/PortSummary"
+                },
+                "type": "array"
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "outputs": {
+                "items": {
+                  "$ref": "#/$defs/PortSummary"
+                },
+                "type": "array"
+              },
+              "type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "type",
+              "inputs",
+              "outputs"
+            ],
+            "type": "object"
+          },
+          "PipelineStatusSummary": {
+            "properties": {
+              "created_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "node_count": {
+                "type": "integer"
+              },
+              "project_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "updated_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "url": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "status",
+              "project_id",
+              "description",
+              "created_at",
+              "updated_at",
+              "node_count",
+              "url"
+            ],
+            "type": "object"
+          },
+          "PortSummary": {
+            "properties": {
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "port_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "port_id",
+              "name",
+              "type"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "node": {
+            "$ref": "#/$defs/NodeSummary"
+          },
+          "pipeline": {
+            "$ref": "#/$defs/PipelineStatusSummary"
+          }
+        },
+        "required": [
+          "pipeline",
+          "node"
+        ],
+        "type": "object"
+      },
+      "title": "Add output storage node"
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Rank chunk items against a query by vector similarity over the feature set.\n\nThe query is embedded by the same model as the chunks \u2014 uploaded as a throwaway item,\nembedded, read back, deleted. Ranking is local (`dtlpy` has no vector-distance query)\nover a bounded sample: check `scan_truncated`.\n",
+      "inputSchema": {
+        "properties": {
+          "dataset_id": {
+            "description": "Dataset holding the chunk items.",
+            "type": "string"
+          },
+          "feature_set_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Feature set to search. Defaults to the model's, or the only one."
+          },
+          "max_results": {
+            "default": 5,
+            "description": "Maximum chunks to return.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "max_vectors": {
+            "default": 1000,
+            "description": "Cap on vectors scanned.",
+            "maximum": 2000,
+            "minimum": 2,
+            "type": "integer"
+          },
+          "min_similarity": {
+            "default": 0.0,
+            "description": "Minimum cosine similarity.",
+            "maximum": 1.0,
+            "minimum": -1.0,
+            "type": "number"
+          },
+          "model_id": {
+            "description": "The model that embedded the chunks; another's vectors do not compare.",
+            "type": "string"
+          },
+          "project_id": {
+            "description": "Project owning the dataset.",
+            "type": "string"
+          },
+          "query": {
+            "description": "Natural language query.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "dataset_id",
+          "query",
+          "model_id"
+        ],
+        "type": "object"
+      },
+      "name": "rag_query",
+      "outputSchema": {
+        "$defs": {
+          "RagQueryMatch": {
+            "properties": {
+              "chunk_index": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "item_id": {
+                "type": "string"
+              },
+              "item_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "similarity": {
+                "type": "number"
+              },
+              "source_item_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "source_item_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "text": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "item_id",
+              "item_name",
+              "similarity",
+              "source_item_id",
+              "source_item_name",
+              "chunk_index",
+              "text"
+            ],
+            "type": "object"
+          }
+        },
+        "properties": {
+          "dataset_id": {
+            "type": "string"
+          },
+          "feature_set_id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/$defs/RagQueryMatch"
+            },
+            "type": "array"
+          },
+          "results_count": {
+            "type": "integer"
+          },
+          "scan_truncated": {
+            "type": "boolean"
+          },
+          "vectors_scanned": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query",
+          "dataset_id",
+          "feature_set_id",
+          "vectors_scanned",
+          "scan_truncated",
+          "results_count",
+          "results"
+        ],
+        "type": "object"
+      },
+      "title": "Query RAG dataset"
+    }
+  ]
+}

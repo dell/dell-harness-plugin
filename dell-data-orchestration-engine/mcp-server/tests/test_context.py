@@ -19,3 +19,27 @@ def test_dataloop_call_preserves_local_validation_errors():
 
     with pytest.raises(ValueError, match="bad input"):
         context.dataloop_call("project lookup", fail)
+
+
+def test_dataloop_call_does_not_double_wrap_nested_platform_failures():
+    def inner_fail():
+        raise RuntimeError("raw platform detail")
+
+    def outer():
+        return context.dataloop_call("project lookup", inner_fail)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        context.dataloop_call("dataset lookup", outer)
+
+    assert str(excinfo.value) == "DOE project lookup failed: raw platform detail"
+
+
+def test_normalized_errors_are_recognized_by_type_not_message_prefix():
+    def impostor():
+        raise RuntimeError("DOE is down for maintenance")
+
+    with pytest.raises(RuntimeError) as excinfo:
+        context.dataloop_call("dataset lookup", impostor)
+
+    assert str(excinfo.value) == ("DOE dataset lookup failed: DOE is down for maintenance")
+    assert issubclass(context.DoeError, RuntimeError)

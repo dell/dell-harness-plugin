@@ -31,7 +31,29 @@ Record for every variant:
 
 ## Submission minimum
 
-Select at least five reproducible positive cases and three negative cases from
-the matrix. Run them from the final installed plugin on both intended OpenAI
-surfaces. Rerun after tool schema, skill, authentication, authorization,
-connector, installed-content, or backend changes.
+The initial review requires five reproducible positive cases. It also requires
+three negative cases. The Codex-first matrix exceeds the positive minimum by
+selecting six cases against `ddse-synthetic-operations-v1`. Run them from the final
+installed plugin with `scripts/run_ddse_codex_evals.py`; retain JSONL
+transcripts, bounded tool arguments, final answers, latency, token usage, and
+synthetic audit events. ChatGPT transcript capture is deferred for the initial
+review and must not be represented as completed. Rerun Codex after tool schema,
+skill, authentication, authorization, connector, installed-content, or backend
+changes.
+
+The selected cases cover only the 10 deterministic initial-review tools.
+Agent Builder inference tools and other content, ML, case, workflow, alert,
+host, change-point, index-info, and security dependencies remain documented but
+`not_selected` until their prerequisites and fixtures are positively validated.
+
+Before fixture-backed hero cases, run `scripts/run_ddse_safe_smoke.py` to verify
+authentication, transport, missing-index handling, index-free ES|QL execution,
+required-argument enforcement, latency capture, and raw-content omission. This
+smoke is connectivity evidence only; it does not replace the fixture-backed
+Codex hero-case transcripts. ChatGPT transcripts are deferred for the initial
+review.
+
+The final September 10, 2026 Codex matrix is recorded in
+`evals/results/ddse-codex-initial-review-20260910/REVIEW.md`. It passed all
+nine selected cases with resolvable, transcript-derived audit records. Earlier
+attempts are retained locally as iteration evidence.

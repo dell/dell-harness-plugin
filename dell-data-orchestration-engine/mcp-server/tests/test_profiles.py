@@ -6,6 +6,7 @@ covers what a profile controls: which tools `build_server(profiles=...)` actuall
 """
 
 import asyncio
+import re
 
 import pytest
 from mcp.server import MCPServer
@@ -127,3 +128,10 @@ def test_plugin_v1_profile_is_exact_and_cannot_be_combined():
     assert tool_names(["plugin-v1"]) == PLUGIN_V1_TOOLS
     with pytest.raises(ValueError, match="cannot be combined"):
         build_server(profiles=["plugin-v1", "discovery"])
+
+
+def test_plugin_v1_instructions_reference_only_advertised_tools():
+    server = build_server(profiles=["plugin-v1"])
+    referenced = set(re.findall(r"`([a-z][a-z0-9_]+)`", server.instructions or ""))
+
+    assert referenced - {"project_id"} <= PLUGIN_V1_TOOLS

@@ -61,7 +61,10 @@ def confirm_or_elicit(ctx: "Context | None", confirm: bool, action: str, consequ
         require_confirmation(confirm, action, consequence)
         return
 
-    assert ctx is not None  # _elicitation_supported already ruled out None
+    if ctx is None:
+        # Unreachable while _elicitation_supported is correct. Keep this as a
+        # runtime check because ``assert`` disappears under ``python -O``.
+        raise RuntimeError("confirm_or_elicit: elicitation reported supported but ctx is None.")
     message = f"About to {action}: {consequence}. Proceed?"
     # Tool bodies are sync functions run in a worker thread (see server.py's module docstring);
     # anyio.from_thread.run calls back into the event loop that spawned that thread.

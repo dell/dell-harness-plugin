@@ -45,14 +45,9 @@ def test_no_tool_returns_an_error_dict(path):
     assert not offenders, f"{path.name} returns an error dict at line(s) {offenders}"
 
 
-#: Modules allowed to reach for a local ML runtime, and why.
-#:
-#: `embeddings.py` runs CLIP in-process to encode a text query. That is a standing exception, not a
-#: design: it downloads `openai/clip-vit-base-patch32` at runtime against the "never download or
-#: run external/local models" convention, and `torch`/`transformers` are not declared
-#: dependencies. It is gated elicitation-only (`guards.elicit_or_refuse`) and the platform-side
-#: replacement already exists in `rag.py`'s `embed_query`. Remove this entry when that lands.
-LOCAL_ML_EXCEPTIONS = {"embeddings.py"}
+#: Modules allowed to reach for a local ML runtime. Empty by design: visual-search
+#: text queries are embedded by the model deployed on Dataloop.
+LOCAL_ML_EXCEPTIONS: set[str] = set()
 
 ML_RUNTIMES = ("sklearn", "torch", "tensorflow", "transformers", "cv2")
 

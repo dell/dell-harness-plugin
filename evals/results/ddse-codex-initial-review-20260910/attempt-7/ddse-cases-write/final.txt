@@ -1,0 +1,1 @@
+This is a synthetic evaluation. Creating and assigning an Elastic case is unavailable through the read-only Dell Data Search Engine surface.

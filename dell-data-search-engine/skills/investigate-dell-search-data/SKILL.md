@@ -5,13 +5,20 @@ description: Investigate governed Dell Data Search Engine data across indices, o
 
 # Investigate Dell Search Data
 
-Treat live `tools/list` as authoritative. Keep every advertised tool eligible,
-then choose the smallest set that answers the user's outcome.
+Treat live `tools/list` as authoritative, but do not treat every advertised tool
+as part of the default initial-review path. Choose the smallest eligible set
+that answers the user's outcome.
 
 Keep the product boundary explicit. An index name or index pattern is a DDSE
 request, not a DDAE Data Product request.
 
 ## Route the request
+
+For the Codex-first initial review, the default deterministic surface is limited
+to index listing, mapping, exact ES|QL, known-document retrieval, service and
+dependency lookup, trace metrics, correlated logs, log-rate analysis, and log
+categories. Do not invoke other advertised tools in an initial-review case
+unless the case explicitly declares and validates the corresponding dependency.
 
 - For index discovery, schema inspection, exact ES|QL, or a known document, use
   the applicable `platform_core_list_indices`,
@@ -40,7 +47,9 @@ request, not a DDAE Data Product request.
 ## Follow the investigation workflow
 
 1. Clarify the entity, index or solution area, time range, and desired outcome
-   when the request is ambiguous.
+   when the request is ambiguous. For a broad prompt such as "check the
+   infrastructure," ask for the environment, entity, measure, and time range
+   before any tool call; do not infer them from available fixture context.
 2. Confirm the needed tool is advertised and note its documented product,
    data, model, license, or content prerequisites.
 3. Use `platform_core_list_indices` first when the request asks to find an
@@ -51,6 +60,9 @@ request, not a DDAE Data Product request.
    or fall back to a model-dependent discovery tool.
 4. Use explicit fields, filters, time ranges, aggregation boundaries, and
    result limits. Avoid broad exports and unnecessary source fields.
+   When the request names the evidence types or tools to use, stop after that
+   path and do not repeat calls, add comparison windows, or broaden into other
+   Observability tools unless the user asks.
 5. Correlate only when the returned identifiers and timestamps support it.
    Distinguish observed evidence from an inferred explanation.
 6. Preserve empty results, unsupported-feature errors, and authorization
@@ -64,6 +76,9 @@ request, not a DDAE Data Product request.
 - Do not create or update cases, workflows, rules, connectors, indices, or
   documents unless a separately reviewed write tool is advertised and the
   user explicitly authorizes that action.
+- When only retrieval tools are advertised and a user asks for a write, state
+  that the operation is unavailable in the read-only surface. Do not ask for
+  write details or imply that the operation can proceed later.
 - Do not expose authorization headers, hidden/system indices, raw secrets,
   unnecessary personal data, or verbose backend errors.
 - Treat missing Agent Builder, ML, content, licensing, or solution data as a

@@ -1,0 +1,5 @@
+Checkout logs increased from **10 to 34**—a rise of **24 logs, or 240%**.
+
+The current window contains **24 `payment_timeout` logs**, exactly matching the net increase of 24. Therefore, the increase is numerically explained by payment-timeout activity, though the available data supports attribution—not root-cause causality.
+
+These results are from synthetic DDSE evaluation data, not a live customer deployment.

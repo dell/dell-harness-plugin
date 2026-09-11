@@ -67,9 +67,9 @@ def test_ids_are_stable_across_processes_not_just_within_one():
     graph = construct(rag_blueprint()).to_json()
 
     assert [node["id"] for node in graph["nodes"]] == [
-        "ff4449ce-de73-5ac1-95a9-a66dd4a10c78",
-        "08ae8cf9-0ac3-55cd-be7c-8183a8137318",
-        "0a87eaba-30d5-5474-9fee-b27f173f6b0e",
+        "12f1833a-dfa0-5016-8e32-f0e52c13fc37",
+        "6b2e034b-3632-54e2-b225-b952160e74e6",
+        "56c5adf0-3ba5-5ffa-b759-1909c133e411",
     ]
 
 
@@ -80,6 +80,30 @@ def test_a_different_choice_gives_a_different_graph():
 
     assert default != other
     assert [n["id"] for n in default["nodes"]] != [n["id"] for n in other["nodes"]]
+
+
+def test_editing_one_node_keeps_unrelated_node_ids_stable():
+    default = construct(rag_blueprint()).to_json()
+    edited = construct(rag_blueprint(output_dataset="ds-other")).to_json()
+    before = {node["name"]: node["id"] for node in default["nodes"]}
+    after = {node["name"]: node["id"] for node in edited["nodes"]}
+
+    assert before["ingest"] == after["ingest"]
+    assert before["to_text"] == after["to_text"]
+    assert before["out"] != after["out"]
+
+
+def test_different_pipeline_names_do_not_share_node_or_port_ids():
+    first = construct(rag_blueprint()).to_json()
+    other = rag_blueprint().model_copy(update={"name": "rag-v2"})
+    second = construct(other).to_json()
+
+    first_nodes = {node["id"] for node in first["nodes"]}
+    second_nodes = {node["id"] for node in second["nodes"]}
+    first_ports = {port["portId"] for node in first["nodes"] for port in node["inputs"] + node["outputs"]}
+    second_ports = {port["portId"] for node in second["nodes"] for port in node["inputs"] + node["outputs"]}
+    assert first_nodes.isdisjoint(second_nodes)
+    assert first_ports.isdisjoint(second_ports)
 
 
 def test_identifiers_are_unique_within_a_graph():

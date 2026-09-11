@@ -98,6 +98,9 @@ require a plan and explicit user confirmation. The server enforces confirmation
 fields for critical operations, but the skill must still explain the action and
 target before invoking them.
 
+`pipeline_install` always requires confirmation. `model_create` requires
+confirmation whenever adapter-specific `configuration` overrides are supplied.
+
 ## Known constraints
 
 - The `dtlpy` SDK uses one authenticated identity per process.
@@ -115,3 +118,7 @@ target before invoking them.
   typed node contract.
 - Training, deployment, inference, embedding, pipelines, and triggers require
   live validation against an approved disposable project.
+- Embedding extraction is asynchronous. Use `vector_count` rather than feature
+  set `size` to monitor progress; `size` is the vector dimension.
+- Text-query visual search uses the model deployed on Dataloop and therefore
+  performs a temporary, billable platform write that requires elicitation.

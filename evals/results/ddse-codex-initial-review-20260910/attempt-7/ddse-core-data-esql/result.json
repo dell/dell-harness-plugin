@@ -1,0 +1,48 @@
+{
+  "audit_event_id": "ddse-eval-367744ba-2637-4f8e-ad02-10ce8de8801d,ddse-eval-ae170f70-d615-4d17-b612-13e19fbe2bbc,ddse-eval-10071f6a-7aad-41db-bcbe-34d852c39c80",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddse-core-data-esql",
+  "codex_exit_code": 0,
+  "final_answer": "Synthetic, non-customer evidence:\n\n- Authorized orders index: `synthetic-orders-v1`\n- Mapping:\n  - `@timestamp`: `date`\n  - `event_type`: `keyword`\n  - `service_name`: `keyword`\n- `payment_timeout` count: **17**\n- Window: `2026-08-01T00:00:00Z` inclusive to `2026-08-01T01:00:00Z` exclusive\n- The bounded ES|QL query ended with `LIMIT 1`.",
+  "fixture": "ddse-synthetic-operations-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 24026,
+  "manual_checks": {
+    "Use explicit fields, a time filter, and a bounded ES|QL result.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a08d6f-cd49-72d1-9ad3-b5657ae19465",
+  "tool_calls": [
+    {
+      "arguments": {
+        "pattern": "*orders*"
+      },
+      "name": "platform_core_list_indices",
+      "status": "completed"
+    },
+    {
+      "arguments": {
+        "indices": [
+          "synthetic-orders-v1"
+        ]
+      },
+      "name": "platform_core_get_index_mapping",
+      "status": "completed"
+    },
+    {
+      "arguments": {
+        "query": "FROM synthetic-orders-v1 | WHERE @timestamp >= \"2026-08-01T00:00:00Z\" AND @timestamp < \"2026-08-01T01:00:00Z\" AND event_type == \"payment_timeout\" | STATS payment_timeout_count = COUNT(*) | LIMIT 1"
+      },
+      "name": "platform_core_execute_esql",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/ddse-codex-initial-review-20260910/attempt-7/ddse-core-data-esql/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 79232,
+    "input_tokens": 87762,
+    "output_tokens": 663,
+    "reasoning_output_tokens": 208
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "audit_event_id": "ddae-eval-04ae19d9-1fce-4a1d-b761-c2ccb4790323",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddae-discover-noninvocation",
+  "codex_exit_code": 0,
+  "final_answer": "I can\u2019t inspect local files under these evaluation constraints. If you paste the README contents here, I can summarize them without using tools.",
+  "fixture": "ddae-synthetic-commerce-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 5611,
+  "manual_checks": {
+    "Do not invoke the DDAE plugin.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a08d9e-a220-77d0-bf02-4498d89558c3",
+  "tool_calls": [],
+  "transcript_url": "evals/results/ddae-codex-initial-review-20260910/attempt-6/ddae-discover-noninvocation/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 14976,
+    "input_tokens": 16136,
+    "output_tokens": 31,
+    "reasoning_output_tokens": 0
+  }
+}

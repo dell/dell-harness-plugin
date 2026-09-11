@@ -1,0 +1,5 @@
+The evidence is synthetic.
+
+Checkout logs rose from 10 to 34—a 240% increase. The current window contained 24 `payment_timeout` logs, exactly matching the 24-log increase.
+
+So the spike was entirely attributable to `payment_timeout` messages within the requested evidence scope. This identifies the log category driving the increase, but not the underlying cause of those timeouts.

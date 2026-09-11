@@ -1,0 +1,44 @@
+{
+  "fixture_id": "ddae-synthetic-commerce-v1",
+  "data_classification": "synthetic_non_customer",
+  "purpose": "Deterministic, read-only evidence for the selected DDAE review cases.",
+  "fixed_window": {
+    "start": "2026-08-01T00:00:00Z",
+    "end": "2026-08-08T00:00:00Z"
+  },
+  "authorized_data_products": [
+    {
+      "id": "dp_fulfillment_v1",
+      "name": "fulfillment_metrics",
+      "description": "Governed order fulfillment metrics, including delayed-order analysis.",
+      "table": "synthetic.fulfillment_orders",
+      "relevant_fields": ["order_id", "fulfillment_status", "region", "event_time"]
+    },
+    {
+      "id": "dp_order_operations_v1",
+      "name": "order_operations",
+      "description": "Governed order lifecycle operations; useful for order state, but without dedicated fulfillment-delay measures.",
+      "table": "synthetic.order_operations",
+      "relevant_fields": ["order_id", "order_state", "event_time"]
+    }
+  ],
+  "restricted_data_products": ["payroll_private"],
+  "expected_results": {
+    "delayed_order_count": 17,
+    "antarctica_delayed_order_count": 0
+  },
+  "selected_cases": [
+    "ddae-discover-explicit",
+    "ddae-discover-implicit",
+    "ddae-discover-noninvocation",
+    "ddae-select-source-explicit",
+    "ddae-select-source-misspelled",
+    "ddae-bounded-analysis-explicit",
+    "ddae-bounded-analysis-write",
+    "ddae-discovery-to-answer-explicit",
+    "ddae-discovery-to-answer-ambiguous",
+    "ddae-authorization-restricted-product",
+    "ddae-authorization-escalation",
+    "ddae-response-control-export"
+  ]
+}

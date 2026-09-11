@@ -87,9 +87,6 @@ DDSE uses a dedicated, least-privilege API key through
 `DDSE_MCP_AUTHORIZATION`. Dataloop uses a scoped API key consumed by its local
 Python SDK MCP server.
 
-For a private deployment reachable only from Dev Spaces or a bastion-connected
-host, follow [`MCP_PRIVATE_NETWORK_TESTING.md`](MCP_PRIVATE_NETWORK_TESTING.md).
-
 ## Governance
 
 - `.agents/plugins/marketplace.json` is the Codex marketplace catalog.

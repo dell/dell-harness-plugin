@@ -1,0 +1,24 @@
+{
+  "audit_event_id": "ddae-eval-7e246aea-d63e-42b4-9136-2e1fb9bfa61b",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddae-discovery-to-answer-ambiguous",
+  "codex_exit_code": 0,
+  "final_answer": "Clarification is required. What business measure should \u201cperformance\u201d refer to\u2014such as revenue, margin, throughput, or SLA\u2014and what scope should be analyzed, such as product, region, and time period?\n\nAny returned evidence will be synthetic.",
+  "fixture": "ddae-synthetic-commerce-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 5428,
+  "manual_checks": {
+    "Ask for the business measure and scope before data access.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a08d9f-fc6f-7481-b4e2-1388b517721b",
+  "tool_calls": [],
+  "transcript_url": "evals/results/ddae-codex-initial-review-20260910/attempt-6/ddae-discovery-to-answer-ambiguous/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 10496,
+    "input_tokens": 16093,
+    "output_tokens": 75,
+    "reasoning_output_tokens": 20
+  }
+}
