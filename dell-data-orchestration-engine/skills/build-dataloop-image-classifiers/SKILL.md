@@ -32,6 +32,9 @@ model annotations as verified ground truth.
 3. Present the proposed app, model, subsets, compute, and persistent resources.
 4. After approval, call `model_install`, verify with `app_list`, and call
    `model_create` using the returned component identifiers.
+   If `configuration` overrides are supplied, explain those adapter-specific
+   values and obtain a separate current approval before passing `confirm=true`;
+   the server rejects unconfirmed overrides before any platform call.
 5. Define subsets with `model_set_subset`; verify that filters are disjoint and
    match the approved dataset policy.
 

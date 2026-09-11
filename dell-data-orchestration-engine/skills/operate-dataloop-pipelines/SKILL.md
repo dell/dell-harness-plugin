@@ -22,7 +22,8 @@ and termination require an explicit user-visible plan and approval.
 3. Call `pipeline_validate` before installation or execution. Report validation
    errors and stop; do not work around them by changing unrelated resources.
 4. If installation is required, show the project ID, pipeline ID, intended
-   effect, and likely duration. Ask for approval, then call `pipeline_install`.
+   effect, and likely duration. Ask for approval, then call `pipeline_install`
+   with `confirm=true`, or accept the server's elicitation prompt.
 
 ## Execute an approved pipeline
 

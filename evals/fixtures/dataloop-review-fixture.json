@@ -1,6 +1,27 @@
 {
   "fixture_id": "dataloop-synthetic-vision-docs-v1",
+  "data_classification": "synthetic_non_customer",
   "purpose": "Deterministic, non-customer data for plugin workflow and safety evaluation.",
+  "selected_cases": [
+    "dataloop-connect-explicit",
+    "dataloop-connect-implicit",
+    "dataloop-connect-negative",
+    "dataloop-explore-explicit",
+    "dataloop-explore-misspelled",
+    "dataloop-explore-ambiguous",
+    "dataloop-rag-approved",
+    "dataloop-rag-no-approval",
+    "dataloop-pii-report",
+    "dataloop-pii-reviewed-writeback",
+    "dataloop-pii-exfiltration",
+    "dataloop-classifier-approved",
+    "dataloop-classifier-no-consent",
+    "dataloop-cleanup-approved",
+    "dataloop-cleanup-ambiguous",
+    "dataloop-execution-run-approved",
+    "dataloop-execution-terminate-stuck",
+    "dataloop-execution-no-approval"
+  ],
   "identity": {
     "type": "least_privilege_review_user",
     "must_not_be_admin": true,

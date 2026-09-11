@@ -1,0 +1,3 @@
+Clarification is required. What business measure should “performance” refer to—such as revenue, margin, throughput, or SLA—and what scope should be analyzed, such as product, region, and time period?
+
+Any returned evidence will be synthetic.

@@ -1,0 +1,7 @@
+Synthetic evidence for `checkout-api` from `2026-08-01T00:00:00Z`–`01:00:00Z`:
+
+- Trace failure rate: **35%**
+- Returned trace ID: `trace-1042`
+- Correlated log category: `payment_timeout`
+
+The bounded evidence associates the observed failures with payment timeouts. No broader investigation was performed.

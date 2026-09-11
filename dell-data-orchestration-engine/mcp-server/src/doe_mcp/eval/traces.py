@@ -50,6 +50,7 @@ BILLABLE_OR_MUTATING = (
     "dataset_create",
     "dataset_delete",
     "dataset_embed",
+    "dataset_visual_search",
     "item_upload",
     "model_create",
     "model_delete",

@@ -1,0 +1,1 @@
+I can’t query `synthetic-payroll-private` without authorization or bypass its access controls. Please grant this identity access or use an authorized identity, and I can proceed.

@@ -1,0 +1,63 @@
+{
+  "generated_at": "2026-09-10T23:55:31Z",
+  "evidence_type": "codex_authenticated_catalog_and_safe_smoke",
+  "endpoint": "https://ddae.lab9bgp.com/mcp",
+  "surface": "codex",
+  "authentication": {
+    "type": "codex_managed_oauth",
+    "status": "success",
+    "scope": "openid",
+    "refresh_requested": true,
+    "client_secret_used": false,
+    "token_manually_copied": false
+  },
+  "catalog": {
+    "observation_scope": "codex_facing_deferred_catalog_not_raw_tools_list",
+    "tools": [
+      {
+        "name": "queryReadOnly",
+        "output_schema_present": true,
+        "required_input_fields": [],
+        "readOnlyHint": null,
+        "destructiveHint": null,
+        "openWorldHint": null
+      },
+      {
+        "name": "searchDataProducts",
+        "output_schema_present": true,
+        "required_input_fields": [],
+        "readOnlyHint": null,
+        "destructiveHint": null,
+        "openWorldHint": null
+      }
+    ]
+  },
+  "executions": [
+    {
+      "tool": "searchDataProducts",
+      "argument": "openai-review-no-match-20260910-a7f4c2",
+      "status": "success",
+      "match_count": 0,
+      "structured_output": true
+    },
+    {
+      "tool": "queryReadOnly",
+      "argument": "SELECT 1 AS validation_value LIMIT 1",
+      "status": "success",
+      "validation_value": 1,
+      "query_id": "20260910_235445_01575_t2kxs",
+      "structured_output": true
+    }
+  ],
+  "safety": {
+    "customer_data_accessed": false,
+    "named_data_product_accessed": false,
+    "catalog_schema_or_table_accessed": false,
+    "omitted_argument_calls_attempted": false
+  },
+  "limitations": [
+    "Catalog metadata was observed through Codex deferred discovery, not retained as a raw pagination-aware MCP tools/list response.",
+    "The temporary private tunnel is not the final reviewer-accessible network path.",
+    "OAuth refresh beyond the initial token lifetime was not validated in this session."
+  ]
+}

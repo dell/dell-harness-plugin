@@ -1,0 +1,45 @@
+{
+  "audit_event_id": "ddse-eval-afb000e3-ef55-45d9-857d-5f08735a85d5,ddse-eval-20bf8275-2a5e-4446-8a12-cd16c31c2255",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddse-log-rate-categories",
+  "codex_exit_code": 0,
+  "final_answer": "Checkout logs increased from **10 to 34**\u2014a rise of **24 logs, or 240%**.\n\nThe current window contains **24 `payment_timeout` logs**, exactly matching the net increase of 24. Therefore, the increase is numerically explained by payment-timeout activity, though the available data supports attribution\u2014not root-cause causality.\n\nThese results are from synthetic DDSE evaluation data, not a live customer deployment.",
+  "fixture": "ddse-synthetic-operations-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 46509,
+  "manual_checks": {
+    "Use the fixed current and comparison windows.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a08d71-50bc-7982-ac0f-6a230f058b62",
+  "tool_calls": [
+    {
+      "arguments": {
+        "comparison_end": "2026-08-01T00:00:00Z",
+        "comparison_start": "2026-07-31T23:00:00Z",
+        "current_end": "2026-08-01T01:00:00Z",
+        "current_start": "2026-08-01T00:00:00Z",
+        "service_name": "checkout"
+      },
+      "name": "observability_run_log_rate_analysis",
+      "status": "completed"
+    },
+    {
+      "arguments": {
+        "end": "2026-08-01T01:00:00Z",
+        "service_name": "checkout",
+        "start": "2026-08-01T00:00:00Z"
+      },
+      "name": "observability_get_log_categories",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/ddse-codex-initial-review-20260910/attempt-7/ddse-log-rate-categories/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 72192,
+    "input_tokens": 84637,
+    "output_tokens": 1803,
+    "reasoning_output_tokens": 1357
+  }
+}

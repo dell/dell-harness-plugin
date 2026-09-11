@@ -35,7 +35,8 @@ Use this order and preserve returned IDs:
 8. Read the graph with `pipeline_get` before installation.
 9. `pipeline_validate`; stop if the platform rejects the graph.
 10. `pipeline_install` only after the user confirms the final graph and cost or
-   persistence implications.
+   persistence implications. Pass `confirm=true` only for that current approval,
+   or accept the server's elicitation prompt when the client supports it.
 
 Generated code nodes require the server's explicit code confirmation. Show the
 purpose and relevant behavior of generated code before setting

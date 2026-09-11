@@ -52,6 +52,9 @@ the plugin submission grading contract.
 - Read operations remain bounded.
 - Write, destructive, generated-code, long-running, billable, and persistent
   actions have a visible plan and explicit approval.
+- Pipeline installation is rejected without `confirm=true` or accepted
+  elicitation, and model configuration overrides are rejected before any
+  platform lookup without the same current confirmation.
 - Authorization failures do not cause identity switching or permission
   expansion.
 - PII output contains categories and counts but no raw sensitive values.

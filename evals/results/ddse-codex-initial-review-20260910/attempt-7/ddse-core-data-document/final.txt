@@ -1,0 +1,8 @@
+Synthetic evidence for `order-1042`:
+
+- Failure: `payment_timeout`
+- Service: `checkout-api`
+- Timestamp: `2026-08-01T00:42:00Z`
+- Index: `synthetic-orders-v1`
+
+The order failed because payment processing timed out. No broader evidence was retrieved.

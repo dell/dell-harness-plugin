@@ -1,0 +1,12 @@
+The governed source is the `fulfillment_metrics` Data Product (`dp_fulfillment_v1`), backed by `synthetic.fulfillment_orders`. It explicitly supports delayed-order analysis; the alternative product lacked a dedicated fulfillment-delay measure.
+
+Result: **17 distinct delayed orders**
+
+Calculation used:
+
+- Status: `fulfillment_status = 'delayed'`
+- Window: `event_time >= 2026-08-01T00:00:00Z` and `< 2026-08-08T00:00:00Z`
+- Measure: `COUNT(DISTINCT order_id)`
+- Returned one complete, non-truncated row
+
+Evidence is synthetic, non-customer evaluation data from fixture `ddae-synthetic-commerce-v1`. Query evidence ID: `ddae-synthetic-delayed-orders-v1`.

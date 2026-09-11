@@ -43,6 +43,21 @@ with the same names take precedence over the file.
 Restart Codex after changing the configuration. Start with `project_list` to
 verify the effective identity and authorization boundary.
 
+For more than one Dataloop deployment, provision a different SDK state
+directory for each gate and pass it to the configuration helper:
+
+```bash
+STATE_PATH="$(python dell-data-orchestration-engine/scripts/dataloop_state_dir.py cto-lab \
+  --gate-url https://gate.example.com/api/v1)"
+python dell-data-orchestration-engine/scripts/configure_dataloop.py \
+  --config ~/.config/dell-mcp/dataloop-cto-lab.json \
+  --state-path "$STATE_PATH" \
+  --gate-url https://gate.example.com/api/v1
+```
+
+The alias is bound to its first recorded gate URL, preventing two deployments
+from silently sharing one dtlpy cookie and selected-environment pointer.
+
 ## Limit the tool surface
 
 The launcher defaults to the reviewed `plugin-v1` profile: the 36 tools used by
@@ -64,7 +79,9 @@ required. Prefer the default or the smallest profile set that supports the work.
 
 - No credentials are stored in the plugin manifest or MCP request payloads.
 - On POSIX systems, the launcher refuses group-readable or world-readable
-  configuration and SDK-state paths.
+  configuration, repairs SDK-state directories to mode 0700, and repairs
+  dtlpy's bearer-token cookie to mode 0600.
+- Symbolic-link SDK-state directories are refused.
 - On Windows, keep the configuration in the user's profile and apply a
   user-only ACL through the managed deployment.
 - State-changing, destructive, long-running, and billable actions require a
@@ -98,6 +115,7 @@ validation before they can be documented as supported capabilities.
 ```bash
 python -m pytest tests/plugins -q
 python scripts/aidp_eval.py validate
+python scripts/aidp_eval.py fixture dell-data-orchestration-engine
 python dell-data-orchestration-engine/scripts/export_dataloop_contract.py > /tmp/dataloop-tools.json
 python scripts/aidp_eval.py contract dell-data-orchestration-engine /tmp/dataloop-tools.json --review-ready
 ```
@@ -105,3 +123,7 @@ python scripts/aidp_eval.py contract dell-data-orchestration-engine /tmp/dataloo
 Live evaluation requires a disposable Dataloop project and an intentionally
 scoped test identity. Never run write-path tests against customer production
 data.
+
+The latest package-level readiness assessment is recorded in
+`evals/results/doe-initial-review-20260911/REVIEW.md`. It does not represent a
+completed live Dataloop or ChatGPT review.

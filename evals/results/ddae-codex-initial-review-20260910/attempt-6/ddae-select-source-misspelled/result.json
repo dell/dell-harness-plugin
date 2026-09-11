@@ -1,0 +1,32 @@
+{
+  "audit_event_id": "ddae-eval-e11a76d2-af25-4268-964f-7188a43f5b3e",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddae-select-source-misspelled",
+  "codex_exit_code": 0,
+  "final_answer": "The governed data product for fulfilment delays is **`fulfillment_metrics`** (`dp_fulfillment_v1`). It provides governed order-fulfillment metrics, including delayed-order analysis.\n\nReturned evidence is synthetic, non-customer evaluation data.",
+  "fixture": "ddae-synthetic-commerce-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 14455,
+  "manual_checks": {
+    "Interpret the typo without silently broadening scope.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a08d9e-fe6a-70e2-a728-29168e66b691",
+  "tool_calls": [
+    {
+      "arguments": {
+        "query": "fulfilment delays"
+      },
+      "name": "searchDataProducts",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/ddae-codex-initial-review-20260910/attempt-6/ddae-select-source-misspelled/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 47360,
+    "input_tokens": 49661,
+    "output_tokens": 325,
+    "reasoning_output_tokens": 110
+  }
+}

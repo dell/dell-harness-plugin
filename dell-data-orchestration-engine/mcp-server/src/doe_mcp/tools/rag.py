@@ -285,7 +285,7 @@ def resolve_feature_set(dataset: Any, model_id: str, feature_set_id: str | None)
     return str(candidates[0].id)
 
 
-def embed_query(dataset: Any, model: Any, query: str, feature_set_id: str) -> np.ndarray:
+def embed_query(dataset: Any, model: Any, query: str, feature_set_id: str) -> tuple[np.ndarray, str]:
     """Vector for a query string, produced by the same model that embedded the chunks.
 
     A query vector is only comparable with the chunk vectors if the same model made it, and that
@@ -318,7 +318,7 @@ def embed_query(dataset: Any, model: Any, query: str, feature_set_id: str) -> np
             for feature in paging.page_entities(listed):
                 value = getattr(feature, "value", None)
                 if value:
-                    return np.asarray(value, dtype=float)
+                    return np.asarray(value, dtype=float), str(item.id)
             if attempt < QUERY_POLL_ATTEMPTS - 1:
                 time.sleep(QUERY_POLL_SECONDS)
         raise RuntimeError(
@@ -562,7 +562,7 @@ def register(mcp: MCPServer) -> None:
         model = dataloop_call("model lookup", lambda: project.models.get(model_id=model_id))
         resolved_set = resolve_feature_set(dataset, model_id, feature_set_id)
 
-        query_vector = embed_query(dataset, model, query, resolved_set)
+        query_vector, _ = embed_query(dataset, model, query, resolved_set)
         # Ranking happens here, not on the platform (dtlpy has no vector-distance query), so the
         # same tripwire applies as for dataset_cluster: see guards.gate_local_compute.
         gate_local_compute(

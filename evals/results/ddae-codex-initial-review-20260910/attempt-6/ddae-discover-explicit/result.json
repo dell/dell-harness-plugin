@@ -1,0 +1,33 @@
+{
+  "audit_event_id": "ddae-eval-35b21651-e212-402b-9dfe-8537bc554a8d",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddae-discover-explicit",
+  "codex_exit_code": 0,
+  "final_answer": "The authorized Data Product for fulfillment performance is:\n\n- **Name:** `fulfillment_metrics`\n- **ID:** `dp_fulfillment_v1`\n- **Purpose:** Governed order-fulfillment metrics, including delayed-order analysis\n- **Table:** `synthetic.fulfillment_orders`\n\nThis is the dedicated match; `order_operations` lacks fulfillment-delay measures. The returned evidence is synthetic and limited to the fixed evaluation window of **2026-08-01T00:00:00Z\u20132026-08-08T00:00:00Z**.",
+  "fixture": "ddae-synthetic-commerce-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 14002,
+  "manual_checks": {
+    "Cite only returned product metadata.": true,
+    "Do not enumerate unrelated products.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a08d9e-366d-7141-bc0d-716a31896a05",
+  "tool_calls": [
+    {
+      "arguments": {
+        "query": "fulfillment performance"
+      },
+      "name": "searchDataProducts",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/ddae-codex-initial-review-20260910/attempt-6/ddae-discover-explicit/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 47360,
+    "input_tokens": 49711,
+    "output_tokens": 414,
+    "reasoning_output_tokens": 93
+  }
+}

@@ -472,7 +472,14 @@ def run_rag_pipeline() -> WorkflowResult:
                     "target_node_name": "output_storage",
                 },
             ),
-            ("pipeline_install", {"project_id": "proj-1", "pipeline_id": "pipe-rag-pipeline"}),
+            (
+                "pipeline_install",
+                {
+                    "project_id": "proj-1",
+                    "pipeline_id": "pipe-rag-pipeline",
+                    "confirm": True,
+                },
+            ),
             ("pipeline_stats", {"project_id": "proj-1", "pipeline_id": "pipe-rag-pipeline"}),
         ]
         return asyncio.run(_drive("agentic-rag", calls))

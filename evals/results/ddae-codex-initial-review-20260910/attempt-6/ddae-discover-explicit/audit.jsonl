@@ -1,0 +1,1 @@
+{"arguments": {"query": "fulfillment performance"}, "case_id": "ddae-discover-explicit", "event_id": "ddae-eval-35b21651-e212-402b-9dfe-8537bc554a8d", "event_type": "mcp_tool_call", "sequence": 1, "source": "codex_jsonl_transcript", "status": "completed", "timestamp": "2026-09-10T23:19:24.490825+00:00", "tool": "searchDataProducts"}

@@ -67,5 +67,29 @@ The newly authenticated identity then executed the synthetic bounded statement
 `validation_value=1`, one row, no error, and a query ID. No customer catalog,
 table, or Data Product was read.
 
+## Authenticated Codex revalidation — September 10, 2026
+
+Codex completed protected-resource discovery, Keycloak dynamic client
+registration, browser authorization, PKCE S256 code exchange, and MCP OAuth
+without a client secret or manually copied token. Authenticated deferred catalog
+discovery exposed exactly `searchDataProducts` and `queryReadOnly` to Codex.
+
+The Codex-facing definitions contained output schemas but marked no input field
+as required for either tool and did not surface `readOnlyHint`,
+`destructiveHint`, or `openWorldHint`. This was not a retained raw,
+pagination-aware `tools/list` response, so it is an actionable submission gate
+requiring raw contract confirmation rather than conclusive proof that the
+upstream server removed metadata observed in August.
+
+Two bounded live calls then passed in the required order. A unique no-match
+`searchDataProducts` query returned zero products and structured content.
+`SELECT 1 AS validation_value LIMIT 1` returned integer value `1`, structured
+content, and a DDAE query ID. No named Data Product, catalog, schema, table, or
+customer record was accessed. Omitted-argument execution was intentionally not
+attempted because an empty search could enumerate authorized Data Products.
+
+The sanitized record is
+[`evals/results/ddae-codex-initial-review-20260910/live-safe-smoke.json`](../../../../evals/results/ddae-codex-initial-review-20260910/live-safe-smoke.json).
+
 OAuth, DDAE roles, catalog permissions, row and column controls, resource
 groups, query limits, and audit policy remain authoritative.

@@ -1,10 +1,21 @@
 {
   "name": "dell-data-analytics-engine",
   "version": "0.2.0",
-  "description": "Use Dell Data Analytics Engine with a customer-registered MCP endpoint.",
+  "description": "Discover governed Dell Data Analytics Engine Data Products and run bounded, read-only analytics.",
   "author": {
-    "name": "Dell Technologies"
+    "name": "Dell Technologies",
+    "url": "https://www.dell.com/"
   },
+  "homepage": "https://www.dell.com/support/product-details/en-us/product/dell-data-lakehouse/overview",
+  "repository": "https://github.com/dell/dell-harness-plugin",
+  "license": "Proprietary",
+  "keywords": [
+    "dell",
+    "data-analytics",
+    "data-products",
+    "starburst",
+    "trino"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Dell Data Analytics Engine",
@@ -15,10 +26,16 @@
     "capabilities": [
       "Read"
     ],
+    "websiteURL": "https://www.dell.com/support/product-details/en-us/product/dell-data-lakehouse/overview",
+    "privacyPolicyURL": "https://www.dell.com/en-us/lp/legal/policies-privacy",
+    "termsOfServiceURL": "https://www.dell.com/en-us/lp/legal/site-terms-of-use",
     "defaultPrompt": [
       "Find the Data Products I can use to analyze order fulfillment.",
       "Compare authorized data sources for this business question.",
       "Run a bounded read-only analysis and explain the calculation."
-    ]
+    ],
+    "brandColor": "#0672CE",
+    "composerIcon": "./assets/dell-technologies-wordmark.png",
+    "logo": "./assets/dell-technologies-wordmark.png"
   }
 }

@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import os
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -26,11 +27,15 @@ def load_launcher():
 def test_manifest_mcp_marketplace_and_governance_are_registered():
     manifest = load_json(PLUGIN / ".codex-plugin" / "plugin.json")
     assert manifest["name"] == "dell-data-orchestration-engine"
-    assert manifest["version"] == "0.2.0"
+    assert manifest["version"] == "0.3.0"
     assert manifest["skills"] == "./skills/"
     assert manifest["mcpServers"] == "./.mcp.json"
     assert manifest["homepage"].startswith("https://")
-    assert (PLUGIN / manifest["interface"]["logo"]).is_file()
+    assert manifest["author"]["url"].startswith("https://")
+    for field in ("websiteURL", "privacyPolicyURL", "termsOfServiceURL"):
+        assert manifest["interface"][field].startswith("https://")
+    for field in ("composerIcon", "logo"):
+        assert (PLUGIN / manifest["interface"][field]).is_file()
     assert manifest["interface"]["capabilities"] == ["Read", "Write"]
     assert len(manifest["interface"]["defaultPrompt"]) == 3
 
@@ -115,12 +120,9 @@ def test_launcher_requires_private_config_and_never_serializes_secret(tmp_path):
     config.unlink()
     state = tmp_path / "state"
     state.chmod(0o755)
-    try:
-        launcher.validate_environment(environment)
-    except launcher.ConfigurationError as exc:
-        assert "chmod 700" in str(exc)
-    else:
-        raise AssertionError("group-readable SDK state must be rejected")
+    launcher.validate_environment(environment)
+    if os.name == "posix":
+        assert stat.S_IMODE(state.stat().st_mode) == 0o700
 
 
 def test_launcher_builds_profiled_command_and_rejects_unknown_profile(monkeypatch):
@@ -172,6 +174,19 @@ def test_dataloop_evaluation_definition_and_contract_inventory_validate():
     assert len(definition["upstream_tools"]) == 70
     assert len(set(definition["upstream_tools"])) == 70
     assert set(definition["contract_tools"]) <= set(definition["upstream_tools"])
+
+    fixture = subprocess.run(
+        [sys.executable, str(EVAL_SCRIPT), "fixture", "dell-data-orchestration-engine"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    fixture_summary = json.loads(fixture.stdout)
+    assert fixture_summary["passed"] is True
+    assert fixture_summary["data_classification"] == "synthetic_non_customer"
+    assert fixture_summary["positive_cases"] >= 5
+    assert fixture_summary["negative_cases"] >= 3
 
 
 def test_configuration_check_does_not_print_api_key(tmp_path):

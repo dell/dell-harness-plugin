@@ -45,6 +45,13 @@ class FakeTriggers:
         return True
 
 
+@pytest.fixture(autouse=True)
+def mock_get_dataset(monkeypatch):
+    dataset = SimpleNamespace(id="ds-1", name="my-dataset")
+    monkeypatch.setattr(triggers, "get_dataset", lambda project_id, dataset_id: dataset)
+    return dataset
+
+
 @pytest.fixture
 def project(monkeypatch):
     fake = FakeTriggers()
@@ -131,6 +138,34 @@ def test_list_returns_all_project_triggers(monkeypatch, call_tool):
     assert [item["id"] for item in result.structured_content["items"]] == ["trg-1", "trg-2"]
 
 
+def test_list_pages_and_preserves_project_scope(monkeypatch, call_tool):
+    seen = {}
+
+    class RecordingTriggers(FakeTriggers):
+        def list(self, filters=None):
+            seen["page"] = filters.page
+            seen["page_size"] = filters.page_size
+            seen["prepared"] = filters.prepare()
+            return super().list()
+
+    proj = SimpleNamespace(
+        id="proj-1",
+        name="proj",
+        triggers=RecordingTriggers(existing=[fake_trigger()]),
+    )
+    monkeypatch.setattr(triggers, "get_project", lambda project_id: proj)
+
+    result = call_tool(
+        "trigger_list",
+        {"project_id": "proj-1", "page": 2, "page_size": 25},
+    )
+
+    assert result.is_error is False
+    assert seen["page"] == 2
+    assert seen["page_size"] == 25
+    assert seen["prepared"]["filter"] == {"$and": [{"projectId": "proj-1"}]}
+
+
 def test_get_reports_whether_the_trigger_is_still_active(project, call_tool):
     result = call_tool("trigger_get", {"project_id": "proj-1", "trigger_id": "trg-9"})
 
@@ -150,6 +185,24 @@ def test_delete_removes_the_trigger_when_confirmed(project, call_tool):
 
     assert result.is_error is False
     assert project.triggers.deleted == "trg-1"
+
+
+def test_create_refuses_dataset_outside_the_project(project, monkeypatch, call_tool):
+    def missing(project_id, dataset_id):
+        raise ValueError(f"Dataset {dataset_id!r} not found in project {project_id!r}.")
+
+    monkeypatch.setattr(triggers, "get_dataset", missing)
+    result = call_tool("trigger_create", {**CREATE, "confirm": True})
+
+    assert result.is_error is True
+    assert "not found" in result.content[0].text
+    assert project.triggers.created is None
+
+
+def test_create_names_the_dataset_in_confirmation(project, call_tool):
+    result = call_tool("trigger_create", CREATE)
+    assert result.is_error is True
+    assert "my-dataset" in result.content[0].text
 
 
 def test_create_refuses_a_project_wide_trigger(project, call_tool):

@@ -120,9 +120,17 @@ def validate_environment(environ: dict[str, str]) -> None:
             + ". Run configure_dataloop.py or set them in the process environment."
         )
     state_path = Path(environ["DATALOOP_PATH"]).expanduser()
+    if state_path.is_symlink():
+        raise ConfigurationError(
+            f"DATALOOP_PATH cannot be a symbolic link: {state_path}"
+        )
     state_path.mkdir(parents=True, exist_ok=True, mode=0o700)
     if not state_path.is_dir():
         raise ConfigurationError(f"DATALOOP_PATH is not a directory: {state_path}")
+    if os.name == "posix":
+        # Repair state directories created by an older or more permissive
+        # setup. mkdir(mode=...) does not affect an existing directory.
+        state_path.chmod(0o700)
     state_mode = stat.S_IMODE(state_path.stat().st_mode)
     if os.name == "posix" and state_mode & 0o077:
         raise ConfigurationError(

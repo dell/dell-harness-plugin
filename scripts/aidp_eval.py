@@ -12,6 +12,11 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 CASES_DIR = ROOT / "evals" / "cases"
 FIXTURES_PATH = ROOT / "evals" / "fixtures" / "catalog.json"
+REVIEW_FIXTURES = {
+    "dell-data-analytics-engine": ROOT / "evals" / "fixtures" / "ddae-review-fixture.json",
+    "dell-data-orchestration-engine": ROOT / "evals" / "fixtures" / "dataloop-review-fixture.json",
+    "dell-data-search-engine": ROOT / "evals" / "fixtures" / "ddse-review-fixture.json",
+}
 CASE_FILES = (
     CASES_DIR / "ddae.json",
     CASES_DIR / "ddse.json",
@@ -184,6 +189,76 @@ def validate_definitions() -> dict[str, Any]:
             {"explicit", "implicit", "ambiguous", "misspelled"} <= invocation_types,
             f"{plugin}: explicit, implicit, ambiguous, and misspelled prompts are required",
         )
+        policy = document.get("submission_policy")
+        if policy is not None:
+            require(
+                isinstance(policy, dict),
+                f"{plugin}: submission_policy must be an object",
+            )
+            selected_tools = policy.get("selected_tools")
+            conditional_groups = policy.get("conditional_tools")
+            require(
+                isinstance(selected_tools, list)
+                and selected_tools
+                and len(selected_tools) == len(set(selected_tools)),
+                f"{plugin}: submission selected_tools must be non-empty and unique",
+            )
+            require(
+                isinstance(conditional_groups, dict),
+                f"{plugin}: conditional_tools must be an object",
+            )
+            conditional_tools = [
+                tool for tools in conditional_groups.values() for tool in tools
+            ]
+            require(
+                all(
+                    isinstance(tools, list) and tools
+                    for tools in conditional_groups.values()
+                ),
+                f"{plugin}: every conditional dependency group must contain tools",
+            )
+            require(
+                len(conditional_tools) == len(set(conditional_tools)),
+                f"{plugin}: conditional tools must appear in exactly one dependency group",
+            )
+            require(
+                not (set(selected_tools) & set(conditional_tools)),
+                f"{plugin}: selected and conditional tools must be disjoint",
+            )
+            require(
+                set(selected_tools) | set(conditional_tools) == set(declared),
+                f"{plugin}: selected and conditional tools must partition declared_tools",
+            )
+            selected_variants = [
+                variant
+                for _, variant in iter_variants(document)
+                if variant["submission_class"] in {"positive", "negative"}
+            ]
+            selected_path_tools = {
+                tool
+                for variant in selected_variants
+                if variant["submission_class"] == "positive"
+                for tool in variant["expected_tool_path"]
+            }
+            require(
+                selected_path_tools == set(selected_tools),
+                f"{plugin}: selected positive paths must cover exactly selected_tools",
+            )
+            require(
+                all(
+                    not (set(variant["expected_tool_path"]) & set(conditional_tools))
+                    for variant in selected_variants
+                ),
+                f"{plugin}: selected cases cannot invoke conditional tools",
+            )
+            selected_invocations = {
+                variant["invocation"] for variant in selected_variants
+            }
+            require(
+                {"explicit", "implicit", "ambiguous", "misspelled", "negative"}
+                <= selected_invocations,
+                f"{plugin}: selected cases need explicit, implicit, ambiguous, misspelled, and negative prompts",
+            )
         summary["plugins"][plugin] = {
             "workflows": len(workflows),
             "variants": sum(len(item["variants"]) for item in workflows),
@@ -192,6 +267,62 @@ def validate_definitions() -> dict[str, Any]:
         }
 
     return summary
+
+
+def validate_review_fixture(plugin: str) -> dict[str, Any]:
+    validate_definitions()
+    path = REVIEW_FIXTURES.get(plugin)
+    if path is None:
+        raise EvalError(f"{plugin}: no executable review fixture is registered")
+    fixture = load_json(path)
+    _, documents = load_definitions()
+    document = next(item for item in documents if item["plugin"] == plugin)
+    require(
+        fixture.get("fixture_id") == document["fixture"],
+        f"{plugin}: executable fixture ID must match the case definition",
+    )
+    require(
+        fixture.get("data_classification") == "synthetic_non_customer",
+        f"{plugin}: review fixture must be synthetic non-customer data",
+    )
+    expected_cases = {
+        variant["id"]
+        for _, variant in iter_variants(document)
+        if variant["submission_class"] in {"positive", "negative"}
+    }
+    actual_cases = fixture.get("selected_cases")
+    require(
+        isinstance(actual_cases, list) and len(actual_cases) == len(set(actual_cases)),
+        f"{plugin}: fixture selected_cases must be a unique list",
+    )
+    require(
+        set(actual_cases) == expected_cases,
+        f"{plugin}: fixture must cover exactly the selected submission cases",
+    )
+    policy = document["submission_policy"]
+    return {
+        "plugin": plugin,
+        "fixture": str(path),
+        "fixture_id": fixture["fixture_id"],
+        "data_classification": fixture["data_classification"],
+        "selected_cases": len(actual_cases),
+        "positive_cases": sum(
+            1
+            for _, variant in iter_variants(document)
+            if variant["submission_class"] == "positive"
+        ),
+        "negative_cases": sum(
+            1
+            for _, variant in iter_variants(document)
+            if variant["submission_class"] == "negative"
+        ),
+        "selected_tools": len(policy["selected_tools"]),
+        "conditional_tools": sum(
+            len(tools) for tools in policy["conditional_tools"].values()
+        ),
+        "chatgpt_transcripts": policy["chatgpt_transcripts"],
+        "passed": True,
+    }
 
 
 def find_case(case_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -228,7 +359,11 @@ def grade_result(path: Path) -> dict[str, Any]:
         if len(actual_path) != len(tool_calls) or any(not name for name in actual_path):
             failures.append("every tool call needs a non-empty name")
 
-    if actual_path != case["expected_tool_path"]:
+    if case.get("tool_order") == "any":
+        path_matches = sorted(actual_path) == sorted(case["expected_tool_path"])
+    else:
+        path_matches = actual_path == case["expected_tool_path"]
+    if not path_matches:
         failures.append(
             f"tool path must be {case['expected_tool_path']}, got {actual_path}"
         )
@@ -307,7 +442,6 @@ def check_contract(
     required_annotations = {
         "readOnlyHint",
         "destructiveHint",
-
         "openWorldHint",
     }
     missing_annotations = {
@@ -363,6 +497,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("validate", help="validate fixtures and golden cases")
+    fixture_parser = subparsers.add_parser(
+        "fixture", help="validate one executable synthetic review fixture"
+    )
+    fixture_parser.add_argument("plugin", choices=tuple(REVIEW_FIXTURES))
     grade_parser = subparsers.add_parser("grade", help="grade one captured result")
     grade_parser.add_argument("result", type=Path)
     contract_parser = subparsers.add_parser(
@@ -388,6 +526,8 @@ def main() -> int:
     try:
         if args.command == "validate":
             output = validate_definitions()
+        elif args.command == "fixture":
+            output = validate_review_fixture(args.plugin)
         elif args.command == "grade":
             output = grade_result(args.result)
         else:

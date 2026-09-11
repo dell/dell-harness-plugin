@@ -66,6 +66,15 @@ The validated 25-tool pilot separated tools into:
 - conditional tools that require installed Elastic knowledge, embeddings, ML
   features, solution data, licensing, or further validation.
 
+The Codex-first initial review selects only 10 deterministic read-only tools:
+index listing, mapping, exact ES|QL, known-document retrieval, service and
+dependency lookup, trace metrics, correlated logs, log-rate analysis, and log
+categories. The remaining 15 tools may still appear in Elastic's `tools/list`,
+but are conditional and are not selected by the initial-review cases. In
+particular, `platform_core_search`, `platform_core_generate_esql`, and
+`platform_core_index_explorer` remain disabled at the workflow level until the
+same Kibana space has a positively validated Agent Builder chat connector.
+
 Read `references/validated-tool-catalog.md` whenever a user asks for tool
 availability, descriptions, model dependencies, prerequisites, or pilot
 evidence. Do not copy that baseline into a claim about another deployment.

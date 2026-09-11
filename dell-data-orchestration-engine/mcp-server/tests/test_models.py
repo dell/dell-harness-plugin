@@ -241,6 +241,48 @@ def test_create_binds_the_model_to_the_installed_app(project, call_tool):
     assert created["project_id"] == "proj-1"
 
 
+def test_create_refuses_configuration_overrides_before_platform_calls(monkeypatch, project, call_tool):
+    looked_up = []
+    monkeypatch.setattr(
+        models,
+        "get_project",
+        lambda project_id: looked_up.append(project_id) or project,
+    )
+
+    result = call_tool(
+        "model_create",
+        {
+            "project_id": "proj-1",
+            "app_id": "app-1",
+            "dpk_model_name": "example-detector",
+            "model_name": "my-detector",
+            "configuration": {"threshold": 0.5},
+        },
+    )
+
+    assert result.is_error is True
+    assert "confirm=true" in result.content[0].text
+    assert project.models.created is None
+    assert looked_up == []
+
+
+def test_create_passes_confirmed_configuration_overrides(project, call_tool):
+    result = call_tool(
+        "model_create",
+        {
+            "project_id": "proj-1",
+            "app_id": "app-1",
+            "dpk_model_name": "example-detector",
+            "model_name": "my-detector",
+            "configuration": {"threshold": 0.5},
+            "confirm": True,
+        },
+    )
+
+    assert result.is_error is False
+    assert project.models.created["configuration"] == {"threshold": 0.5}
+
+
 def test_model_list_honors_page_inputs(project, call_tool):
     result = call_tool("model_list", {"project_id": "proj-1", "page": 2, "page_size": 1, "limit": 1})
 

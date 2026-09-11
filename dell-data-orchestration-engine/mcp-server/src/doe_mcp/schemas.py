@@ -92,6 +92,22 @@ class TaskNodeSpec(BaseNodeSpec):
     recipe_id: str | None = Field(default=None, description="Defaults to the dataset's own recipe.")
     recipe_title: str | None = Field(default=None, description="Title of that recipe.")
 
+    @model_validator(mode="after")
+    def _workload_is_sane(self) -> "TaskNodeSpec":
+        """Reject duplicate assignees and aggregate allocation above 100%."""
+        seen: set[str] = set()
+        for unit in self.workload:
+            if unit.assignee_id in seen:
+                raise ValueError(
+                    f"duplicate assignee {unit.assignee_id!r} in workload: each assignee's "
+                    "share must be given once."
+                )
+            seen.add(unit.assignee_id)
+        total = sum(unit.load for unit in self.workload)
+        if total > 100:
+            raise ValueError(f"workload shares sum to {total}%, which is over 100%.")
+        return self
+
 
 NodeSpec = Annotated[
     DatasetNodeSpec | CodeNodeSpec | FunctionNodeSpec | TaskNodeSpec,

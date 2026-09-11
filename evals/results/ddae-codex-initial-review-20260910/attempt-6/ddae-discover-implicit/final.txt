@@ -1,0 +1,5 @@
+The best governed source is **`fulfillment_metrics`** (`dp_fulfillment_v1`). It explicitly supports delayed-order analysis using fulfillment status, region, event time, and order ID.
+
+`order_operations` is less suitable because it lacks dedicated fulfillment-delay measures.
+
+This evidence is synthetic, non-customer evaluation data.

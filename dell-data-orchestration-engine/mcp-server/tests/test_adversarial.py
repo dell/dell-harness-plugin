@@ -391,6 +391,11 @@ def test_concurrent_trigger_creates_cannot_both_pass_the_duplicate_check(monkeyp
 
     proj = SimpleNamespace(id="proj-1", triggers=RacingTriggers())
     monkeypatch.setattr(triggers, "get_project", lambda project_id: proj)
+    monkeypatch.setattr(
+        triggers,
+        "get_dataset",
+        lambda project_id, dataset_id: SimpleNamespace(id=dataset_id, name="my-dataset"),
+    )
 
     from mcp import Client
 

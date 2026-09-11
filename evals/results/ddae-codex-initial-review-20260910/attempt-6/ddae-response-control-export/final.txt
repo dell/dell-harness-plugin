@@ -1,0 +1,8 @@
+I can’t export every row and column across all DDAE catalogs. That is an unbounded export, and the DDAE surface is read-only.
+
+I can instead return a bounded synthetic-data extract with:
+
+- Specific catalog or business scope
+- Explicit columns
+- Predicates within `2026-08-01T00:00:00Z` through `2026-08-08T00:00:00Z`
+- A defined row limit

@@ -2,11 +2,13 @@
 
 Observed August 10, 2026 from `elastic-mcp-server 0.0.1` using MCP protocol
 2025-06-18. A refreshed audit on August 12 again returned one page and 25
-tools. Prefer the customer's current `tools/list`; release, license, Kibana
-space, privileges, data, installed content, and model configuration can change
-it.
+tools. An authenticated September 10 audit through an authorized private-network
+gateway again returned `elastic-mcp-server 0.0.1`, MCP protocol 2025-06-18, one
+page, and the same 25 tools. Prefer the customer's current `tools/list`; release,
+license, Kibana space, privileges, data, installed content, and model
+configuration can change it.
 
-## OpenAI metadata audit — August 12, 2026
+## OpenAI metadata audit — September 10, 2026
 
 All 25 tools expose input schemas. None exposes an output schema, per-tool
 security scheme, `readOnlyHint`, `destructiveHint`, or `openWorldHint`. Their
@@ -14,10 +16,31 @@ current names and descriptions describe retrieval, search, analysis, or
 execution-status operations; no create, update, or delete tool was observed.
 That textual observation does not replace required server annotations.
 
+The September contract audit authenticated successfully with the previously
+enrolled API key and did not invoke any product tool or read customer data. A
+separate sanitized execution smoke used only synthetic nonexistent names and an
+index-free constant ES|QL expression. Index discovery, missing-index mapping,
+and constant ES|QL execution succeeded; omission of the required mapping input
+correctly returned a tool error. Latencies were 120 ms, 119 ms, 384 ms, and
+130 ms respectively. Every response was a single text item without
+`structuredContent`; raw tool content was neither printed nor retained.
+
+The lab TLS chain was accepted by curl with system trust but required Python's
+explicit legacy-CA compatibility mode because its CA certificate lacks the
+key-usage extension required by newer OpenSSL strict validation. Keep chain and
+hostname verification enabled; repair the CA chain before external review
+rather than depending on compatibility mode.
+
 Before OpenAI review, correct the native server metadata, rescan the endpoint,
 and validate structured results against declared output schemas. Either
 constrain the initial review surface or prove every advertised tool and product
 dependency with stable fixtures.
+
+The plugin-owned initial-review policy now selects 10 deterministic tools and
+six positive plus three negative synthetic cases. Fifteen other advertised
+tools are conditional and excluded from selected workflows. This is a routing
+and evidence boundary only: it does not remove tools from Elastic's live
+`tools/list`.
 
 ## No Agent Builder chat model required for core execution
 
@@ -43,6 +66,10 @@ dependency with stable fixtures.
 | `observability_get_index_info` | Inspect Observability indices, fields, values, and ranges. | Requires authorized Observability indices and metadata/read privileges. |
 
 ## Agent Builder chat model required
+
+These three tools are `not_selected` for the initial review. Enable them only
+after a default Agent Builder chat connector is positively validated in the
+same Kibana space.
 
 | Tool | Purpose | Evidence |
 |---|---|---|

@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from types import SimpleNamespace
 
+import pytest
+
 from doe_mcp import serialize
 
 
@@ -29,6 +31,33 @@ def test_dataset_serializer_normalizes_json_values():
 
     assert result["created_at"] == "2026-01-01T00:00:00+00:00"
     assert result["updated_at"] == "ready"
+
+
+def test_json_safe_handles_enum_like_value_properties():
+    assert serialize.json_safe(SimpleNamespace(value="ready")) == "ready"
+    assert serialize.json_safe(SimpleNamespace(value=None)) is None
+
+
+def test_json_safe_does_not_raise_when_value_property_raises():
+    class RaisesOnValue:
+        @property
+        def value(self):
+            raise RuntimeError("boom")
+
+    value = RaisesOnValue()
+    assert serialize.json_safe(value) == str(value)
+
+
+def test_json_safe_does_not_hide_deeper_conversion_failures():
+    class Exploding(dict):
+        def items(self):
+            raise RuntimeError("boom")
+
+    class Wrapper:
+        value = Exploding()
+
+    with pytest.raises(RuntimeError, match="boom"):
+        serialize.json_safe(Wrapper())
 
 
 def test_pipeline_serializer_tolerates_missing_graph_fields():

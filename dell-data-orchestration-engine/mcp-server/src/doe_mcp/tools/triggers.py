@@ -23,7 +23,7 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import paging, serialize
-from ..context import dataloop_call, get_project
+from ..context import dataloop_call, get_dataset, get_project
 from ..guards import confirm_or_elicit
 
 READ_ONLY = ToolAnnotations(
@@ -107,12 +107,16 @@ def register(mcp: MCPServer) -> None:
         """
         if bool(pipeline_id) == bool(service_id):
             raise ValueError("Provide exactly one of pipeline_id or service_id.")
+        # Validate the dataset inside this project before creating standing
+        # automation. A stale or cross-project id would otherwise create a
+        # trigger that never fires.
+        dataset = get_dataset(project_id, dataset_id)
         confirm_or_elicit(
             ctx,
             confirm,
             "create this trigger",
-            "it runs unattended on every matching event, outliving this conversation, and each "
-            "firing can incur platform cost",
+            f"it runs unattended on every matching event in dataset {dataset.name!r}, "
+            "outliving this conversation, and each firing can incur platform cost",
         )
         project = get_project(project_id)
 
@@ -165,7 +169,11 @@ def register(mcp: MCPServer) -> None:
     @mcp.tool(title="List triggers", annotations=READ_ONLY)
     def trigger_list(
         project_id: Annotated[str, Field(description="Project whose triggers to list.")],
-        limit: Annotated[int, Field(ge=1, le=paging.MAX_LIMIT, description="Max triggers.")] = (
+        page: Annotated[int, Field(ge=0, description="Zero-based page number.")] = 0,
+        page_size: Annotated[
+            int, Field(ge=1, le=paging.MAX_LIMIT, description="Triggers per page.")
+        ] = paging.DEFAULT_LIMIT,
+        limit: Annotated[int, Field(ge=1, le=paging.MAX_LIMIT, description="Max triggers to return.")] = (
             paging.DEFAULT_LIMIT
         ),
     ) -> paging.ListResult:
@@ -174,10 +182,22 @@ def register(mcp: MCPServer) -> None:
         Project-scoped, not session-scoped: automation someone else left behind still shows up.
         """
         project = get_project(project_id)
-        listed = dataloop_call("trigger list", lambda: project.triggers.list())
+        filters = dl.Filters(resource=dl.FiltersResource.TRIGGER)
+        # Passing an explicit filter disables dtlpy's implicit project filter,
+        # so preserve project scoping explicitly while adding pagination.
+        filters.add(field="projectId", values=project.id)
+        filters.page = page
+        filters.page_size = page_size
+        listed = dataloop_call("trigger list", lambda: project.triggers.list(filters=filters))
         if hasattr(listed, "items"):
             return paging.from_paged(listed, serialize.trigger, limit=limit)
-        return paging.from_list(list(listed or []), serialize.trigger, limit=limit, page_size=limit)
+        return paging.from_list(
+            list(listed or []),
+            serialize.trigger,
+            limit=limit,
+            page=page,
+            page_size=page_size,
+        )
 
     @mcp.tool(title="Get trigger", annotations=READ_ONLY)
     def trigger_get(

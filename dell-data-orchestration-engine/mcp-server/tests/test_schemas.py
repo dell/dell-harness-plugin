@@ -7,7 +7,7 @@ code-syntax rules themselves): this file only checks that schemas.py wires those
 import pytest
 from pydantic import ValidationError
 
-from doe_mcp.schemas import CodeNodeSpec, DatasetNodeSpec
+from doe_mcp.schemas import CodeNodeSpec, DatasetNodeSpec, TaskNodeSpec
 
 
 def test_dataset_node_spec_accepts_a_well_formed_filter():
@@ -70,4 +70,43 @@ def test_code_node_spec_rejects_more_than_one_top_level_statement():
             node_type="code",
             name="filter",
             code="def a():\n    pass\n\n\ndef b():\n    pass\n",
+        )
+
+
+def test_task_node_spec_accepts_shares_that_sum_to_100():
+    spec = TaskNodeSpec(
+        node_type="task",
+        name="label",
+        dataset_id="ds-1",
+        task_owner="owner@example.com",
+        workload=[
+            {"assignee_id": "a@example.com", "load": 60},
+            {"assignee_id": "b@example.com", "load": 40},
+        ],
+    )
+    assert [unit.load for unit in spec.workload] == [60, 40]
+
+
+def test_task_node_spec_rejects_invalid_total_and_duplicate_assignee():
+    with pytest.raises(ValidationError, match="over 100"):
+        TaskNodeSpec(
+            node_type="task",
+            name="label",
+            dataset_id="ds-1",
+            task_owner="owner@example.com",
+            workload=[
+                {"assignee_id": "a@example.com", "load": 70},
+                {"assignee_id": "b@example.com", "load": 40},
+            ],
+        )
+    with pytest.raises(ValidationError, match="duplicate assignee"):
+        TaskNodeSpec(
+            node_type="task",
+            name="label",
+            dataset_id="ds-1",
+            task_owner="owner@example.com",
+            workload=[
+                {"assignee_id": "a@example.com", "load": 50},
+                {"assignee_id": "a@example.com", "load": 30},
+            ],
         )

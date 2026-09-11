@@ -1,0 +1,1 @@
+I can’t inspect local files under these evaluation constraints. If you paste the README contents here, I can summarize them without using tools.

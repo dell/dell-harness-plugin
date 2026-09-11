@@ -180,11 +180,16 @@ def register(mcp: MCPServer) -> None:
         description: Annotated[str | None, Field(description="Optional description.")] = None,
         configuration: Annotated[
             dict[str, Any] | None,
-            Field(description="Configuration overrides. Defaults to the component's."),
+            Field(description="Configuration overrides. Defaults to the component's. Requires confirm=true."),
         ] = None,
         output_type: Annotated[
             str | None, Field(description="e.g. 'embedding'. Defaults to the component's.")
         ] = None,
+        confirm: Annotated[
+            bool,
+            Field(description="Required when configuration overrides are provided."),
+        ] = False,
+        ctx: Context | None = None,
     ) -> outputs.ModelSummary:
         """Create a model from a component of an installed app.
 
@@ -194,6 +199,14 @@ def register(mcp: MCPServer) -> None:
         `output_type` defaults to the component's, which `dtlpy` ignores — it would register even
         an embedding model like CLIP as a classification model.
         """
+        if configuration is not None:
+            confirm_or_elicit(
+                ctx,
+                confirm,
+                "create this model with configuration overrides",
+                "the overrides are passed to the platform as given and their keys are "
+                "model-adapter-specific, so this server cannot validate them",
+            )
         project = get_project(project_id)
         app = project.apps.get(app_id=app_id)
         resolved_output_type = output_type or component_output_type(app, dpk_model_name)
@@ -206,7 +219,7 @@ def register(mcp: MCPServer) -> None:
             labels=labels,
             ontology_id=ontology_id,
             description=description,
-            configuration=configuration,
+            configuration=dict(configuration) if configuration is not None else None,
             project_id=project_id,
             **extra,
         )

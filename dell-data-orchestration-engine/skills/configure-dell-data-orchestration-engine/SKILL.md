@@ -18,8 +18,8 @@ hosted MCP service or as OAuth enabled.
 1. Confirm Python 3.10 or later is available to the Codex process.
 2. Install the dependencies from the bundled `mcp-server` package in that same
    Python environment.
-3. Keep `dtlpy` state separate from any interactive `dlp` session by using a
-   private `DATALOOP_PATH`.
+3. Keep `dtlpy` state separate from any interactive `dlp` session and from
+   every other Dataloop deployment by using a private `DATALOOP_PATH`.
 4. Keep the MCP dependency on `mcp>=2.0,<2.1` until compatibility with 2.1 or
    later is implemented and tested in the bundled server.
 5. Restart Codex after installation or configuration changes.
@@ -45,7 +45,9 @@ override. Leave TLS verification
 enabled except in an explicitly approved private lab with a self-signed chain.
 
 The SDK supports one identity per process. Use a separate MCP process and state
-directory for a different identity. Do not switch identities inside a task.
+directory for a different identity or API gate. Use
+`scripts/dataloop_state_dir.py` to bind a stable alias to one gate and refuse
+accidental cross-deployment reuse. Do not switch identities inside a task.
 OAuth is not implemented by this plugin release.
 
 ## Select only the needed tools
@@ -73,6 +75,8 @@ confirmation exchange, transcript reference, and audit evidence.
 
 1. Run `configure_dataloop.py --check`; it must report a user-only file, an API
    key present, a state path, and a resolved bundled Python module.
+   On POSIX, server startup repairs that state directory to 0700 and dtlpy's
+   `cookie.json` to 0600; symbolic-link state paths are refused.
 2. Start a new Codex session and inspect `tools/list`.
 3. Call `project_list`; report only projects returned for the current identity.
 4. Resolve one authorized project with `project_get`.
