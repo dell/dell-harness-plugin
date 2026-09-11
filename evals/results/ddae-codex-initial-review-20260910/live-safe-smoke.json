@@ -1,7 +1,7 @@
 {
   "generated_at": "2026-09-10T23:55:31Z",
   "evidence_type": "codex_authenticated_catalog_and_safe_smoke",
-  "endpoint": "https://ddae.lab9bgp.com/mcp",
+  "endpoint": "<redacted-private-ddae-endpoint>",
   "surface": "codex",
   "authentication": {
     "type": "codex_managed_oauth",

@@ -46,7 +46,7 @@ def test_aidp_manifests_are_focused_read_only_packages():
         assert manifest["author"]["name"] == "Dell Technologies"
         assert manifest["author"]["url"].startswith("https://")
         assert manifest["homepage"].startswith("https://")
-        assert manifest["repository"].startswith("https://")
+        assert "repository" not in manifest
         assert manifest["license"] == "Proprietary"
         assert len(manifest["keywords"]) >= 3
         assert manifest["interface"]["capabilities"] == ["Read"]
