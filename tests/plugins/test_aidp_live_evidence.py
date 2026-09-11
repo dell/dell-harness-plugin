@@ -22,6 +22,7 @@ def test_catalog_references_include_current_metadata_gates():
             / "evals/results/ddae-codex-initial-review-20260910/live-safe-smoke.json"
         ).read_text(encoding="utf-8")
     )
+    assert live_smoke["endpoint"] == "<redacted-private-ddae-endpoint>"
     assert live_smoke["authentication"]["status"] == "success"
     assert live_smoke["safety"]["customer_data_accessed"] is False
     assert [item["tool"] for item in live_smoke["executions"]] == [

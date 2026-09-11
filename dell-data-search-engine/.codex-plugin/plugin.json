@@ -7,7 +7,6 @@
     "url": "https://www.dell.com/"
   },
   "homepage": "https://www.dell.com/support/product-details/en-us/product/dell-data-lakehouse/overview",
-  "repository": "https://github.com/dell/dell-harness-plugin",
   "license": "Proprietary",
   "keywords": [
     "dell",

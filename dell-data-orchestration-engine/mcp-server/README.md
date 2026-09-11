@@ -28,11 +28,11 @@ project. Do not use customer production data for smoke testing.
 
 ## Integrated source baseline
 
-The source repository reviewed for this release is
-`https://git.example.com/doe-mcp.git`. This bundled copy ports the
-applicable safety and correctness changes reviewed through upstream commit
-`49f7d44`, combined with the plugin's typed output contracts and focused
-profile. It is a maintained plugin fork, not a byte-for-byte mirror.
+This release bundles the Dell-authored DOE MCP server required by the plugin.
+The bundled copy incorporates the safety and correctness changes validated for
+this release, together with the plugin's typed output contracts and focused
+profile. It is a maintained plugin distribution rather than a byte-for-byte
+mirror of another repository.
 
 The default plugin launcher exposes 36 tools. Version 0.3 adds a hard
 confirmation gate for pipeline installation and for model configuration
