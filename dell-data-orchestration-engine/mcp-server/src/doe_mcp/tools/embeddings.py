@@ -152,7 +152,10 @@ def read_vectors(dataset: Any, feature_set_id: str, max_vectors: int) -> tuple[l
     """Page feature vectors for one feature set, up to a cap."""
     collected: list[Any] = []
     truncated = False
-    for page_index in range(max(1, max_vectors // VECTOR_PAGE_SIZE)):
+    # Ceil so a request like max_vectors=150 reads page 0 and page 1, not only
+    # page 0. Floor division under-read every non-multiple of VECTOR_PAGE_SIZE.
+    pages_to_read = max(1, (max_vectors + VECTOR_PAGE_SIZE - 1) // VECTOR_PAGE_SIZE)
+    for page_index in range(pages_to_read):
         filters = dl.Filters(resource=dl.FiltersResource.FEATURE)
         filters.add(field="featureSetId", values=feature_set_id)
         filters.page = page_index

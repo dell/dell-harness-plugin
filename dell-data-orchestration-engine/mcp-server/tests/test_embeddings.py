@@ -255,6 +255,17 @@ def test_cluster_reports_truncation_when_it_reads_only_a_sample(monkeypatch, cal
     assert "describe a sample" in body["caveat"]
 
 
+def test_cluster_reads_a_non_multiple_vector_budget(monkeypatch, call_tool):
+    pages = [[fake_feature(f"p{p}-{n}", [float(p), float(n)]) for n in range(100)] for p in range(3)]
+    build_dataset(monkeypatch, sets=[fake_feature_set()], feature_pages=pages)
+
+    body = call_tool("dataset_cluster", {**ARGS, "max_vectors": 150, "clusters": 2}).structured_content
+
+    # max_vectors=150 must read two pages and keep 150 vectors, not floor to one page (100).
+    assert body["scan_truncated"] is True
+    assert body["vectors_used"] == 150
+
+
 def test_cluster_filters_vectors_to_the_named_feature_set(monkeypatch, call_tool):
     dataset = build_dataset(monkeypatch, sets=[fake_feature_set()], feature_pages=separable_pages())
 
