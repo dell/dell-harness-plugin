@@ -6,7 +6,7 @@ development workflows.
 
 | Plugin | Integration | Authentication |
 | --- | --- | --- |
-| `dell-devspaces-sandbox` | Local, namespace-scoped OpenShift DevWorkspace MCP adapter | Automatically initiated OpenShift SSO |
+| `dell-devspaces-sandbox` | Dell Redhat Devspaces AI Factory Skill; connector lifecycle and SSH | Interactive connector authentication |
 | `dell-data-analytics-engine` | Customer-managed DDAE/Starburst MCP | Interactive OAuth |
 | `dell-data-search-engine` | Customer-managed DDSE Kibana Agent Builder MCP | Least-privilege API key |
 | `dell-data-orchestration-engine` | Local Dataloop Python SDK MCP server | Scoped Dataloop API key |
@@ -64,19 +64,18 @@ removal, and troubleshooting commands.
 
 ## Configure Dev Spaces
 
-The Dev Spaces plugin runs its MCP server locally through stdio. Its skill
-selects a logical instance from the managed catalog, checks authentication,
-and automatically starts `oc login --web` when SSO is missing or expired.
-The user only completes the corporate browser challenge.
+**Dell Redhat Devspaces AI Factory Skill** uses the Devspaces CLI connector for
+authentication guidance, workspace status, start/stop/restart, and managed SSH
+connections. Its existing plugin ID remains `dell-devspaces-sandbox`.
 
-The managed runtime must include `python`, the pinned Python dependencies,
-and `oc`. Administrators maintain instance API/UI URLs centrally in
-`dell-devspaces-sandbox/config/instances.json` or through
-`DEVSPACES_INSTANCES_FILE`; users do not enter URLs or tokens.
+Provide Python with `mcp` and set `DEVSPACES_CONNECTOR_COMMAND` to the approved
+utility. Configure `DEVSPACES_CLUSTER_URL` (default:
+`https://devspaces.example.com`) and the approved internal CA through
+`NODE_EXTRA_CA_CERTS`. Authenticate interactively with the connector before use.
 
-Lifecycle writes and deletion are disabled by default. See
-`dell-devspaces-sandbox/README.md` for the security model, dependencies, and
-validation commands.
+Lifecycle writes and deletion remain gated. See
+[dell-devspaces-sandbox/README.md](dell-devspaces-sandbox/README.md) for setup,
+connection lifetime, validation, and the optional legacy Kubernetes backend.
 
 ## Configure Dell data engines
 

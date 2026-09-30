@@ -1,0 +1,31 @@
+{
+  "evidence_type": "deterministic MCP protocol test; synthetic backend; not agent/live evidence",
+  "scenario": "wrong_cluster",
+  "passed": true,
+  "calls": [
+    {
+      "tool": "list_devspaces",
+      "arguments": {},
+      "is_error": true,
+      "error_text": [
+        "Error executing tool list_devspaces: Connector session cluster does not match DEVSPACES_CLUSTER_URL; authenticate to the intended cluster"
+      ],
+      "structured_result": null,
+      "latency_ms": 0.0
+    },
+    {
+      "tool": "start_devspace",
+      "arguments": {
+        "namespace": "review-team",
+        "name": "alpha",
+        "expected_workspace_id": "workspace-alpha"
+      },
+      "is_error": true,
+      "error_text": [
+        "Error executing tool start_devspace: Connector session cluster does not match DEVSPACES_CLUSTER_URL; authenticate to the intended cluster"
+      ],
+      "structured_result": null,
+      "latency_ms": 0.0
+    }
+  ]
+}

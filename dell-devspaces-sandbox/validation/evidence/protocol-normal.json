@@ -1,0 +1,369 @@
+{
+  "evidence_type": "deterministic MCP protocol test; synthetic backend; not agent/live evidence",
+  "scenario": "normal",
+  "passed": true,
+  "calls": [
+    {
+      "tool": "get_runtime_configuration",
+      "arguments": {},
+      "is_error": false,
+      "error_text": [],
+      "structured_result": {
+        "backend": "cli-connector",
+        "command": "synthetic-connector",
+        "cluster_url": "https://devspaces.example.com",
+        "version": "synthetic-fixture-v1",
+        "writes_enabled": true,
+        "delete_enabled": true,
+        "tls_verification_enabled": true,
+        "allowed_namespaces": [
+          "review-team"
+        ],
+        "scope": "Authenticated connector account; optional namespace filter"
+      },
+      "latency_ms": 16.0
+    },
+    {
+      "tool": "get_devspaces_authentication_instructions",
+      "arguments": {},
+      "is_error": false,
+      "error_text": [],
+      "structured_result": {
+        "executable": "synthetic-connector",
+        "arguments": [
+          "--auth",
+          "https://devspaces.example.com"
+        ],
+        "interactive_required": true,
+        "instructions": "Run in a local terminal and complete browser/Developer Workspace URI prompts there. Do not paste the URI into chat. Then call get_authentication_status.",
+        "environment": {}
+      },
+      "latency_ms": 0.0
+    },
+    {
+      "tool": "get_authentication_status",
+      "arguments": {},
+      "is_error": false,
+      "error_text": [],
+      "structured_result": {
+        "list_accessible": true,
+        "cluster_verified": true,
+        "workspace_count": 2,
+        "reason": null
+      },
+      "latency_ms": 16.0
+    },
+    {
+      "tool": "list_devspaces",
+      "arguments": {
+        "limit": 1
+      },
+      "is_error": false,
+      "error_text": [],
+      "structured_result": {
+        "workspaces": [
+          {
+            "name": "alpha",
+            "namespace": "review-team",
+            "clusterId": "devspaces.example.com",
+            "devworkspaceId": "workspace-alpha",
+            "phase": "Stopped",
+            "started": false,
+            "displayName": "alpha",
+            "creationTimestamp": "2026-09-30T12:00:00Z"
+          }
+        ],
+        "total": 2,
+        "next_offset": 1
+      },
+      "latency_ms": 15.0
+    },
+    {
+      "tool": "list_devspaces",
+      "arguments": {
+        "limit": 1,
+        "offset": 1
+      },
+      "is_error": false,
+      "error_text": [],
+      "structured_result": {
+        "workspaces": [
+          {
+            "name": "beta",
+            "namespace": "review-team",
+            "clusterId": "devspaces.example.com",
+            "devworkspaceId": "workspace-beta",
+            "phase": "Stopped",
+            "started": false,
+            "displayName": "beta",
+            "creationTimestamp": "2026-09-30T12:00:00Z"
+          }
+        ],
+        "total": 2,
+        "next_offset": null
+      },
+      "latency_ms": 16.0
+    },
+    {
+      "tool": "list_devspaces",
+      "arguments": {
+        "limit": 0
+      },
+      "is_error": true,
+      "error_text": [
+        "Error executing tool list_devspaces: 1 validation error for list_devspacesArguments\nlimit\n  Input should be greater than or equal to 1 [type=greater_than_equal, input_value=0, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.13/v/greater_than_equal"
+      ],
+      "structured_result": null,
+      "latency_ms": 0.0
+    },
+    {
+      "tool": "start_devspace",
+      "arguments": {
+        "namespace": "review-team",
+        "name": "alpha",
+        "expected_workspace_id": "workspace-alpha",
+        "timeout": 301
+      },
+      "is_error": true,
+      "error_text": [
+        "Error executing tool start_devspace: 1 validation error for start_devspaceArguments\ntimeout\n  Input should be less than or equal to 300 [type=less_than_equal, input_value=301, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.13/v/less_than_equal"
+      ],
+      "structured_result": null,
+      "latency_ms": 0.0
+    },
+    {
+      "tool": "start_devspace",
+      "arguments": {
+        "namespace": "review-team",
+        "name": "--delete",
+        "expected_workspace_id": "workspace-alpha"
+      },
+      "is_error": true,
+      "error_text": [
+        "Error executing tool start_devspace: 1 validation error for start_devspaceArguments\nname\n  String should match pattern '^[a-zA-Z0-9][a-zA-Z0-9._-]*$' [type=string_pattern_mismatch, input_value='--delete', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/string_pattern_mismatch"
+      ],
+      "structured_result": null,
+      "latency_ms": 0.0
+    },
+    {
+      "tool": "start_devspace",
+      "arguments": {
+        "namespace": "review-team",
+        "name": "alpha",
+        "expected_workspace_id": "replaced"
+      },
+      "is_error": true,
+      "error_text": [
+        "Error executing tool start_devspace: Workspace identity changed; refresh status before requesting the action again"
+      ],
+      "structured_result": null,
+      "latency_ms": 15.0
+    },
+    {
+      "tool": "start_devspace",
+      "arguments": {
+        "namespace": "another",
+        "name": "alpha",
+        "expected_workspace_id": "workspace-alpha"
+      },
+      "is_error": true,
+      "error_text": [
+        "Error executing tool start_devspace: Namespace is outside DEVSPACES_ALLOWED_NAMESPACES"
+      ],
+      "structured_result": null,
+      "latency_ms": 0.0
+    },
+    {
+      "tool": "start_devspace",
+      "arguments": {
+        "namespace": "review-team",
+        "name": "alpha",
+        "expected_workspace_id": "workspace-alpha"
+      },
+      "is_error": false,
+      "error_text": [],
+      "structured_result": {
+        "name": "alpha",
+        "namespace": "review-team",
+        "clusterId": "devspaces.example.com",
+        "devworkspaceId": "workspace-alpha",
+        "phase": "Running",
+        "started": true,
+        "displayName": "alpha",
+        "creationTimestamp": "2026-09-30T12:00:00Z"
+      },
+      "latency_ms": 16.0
+    },
+    {
+      "tool": "restart_devspace",
+      "arguments": {
+        "namespace": "review-team",
+        "name": "alpha",
+        "expected_workspace_id": "workspace-alpha"
+      },
+      "is_error": false,
+      "error_text": [],
+      "structured_result": {
+        "name": "alpha",
+        "namespace": "review-team",
+        "clusterId": "devspaces.example.com",
+        "devworkspaceId": "workspace-alpha",
+        "phase": "Running",
+        "started": true,
+        "displayName": "alpha",
+        "creationTimestamp": "2026-09-30T12:00:00Z"
+      },
+      "latency_ms": 0.0
+    },
+    {
+      "tool": "connect_devspace",
+      "arguments": {
+        "namespace": "review-team",
+        "name": "alpha",
+        "expected_workspace_id": "workspace-alpha"
+      },
+      "is_error": false,
+      "error_text": [],
+      "structured_result": {
+        "name": "alpha",
+        "namespace": "review-team",
+        "state": "ready",
+        "pid": 999,
+        "exit_code": null,
+        "ssh_alias": "alpha"
+      },
+      "latency_ms": 16.0
+    },
+    {
+      "tool": "get_connection_status",
+      "arguments": {
+        "namespace": "review-team",
+        "name": "alpha"
+      },
+      "is_error": false,
+      "error_text": [],
+      "structured_result": {
+        "name": "alpha",
+        "namespace": "review-team",
+        "state": "ready",
+        "pid": 999,
+        "exit_code": null,
+        "ssh_alias": "alpha"
+      },
+      "latency_ms": 15.0
+    },
+    {
+      "tool": "get_devspace_status",
+      "arguments": {
+        "namespace": "review-team",
+        "name": "alpha"
+      },
+      "is_error": false,
+      "error_text": [],
+      "structured_result": {
+        "name": "alpha",
+        "namespace": "review-team",
+        "clusterId": "devspaces.example.com",
+        "devworkspaceId": "workspace-alpha",
+        "phase": "Running",
+        "started": true,
+        "displayName": "alpha",
+        "creationTimestamp": "2026-09-30T12:00:00Z",
+        "connection": {
+          "name": "alpha",
+          "namespace": "review-team",
+          "state": "ready",
+          "pid": 999,
+          "exit_code": null,
+          "ssh_alias": "alpha"
+        }
+      },
+      "latency_ms": 16.0
+    },
+    {
+      "tool": "disconnect_devspace",
+      "arguments": {
+        "namespace": "review-team",
+        "name": "alpha"
+      },
+      "is_error": false,
+      "error_text": [],
+      "structured_result": {
+        "name": "alpha",
+        "namespace": "review-team",
+        "state": "not_managed",
+        "pid": null,
+        "exit_code": null,
+        "ssh_alias": null
+      },
+      "latency_ms": 16.0
+    },
+    {
+      "tool": "stop_devspace",
+      "arguments": {
+        "namespace": "review-team",
+        "name": "alpha",
+        "expected_workspace_id": "workspace-alpha"
+      },
+      "is_error": false,
+      "error_text": [],
+      "structured_result": {
+        "name": "alpha",
+        "namespace": "review-team",
+        "clusterId": "devspaces.example.com",
+        "devworkspaceId": "workspace-alpha",
+        "phase": "Stopped",
+        "started": false,
+        "displayName": "alpha",
+        "creationTimestamp": "2026-09-30T12:00:00Z"
+      },
+      "latency_ms": 15.0
+    },
+    {
+      "tool": "delete_devspace",
+      "arguments": {
+        "namespace": "review-team",
+        "name": "alpha",
+        "expected_workspace_id": "workspace-alpha",
+        "confirm_name": "wrong"
+      },
+      "is_error": true,
+      "error_text": [
+        "Error executing tool delete_devspace: confirm_name must exactly match the workspace name"
+      ],
+      "structured_result": null,
+      "latency_ms": 0.0
+    },
+    {
+      "tool": "delete_devspace",
+      "arguments": {
+        "namespace": "review-team",
+        "name": "alpha",
+        "expected_workspace_id": "workspace-alpha",
+        "confirm_name": "alpha"
+      },
+      "is_error": false,
+      "error_text": [],
+      "structured_result": {
+        "deletion_requested": true,
+        "name": "alpha",
+        "namespace": "review-team"
+      },
+      "latency_ms": 0.0
+    },
+    {
+      "tool": "list_devspaces",
+      "arguments": {
+        "name": "alpha"
+      },
+      "is_error": false,
+      "error_text": [],
+      "structured_result": {
+        "workspaces": [],
+        "total": 0,
+        "next_offset": null
+      },
+      "latency_ms": 16.0
+    }
+  ]
+}

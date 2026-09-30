@@ -1,0 +1,61 @@
+{
+  "evidence_type": "deterministic MCP protocol test; synthetic backend; not agent/live evidence",
+  "scenario": "gated",
+  "passed": true,
+  "calls": [
+    {
+      "tool": "start_devspace",
+      "arguments": {
+        "namespace": "review-team",
+        "name": "alpha",
+        "expected_workspace_id": "workspace-alpha"
+      },
+      "is_error": true,
+      "error_text": [
+        "Error executing tool start_devspace: Set DEVSPACES_ENABLE_WRITES=true to enable lifecycle operations"
+      ],
+      "structured_result": null,
+      "latency_ms": 16.0
+    },
+    {
+      "tool": "delete_devspace",
+      "arguments": {
+        "namespace": "review-team",
+        "name": "alpha",
+        "expected_workspace_id": "workspace-alpha",
+        "confirm_name": "alpha"
+      },
+      "is_error": true,
+      "error_text": [
+        "Error executing tool delete_devspace: Deletion requires DEVSPACES_ENABLE_WRITES=true and DEVSPACES_ENABLE_DELETE=true"
+      ],
+      "structured_result": null,
+      "latency_ms": 0.0
+    },
+    {
+      "tool": "get_devspace_status",
+      "arguments": {
+        "namespace": "review-team",
+        "name": "alpha"
+      },
+      "is_error": false,
+      "error_text": [],
+      "structured_result": {
+        "name": "alpha",
+        "namespace": "review-team",
+        "clusterId": "devspaces.example.com",
+        "devworkspaceId": "workspace-alpha",
+        "phase": "Stopped",
+        "started": false,
+        "displayName": "alpha",
+        "creationTimestamp": "2026-09-30T12:00:00Z",
+        "connection": {
+          "name": "alpha",
+          "namespace": "review-team",
+          "state": "not_managed"
+        }
+      },
+      "latency_ms": 15.0
+    }
+  ]
+}

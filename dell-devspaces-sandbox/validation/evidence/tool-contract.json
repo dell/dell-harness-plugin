@@ -1,0 +1,1299 @@
+[
+  {
+    "name": "get_runtime_configuration",
+    "title": null,
+    "description": "Show connector configuration and available commands without reading credentials.",
+    "inputSchema": {
+      "properties": {},
+      "title": "get_runtime_configurationArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "properties": {
+        "backend": {
+          "title": "Backend",
+          "type": "string"
+        },
+        "command": {
+          "title": "Command",
+          "type": "string"
+        },
+        "cluster_url": {
+          "title": "Cluster Url",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        },
+        "writes_enabled": {
+          "title": "Writes Enabled",
+          "type": "boolean"
+        },
+        "delete_enabled": {
+          "title": "Delete Enabled",
+          "type": "boolean"
+        },
+        "tls_verification_enabled": {
+          "title": "Tls Verification Enabled",
+          "type": "boolean"
+        },
+        "allowed_namespaces": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Namespaces",
+          "type": "array"
+        },
+        "scope": {
+          "title": "Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "backend",
+        "command",
+        "cluster_url",
+        "version",
+        "writes_enabled",
+        "delete_enabled",
+        "tls_verification_enabled",
+        "allowed_namespaces",
+        "scope"
+      ],
+      "title": "Runtime",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "get_devspaces_authentication_instructions",
+    "title": null,
+    "description": "Return interactive local authentication instructions; never accept or capture the workspace URI.",
+    "inputSchema": {
+      "properties": {},
+      "title": "get_devspaces_authentication_instructionsArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "properties": {
+        "executable": {
+          "title": "Executable",
+          "type": "string"
+        },
+        "arguments": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Arguments",
+          "type": "array"
+        },
+        "interactive_required": {
+          "title": "Interactive Required",
+          "type": "boolean"
+        },
+        "instructions": {
+          "title": "Instructions",
+          "type": "string"
+        },
+        "environment": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Environment",
+          "type": "object"
+        }
+      },
+      "required": [
+        "executable",
+        "arguments",
+        "interactive_required",
+        "instructions",
+        "environment"
+      ],
+      "title": "AuthInstructions",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "get_authentication_status",
+    "title": null,
+    "description": "Verify that listing works; empty lists cannot prove the selected cluster.",
+    "inputSchema": {
+      "properties": {},
+      "title": "get_authentication_statusArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "properties": {
+        "list_accessible": {
+          "title": "List Accessible",
+          "type": "boolean"
+        },
+        "cluster_verified": {
+          "title": "Cluster Verified",
+          "type": "boolean"
+        },
+        "workspace_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Workspace Count"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        }
+      },
+      "required": [
+        "list_accessible",
+        "cluster_verified"
+      ],
+      "title": "AuthStatus",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "list_devspaces",
+    "title": null,
+    "description": "List a bounded workspace page with stable IDs and states. Filter by exact namespace/name; follow next_offset until null. Pages reflect live inventory, not a frozen snapshot.",
+    "inputSchema": {
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "description": "Exact name from list_devspaces; no URI or CLI option",
+              "maxLength": 253,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Namespace"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "description": "Exact name from list_devspaces; no URI or CLI option",
+              "maxLength": 253,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "limit": {
+          "default": 25,
+          "description": "Workspaces per page",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "offset": {
+          "default": 0,
+          "description": "Use next_offset for subsequent pages",
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "title": "list_devspacesArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "$defs": {
+        "Workspace": {
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "namespace": {
+              "title": "Namespace",
+              "type": "string"
+            },
+            "clusterId": {
+              "title": "Clusterid",
+              "type": "string"
+            },
+            "devworkspaceId": {
+              "title": "Devworkspaceid",
+              "type": "string"
+            },
+            "phase": {
+              "title": "Phase",
+              "type": "string"
+            },
+            "started": {
+              "title": "Started",
+              "type": "boolean"
+            },
+            "displayName": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Displayname"
+            },
+            "creationTimestamp": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Creationtimestamp"
+            }
+          },
+          "required": [
+            "name",
+            "namespace",
+            "clusterId",
+            "devworkspaceId",
+            "phase",
+            "started",
+            "displayName",
+            "creationTimestamp"
+          ],
+          "title": "Workspace",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "workspaces": {
+          "items": {
+            "$ref": "#/$defs/Workspace"
+          },
+          "title": "Workspaces",
+          "type": "array"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        },
+        "next_offset": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Next Offset"
+        }
+      },
+      "required": [
+        "workspaces",
+        "total",
+        "next_offset"
+      ],
+      "title": "WorkspacePage",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "get_devspace_status",
+    "title": null,
+    "description": "Return observed phase and desired started state, plus separate local tunnel state.",
+    "inputSchema": {
+      "properties": {
+        "namespace": {
+          "description": "Exact name from list_devspaces; no URI or CLI option",
+          "maxLength": 253,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "title": "Namespace",
+          "type": "string"
+        },
+        "name": {
+          "description": "Exact name from list_devspaces; no URI or CLI option",
+          "maxLength": 253,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "namespace",
+        "name"
+      ],
+      "title": "get_devspace_statusArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "$defs": {
+        "Connection": {
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "namespace": {
+              "title": "Namespace",
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "not_managed",
+                "connecting",
+                "ready",
+                "exited"
+              ],
+              "title": "State",
+              "type": "string"
+            },
+            "pid": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Pid"
+            },
+            "exit_code": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Exit Code"
+            },
+            "ssh_alias": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ssh Alias"
+            }
+          },
+          "required": [
+            "name",
+            "namespace",
+            "state"
+          ],
+          "title": "Connection",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "namespace": {
+          "title": "Namespace",
+          "type": "string"
+        },
+        "clusterId": {
+          "title": "Clusterid",
+          "type": "string"
+        },
+        "devworkspaceId": {
+          "title": "Devworkspaceid",
+          "type": "string"
+        },
+        "phase": {
+          "title": "Phase",
+          "type": "string"
+        },
+        "started": {
+          "title": "Started",
+          "type": "boolean"
+        },
+        "displayName": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Displayname"
+        },
+        "creationTimestamp": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Creationtimestamp"
+        },
+        "connection": {
+          "$ref": "#/$defs/Connection"
+        }
+      },
+      "required": [
+        "name",
+        "namespace",
+        "clusterId",
+        "devworkspaceId",
+        "phase",
+        "started",
+        "displayName",
+        "creationTimestamp",
+        "connection"
+      ],
+      "title": "Status",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "start_devspace",
+    "title": null,
+    "description": "Start the exact workspace and wait up to timeout seconds for Running.",
+    "inputSchema": {
+      "properties": {
+        "namespace": {
+          "description": "Exact name from list_devspaces; no URI or CLI option",
+          "maxLength": 253,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "title": "Namespace",
+          "type": "string"
+        },
+        "name": {
+          "description": "Exact name from list_devspaces; no URI or CLI option",
+          "maxLength": 253,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "expected_workspace_id": {
+          "description": "devworkspaceId from the most recent status/list; prevents acting on a replacement workspace",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Expected Workspace Id",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 120,
+          "description": "Maximum wait per state transition in seconds, excluding individual CLI command time",
+          "maximum": 300,
+          "minimum": 1,
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "namespace",
+        "name",
+        "expected_workspace_id"
+      ],
+      "title": "start_devspaceArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "namespace": {
+          "title": "Namespace",
+          "type": "string"
+        },
+        "clusterId": {
+          "title": "Clusterid",
+          "type": "string"
+        },
+        "devworkspaceId": {
+          "title": "Devworkspaceid",
+          "type": "string"
+        },
+        "phase": {
+          "title": "Phase",
+          "type": "string"
+        },
+        "started": {
+          "title": "Started",
+          "type": "boolean"
+        },
+        "displayName": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Displayname"
+        },
+        "creationTimestamp": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Creationtimestamp"
+        }
+      },
+      "required": [
+        "name",
+        "namespace",
+        "clusterId",
+        "devworkspaceId",
+        "phase",
+        "started",
+        "displayName",
+        "creationTimestamp"
+      ],
+      "title": "Workspace",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "stop_devspace",
+    "title": null,
+    "description": "Stop the exact workspace and wait for Stopped; interrupts workspace processes.",
+    "inputSchema": {
+      "properties": {
+        "namespace": {
+          "description": "Exact name from list_devspaces; no URI or CLI option",
+          "maxLength": 253,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "title": "Namespace",
+          "type": "string"
+        },
+        "name": {
+          "description": "Exact name from list_devspaces; no URI or CLI option",
+          "maxLength": 253,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "expected_workspace_id": {
+          "description": "devworkspaceId from the most recent status/list; prevents acting on a replacement workspace",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Expected Workspace Id",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 120,
+          "description": "Maximum wait per state transition in seconds, excluding individual CLI command time",
+          "maximum": 300,
+          "minimum": 1,
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "namespace",
+        "name",
+        "expected_workspace_id"
+      ],
+      "title": "stop_devspaceArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "namespace": {
+          "title": "Namespace",
+          "type": "string"
+        },
+        "clusterId": {
+          "title": "Clusterid",
+          "type": "string"
+        },
+        "devworkspaceId": {
+          "title": "Devworkspaceid",
+          "type": "string"
+        },
+        "phase": {
+          "title": "Phase",
+          "type": "string"
+        },
+        "started": {
+          "title": "Started",
+          "type": "boolean"
+        },
+        "displayName": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Displayname"
+        },
+        "creationTimestamp": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Creationtimestamp"
+        }
+      },
+      "required": [
+        "name",
+        "namespace",
+        "clusterId",
+        "devworkspaceId",
+        "phase",
+        "started",
+        "displayName",
+        "creationTimestamp"
+      ],
+      "title": "Workspace",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "restart_devspace",
+    "title": null,
+    "description": "Stop, verify Stopped, then start and verify Running; timeout applies to each transition.",
+    "inputSchema": {
+      "properties": {
+        "namespace": {
+          "description": "Exact name from list_devspaces; no URI or CLI option",
+          "maxLength": 253,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "title": "Namespace",
+          "type": "string"
+        },
+        "name": {
+          "description": "Exact name from list_devspaces; no URI or CLI option",
+          "maxLength": 253,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "expected_workspace_id": {
+          "description": "devworkspaceId from the most recent status/list; prevents acting on a replacement workspace",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Expected Workspace Id",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 120,
+          "description": "Maximum wait per state transition in seconds, excluding individual CLI command time",
+          "maximum": 300,
+          "minimum": 1,
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "namespace",
+        "name",
+        "expected_workspace_id"
+      ],
+      "title": "restart_devspaceArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "namespace": {
+          "title": "Namespace",
+          "type": "string"
+        },
+        "clusterId": {
+          "title": "Clusterid",
+          "type": "string"
+        },
+        "devworkspaceId": {
+          "title": "Devworkspaceid",
+          "type": "string"
+        },
+        "phase": {
+          "title": "Phase",
+          "type": "string"
+        },
+        "started": {
+          "title": "Started",
+          "type": "boolean"
+        },
+        "displayName": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Displayname"
+        },
+        "creationTimestamp": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Creationtimestamp"
+        }
+      },
+      "required": [
+        "name",
+        "namespace",
+        "clusterId",
+        "devworkspaceId",
+        "phase",
+        "started",
+        "displayName",
+        "creationTimestamp"
+      ],
+      "title": "Workspace",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "connect_devspace",
+    "title": null,
+    "description": "Launch a managed SSH tunnel for a Running workspace; may update local SSH config.",
+    "inputSchema": {
+      "properties": {
+        "namespace": {
+          "description": "Exact name from list_devspaces; no URI or CLI option",
+          "maxLength": 253,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "title": "Namespace",
+          "type": "string"
+        },
+        "name": {
+          "description": "Exact name from list_devspaces; no URI or CLI option",
+          "maxLength": 253,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "expected_workspace_id": {
+          "description": "devworkspaceId from the most recent status/list; prevents acting on a replacement workspace",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Expected Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "namespace",
+        "name",
+        "expected_workspace_id"
+      ],
+      "title": "connect_devspaceArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "namespace": {
+          "title": "Namespace",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "not_managed",
+            "connecting",
+            "ready",
+            "exited"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "pid": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pid"
+        },
+        "exit_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exit Code"
+        },
+        "ssh_alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ssh Alias"
+        }
+      },
+      "required": [
+        "name",
+        "namespace",
+        "state"
+      ],
+      "title": "Connection",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "get_connection_status",
+    "title": null,
+    "description": "Check this MCP server's tunnel process; ready is not an end-to-end SSH probe.",
+    "inputSchema": {
+      "properties": {
+        "namespace": {
+          "description": "Exact name from list_devspaces; no URI or CLI option",
+          "maxLength": 253,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "title": "Namespace",
+          "type": "string"
+        },
+        "name": {
+          "description": "Exact name from list_devspaces; no URI or CLI option",
+          "maxLength": 253,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "namespace",
+        "name"
+      ],
+      "title": "get_connection_statusArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "namespace": {
+          "title": "Namespace",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "not_managed",
+            "connecting",
+            "ready",
+            "exited"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "pid": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pid"
+        },
+        "exit_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exit Code"
+        },
+        "ssh_alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ssh Alias"
+        }
+      },
+      "required": [
+        "name",
+        "namespace",
+        "state"
+      ],
+      "title": "Connection",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "disconnect_devspace",
+    "title": null,
+    "description": "Terminate only the tunnel owned by this MCP server; leave the workspace running.",
+    "inputSchema": {
+      "properties": {
+        "namespace": {
+          "description": "Exact name from list_devspaces; no URI or CLI option",
+          "maxLength": 253,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "title": "Namespace",
+          "type": "string"
+        },
+        "name": {
+          "description": "Exact name from list_devspaces; no URI or CLI option",
+          "maxLength": 253,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "namespace",
+        "name"
+      ],
+      "title": "disconnect_devspaceArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "namespace": {
+          "title": "Namespace",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "not_managed",
+            "connecting",
+            "ready",
+            "exited"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "pid": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pid"
+        },
+        "exit_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exit Code"
+        },
+        "ssh_alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ssh Alias"
+        }
+      },
+      "required": [
+        "name",
+        "namespace",
+        "state"
+      ],
+      "title": "Connection",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "delete_devspace",
+    "title": null,
+    "description": "Request deletion of an exact workspace; requires both write gates and confirmation.",
+    "inputSchema": {
+      "properties": {
+        "namespace": {
+          "description": "Exact name from list_devspaces; no URI or CLI option",
+          "maxLength": 253,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "title": "Namespace",
+          "type": "string"
+        },
+        "name": {
+          "description": "Exact name from list_devspaces; no URI or CLI option",
+          "maxLength": 253,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "confirm_name": {
+          "description": "Exact name from list_devspaces; no URI or CLI option",
+          "maxLength": 253,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
+          "title": "Confirm Name",
+          "type": "string"
+        },
+        "expected_workspace_id": {
+          "description": "devworkspaceId from the most recent status/list; prevents acting on a replacement workspace",
+          "maxLength": 253,
+          "minLength": 1,
+          "title": "Expected Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "namespace",
+        "name",
+        "confirm_name",
+        "expected_workspace_id"
+      ],
+      "title": "delete_devspaceArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "properties": {
+        "deletion_requested": {
+          "title": "Deletion Requested",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "namespace": {
+          "title": "Namespace",
+          "type": "string"
+        }
+      },
+      "required": [
+        "deletion_requested",
+        "name",
+        "namespace"
+      ],
+      "title": "DeleteResult",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  }
+]

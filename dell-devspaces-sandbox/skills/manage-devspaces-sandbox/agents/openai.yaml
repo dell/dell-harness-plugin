@@ -1,4 +1,4 @@
 interface:
-  display_name: "Manage Dev Spaces Sandbox"
-  short_description: "Safely manage governed Dev Spaces workspaces"
-  default_prompt: "Use $manage-devspaces-sandbox to inspect and manage my authorized Dev Spaces workspace."
+  display_name: "Dell Redhat Devspaces AI Factory Skill"
+  short_description: "Connect, inspect, and manage Dell Dev Spaces"
+  default_prompt: "Use $manage-devspaces-sandbox to check my Dell Dev Spaces workspace and connect it to Codex."

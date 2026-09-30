@@ -1,0 +1,14 @@
+{
+  "captured_at_utc": "2026-09-30T18:16:48.259306+00:00",
+  "type": "live read-only connector check",
+  "version": "0.1.0 (168c6b8)",
+  "writes_enabled": false,
+  "delete_enabled": false,
+  "authentication_probe": {
+    "list_accessible": true,
+    "cluster_verified": false,
+    "workspace_count": 0
+  },
+  "lifecycle_tested": false,
+  "ssh_tested": false
+}

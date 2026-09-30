@@ -1,26 +1,11 @@
-# Security boundaries
+# Connector security boundaries
 
-## Trust model
+The connector runs as the local user with its authenticated account. Platform authorization remains authoritative. DEVSPACES_ALLOWED_NAMESPACES optionally narrows access; this backend cannot detect administrative group membership. Use a least-privilege account. Every targeted remote action lists first and verifies cluster, namespace, and name uniqueness across the account.
 
-The plugin runs with the Kubernetes or OpenShift identity already present in the selected kubeconfig. It does not create credentials, elevate RBAC, or impersonate users. Cluster RBAC remains the primary authorization boundary; the plugin adds narrower context, namespace, tool, and write gates.
+Start, stop, and restart require DEVSPACES_ENABLE_WRITES=true. Delete also requires DEVSPACES_ENABLE_DELETE=true and a matching name. An explicit user request supplies action authorization; configured write gates are a separate deployment control. Explain disabled gates rather than changing them silently.
 
-For SSO, the plugin invokes the managed `oc login <registered-api-url> --web` workflow. The user completes the corporate browser challenge. The plugin captures no password, never returns command output, and does not expose the resulting OAuth token to Codex. OpenShift stores the session in the selected kubeconfig.
+Connecting updates local SSH configuration through the utility and starts a long-lived port forward. Disconnect only terminates owned processes. No generic shell, credential-read, RBAC, or Kubernetes mutation tool is exposed. Raw subprocess errors and connection output are discarded because they may contain authentication data.
 
-## Tool boundary
+Authenticate in an interactive local terminal. Never read credential stores, private keys, or auth URIs into chat. Preserve SSH host-key verification. The server ignores inherited NODE_TLS_REJECT_UNAUTHORIZED by default. Prefer NODE_EXTRA_CA_CERTS with an approved PEM CA bundle for internal certificates. For a diagnosed certificate-verification failure, an explicit user-authorized retry may set DEVSPACES_ALLOW_INSECURE_TLS=true for the current plugin process; only its connector children receive NODE_TLS_REJECT_UNAUTHORIZED=0. This disables peer certificate verification and permits interception; disclose that effect once. Prior explicit authorization covers the retry without asking again. Never persist this exception at user/machine scope or use it for unrelated publisher, execution-policy, authorization, or SSH host-key errors. Restore verified TLS after the retry/session; runtime configuration exposes tls_verification_enabled. Do not ship downloaded executables or credentials in this repository.
 
-Allowed operations are limited to DevWorkspace discovery, status, events, bounded workspace logs, desired-state start or stop, and separately gated deletion. The MCP server intentionally provides no generic Kubernetes CRUD, pod exec, shell, namespace deletion, Secret reads, or RBAC mutation.
-
-Administrative identities must configure an explicit `DEVSPACES_ALLOWED_NAMESPACES` value. Wildcards are rejected. Non-administrative identities may use explicitly configured namespaces or namespaces discovered from Dev Spaces ownership metadata.
-
-## Production requirements
-
-- Use OpenShift OAuth or another short-lived, per-user credential flow.
-- Provide `oc` in the managed runtime and maintain the approved instance catalog centrally.
-- Pin the target context with `DEVSPACES_ALLOWED_CONTEXTS`.
-- Enforce namespace-scoped RBAC independently of plugin configuration.
-- Keep TLS verification and SSH host-key verification enabled.
-- Ship the Python dependencies in a signed, versioned runtime image or package.
-- Record lifecycle mutations in platform audit logs and forward relevant Codex telemetry to the approved observability stack.
-- Keep write operations disabled until the pilot security and support reviews are complete.
-
-The plugin never downloads `oc`. Core workspace operations use the Kubernetes API client; the managed `oc` binary is used only to check and initiate SSO.
+Avoid external auth commands during operations: preflight checks cannot make the connector's external credential state transactional. This MCP process serializes its mutations and stops if workspace identity changes during a transition.
