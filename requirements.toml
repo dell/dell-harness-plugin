@@ -5,8 +5,6 @@
 # Reference: https://developers.openai.com/codex/enterprise/managed-configuration
 
 # Allowed MCP servers (by identity)
-
-
 [mcp_servers.jira-cec]
 identity = { url = "https://mcp.example.com/atlassian" }
 

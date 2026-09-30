@@ -6,50 +6,26 @@
   "plugins": [
     {
       "name": "dell-devspaces-sandbox",
-      "source": {
-        "source": "local",
-        "path": "./dell-devspaces-sandbox"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
+      "source": { "source": "local", "path": "./dell-devspaces-sandbox" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
       "category": "Productivity"
     },
     {
       "name": "dell-data-analytics-engine",
-      "source": {
-        "source": "local",
-        "path": "./dell-data-analytics-engine"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
+      "source": { "source": "local", "path": "./dell-data-analytics-engine" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
       "category": "Productivity"
     },
     {
       "name": "dell-data-search-engine",
-      "source": {
-        "source": "local",
-        "path": "./dell-data-search-engine"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
+      "source": { "source": "local", "path": "./dell-data-search-engine" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
       "category": "Productivity"
     },
     {
       "name": "dell-data-orchestration-engine",
-      "source": {
-        "source": "local",
-        "path": "./dell-data-orchestration-engine"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
+      "source": { "source": "local", "path": "./dell-data-orchestration-engine" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
       "category": "Productivity"
     }
   ]

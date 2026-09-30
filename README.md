@@ -24,7 +24,7 @@ codex plugin add dell-data-search-engine@dell-harness-plugin
 codex plugin add dell-data-orchestration-engine@dell-harness-plugin
 ```
 
-does not execute a script or prompt for a PAT.
+See each plugin README for its runtime prerequisites and authentication steps.
 
 ## Repository organization
 
@@ -39,28 +39,6 @@ inside the same directory:
 
 Not every product supports every harness yet. The manifests present in each
 product directory are the authoritative statement of current support.
-
-## Authorize on Windows
-
-Clone this repository, open Windows Terminal at its root, and run either
-Windows PowerShell 5.1:
-
-```powershell
-```
-
-or PowerShell 7:
-
-```powershell
-```
-
-The prompt is hidden. Never paste a PAT into chat, a command line, config JSON,
-or the repository. Each PAT is plaintext at rest in the active
-`%CODEX_HOME%\.env`, defaulting to `%USERPROFILE%\.codex\.env`, with a Windows
-ACL restricted to the current user and SYSTEM.
-
-After enrollment, fully quit ChatGPT/Codex Desktop from the system tray,
-restart it, and start a new task. See each plugin README for status, rotation,
-removal, and troubleshooting commands.
 
 ## Configure Dev Spaces
 
