@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Matching a plain-English request to the tool or skill that serves it.
 
 **The architectural point.** A driving model normally makes ~18 separate tool choices to complete a

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Pluggable model interface for the doe-eval harness (plan §4 Phase 5).
 
 `EvalModel` is deliberately provider-agnostic: this module ships no LLM client library and no API

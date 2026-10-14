@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Structural validation of raw DQL filter dicts, ahead of any platform call.
 
 The governing principle, and the reason this file is shaped the way it is: a **false positive here

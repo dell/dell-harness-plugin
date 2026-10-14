@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Dell Redhat Devspaces AI Factory Skill: local CLI connector MCP adapter."""
 import argparse
 import atexit
@@ -93,12 +96,15 @@ def enabled(name):
 class Connector:
     def __init__(self):
         self.command = os.getenv("DEVSPACES_CONNECTOR_COMMAND", "devspaces-cli-connector")
-        self.cluster = os.getenv("DEVSPACES_CLUSTER_URL", "https://devspaces.example.com").rstrip("/")
-        parsed = urlparse(self.cluster)
-        if (parsed.scheme != "https" or not parsed.hostname or parsed.username
-                or parsed.password or parsed.query or parsed.fragment or parsed.path):
-            raise ValueError("DEVSPACES_CLUSTER_URL must be a credential-free HTTPS origin")
-        self.cluster_id = parsed.netloc
+        # No built-in default: each deployment supplies its own Dev Spaces origin.
+        self.cluster = os.getenv("DEVSPACES_CLUSTER_URL", "").strip().rstrip("/")
+        self.cluster_id = ""
+        if self.cluster:
+            parsed = urlparse(self.cluster)
+            if (parsed.scheme != "https" or not parsed.hostname or parsed.username
+                    or parsed.password or parsed.query or parsed.fragment or parsed.path):
+                raise ValueError("DEVSPACES_CLUSTER_URL must be a credential-free HTTPS origin")
+            self.cluster_id = parsed.netloc
         self.namespaces = tuple(x.strip() for x in os.getenv("DEVSPACES_ALLOWED_NAMESPACES", "").split(",") if x.strip())
         if "*" in self.namespaces:
             raise ValueError("Wildcard namespaces are not supported")
@@ -144,7 +150,13 @@ class Connector:
             raise RuntimeError(f"Connector {args[0]} failed (exit {result.returncode}); check local authentication, CA trust, and connectivity")
         return result.stdout
 
+    def require_cluster(self):
+        if not self.cluster:
+            raise RuntimeError("Set DEVSPACES_CLUSTER_URL to your Dev Spaces HTTPS origin before using the connector")
+        return self.cluster
+
     def list(self, filtered=True):
+        self.require_cluster()
         try:
             rows = json.loads(self.run(["--list"]))
         except json.JSONDecodeError:
@@ -300,7 +312,7 @@ def get_runtime_configuration() -> Runtime:
 @mcp.tool(annotations=READ)
 def get_devspaces_authentication_instructions() -> AuthInstructions:
     """Return interactive local authentication instructions; never accept or capture the workspace URI."""
-    return {"executable": connector.executable(), "arguments": ["--auth", connector.cluster],
+    return {"executable": connector.executable(), "arguments": ["--auth", connector.require_cluster()],
             "environment": {"NODE_TLS_REJECT_UNAUTHORIZED": "0"} if connector.insecure_tls else {},
             "interactive_required": True,
             "instructions": "Run in a local terminal and complete browser/Developer Workspace URI prompts there. Do not paste the URI into chat. Then call get_authentication_status."}

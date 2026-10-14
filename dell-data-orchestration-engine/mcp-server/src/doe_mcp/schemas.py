@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Tool input models for pipeline nodes.
 
 Each node type in dtlpy takes a different, largely non-overlapping set of required

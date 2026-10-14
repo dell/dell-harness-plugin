@@ -30,7 +30,7 @@ This assessment uses the criteria in
 | Repeatable fixtures, transcripts, and grading | Partial | The deterministic synthetic fixture and strict grader validate. Actual selected Codex transcripts, final answers, latency, and audit records have not been captured. |
 | Authentication and reviewer access | Blocked | Local configuration is missing. OAuth is explicitly not implemented. No least-privilege review account or public reviewer endpoint is available. |
 | Listing metadata and assets | Pass for local package | Manifest includes clean version `0.3.0`, value proposition, owner links, policy URLs, prompts, brand color, and Dell assets. Portal/domain ownership still requires reviewer confirmation. |
-| Same plugin across ChatGPT and Codex | Not yet demonstrated | ChatGPT transcripts are deferred for the initial internal review and remain required before a unified public submission. |
+| Same plugin across ChatGPT and Codex | Not yet demonstrated | ChatGPT transcripts are deferred for the initial review and remain required before a unified public submission. |
 
 ## Validation evidence
 
@@ -57,7 +57,7 @@ This assessment uses the criteria in
 ### Context and workflow cost
 
 - Default plugin-v1 surface: 19,511 `o200k_base` tokens.
-- Internal ceiling: 19,800 tokens.
+- Budget ceiling: 19,800 tokens.
 - Standing optimization target: 13,300 tokens.
 - Dataset exploration fixture: 4 tool turns.
 - PII assessment fixture: 7 tool turns.
@@ -74,7 +74,7 @@ model-selection transcripts.
 - Three secondary variants retained outside the initial selected set.
 - 36 selected tools, all covered by a selected positive tool path.
 - Synthetic non-customer fixture validation: passed.
-- ChatGPT transcripts: deferred for the initial internal review.
+- ChatGPT transcripts: deferred for the initial review.
 - Golden-trace criteria regenerate without drift from the committed baseline.
 
 ## Changes made during this review

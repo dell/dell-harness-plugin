@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Creating a pipeline from a marketplace DPK's pipeline template.
 
 dtlpy has no "install pipeline template" call: templates are raw pipeline JSON on

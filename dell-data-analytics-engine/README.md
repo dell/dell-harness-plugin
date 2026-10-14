@@ -118,7 +118,7 @@ data and exposes the two selected read-only tools. The final September 10, 2026
 Codex run passed all 12 selected cases: six positive and six negative. It covers
 explicit, implicit, misspelled, ambiguous, authorization, write-refusal,
 unbounded-export, and non-invocation behavior. ChatGPT transcripts are deferred
-for the initial internal review and are not claimed as complete.
+for the initial review and are not claimed as complete.
 
 ~~~bash
 python scripts/aidp_eval.py fixture dell-data-analytics-engine

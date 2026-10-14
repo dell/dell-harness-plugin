@@ -1,33 +1,28 @@
-# requirements.toml — Enterprise MCP server governance
-# Deployed to /etc/codex/requirements.toml via image bake or K8s ConfigMap.
-# Only MCP servers listed here can be enabled. Unlisted servers are blocked.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# requirements.toml — example Codex MCP server governance for the Dell Harness plugins.
+# Administrators can deploy it as /etc/codex/requirements.toml. Only MCP servers
+# listed here can be enabled; unlisted servers are blocked.
 #
 # Reference: https://developers.openai.com/codex/enterprise/managed-configuration
 
-# Allowed MCP servers (by identity)
-[mcp_servers.jira-cec]
-identity = { url = "https://mcp.example.com/atlassian" }
-
-[mcp_servers.github-enterprise]
-identity = { url = "https://mcp.example.com/github/isg" }
-
-# Dev Spaces MCP server (plugin-bundled stdio adapter)
+# Dell Dev Spaces (plugin-bundled stdio adapter)
 [mcp_servers.dell_devspaces]
 identity = { command = "python" }
 
-# AIDP MCP servers (stdio, Docker-based)
-[mcp_servers.aidp_elasticsearch]
-identity = { command = "docker" }
-
-[mcp_servers.aidp_trino]
-identity = { command = "docker" }
-
-[mcp_servers.sharepoint]
-identity = { command = "docker" }
-
-# Dell Data Orchestration Engine MCP server (plugin-bundled stdio launcher)
+# Dell Data Orchestration Engine (plugin-bundled stdio launcher)
 [mcp_servers.dell_dataloop]
 identity = { command = "python" }
+
+# Dell Data Analytics Engine and Dell Data Search Engine are customer-managed
+# remote endpoints. Uncomment and replace each URL with your own deployment.
+#
+# [mcp_servers.dell_data_analytics_engine]
+# identity = { url = "https://ddae.example.com/mcp" }
+#
+# [mcp_servers.dell_data_search_engine]
+# identity = { url = "https://kibana.example.com/api/agent_builder/mcp" }
 
 # Codex feature constraints
 [features]

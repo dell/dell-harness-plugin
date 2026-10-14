@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Drive the real tools against a live DOE instance.
 
 The offline suite stubs dtlpy at the seams, which is fast and needs no network but cannot

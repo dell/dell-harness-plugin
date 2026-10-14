@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Shared test fixtures.
 
 Nothing here touches the network: dtlpy is replaced with fakes at the seams the tools call

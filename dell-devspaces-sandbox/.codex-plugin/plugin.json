@@ -6,7 +6,7 @@
     "name": "Dell Technologies",
     "url": "https://www.dell.com/"
   },
-  "license": "Proprietary",
+  "license": "Apache-2.0",
   "keywords": [
     "dell",
     "openshift",
@@ -18,7 +18,7 @@
   "interface": {
     "displayName": "Dell Redhat Devspaces AI Factory Skill",
     "shortDescription": "Connect and manage Dell Red Hat Dev Spaces.",
-    "longDescription": "Local Codex integration for Dell Dev Spaces: authentication guidance, status, start, stop, restart, and managed SSH tunnels through an approved CLI connector. Requires local Python, connector installation, and Dell network access. Optional Kubernetes diagnostics remain available.",
+    "longDescription": "Local Codex integration for Dell Dev Spaces: authentication guidance, status, start, stop, restart, and managed SSH tunnels through a Dev Spaces CLI connector. Requires local Python, a connector installation, and network access to your own Dev Spaces cluster. Optional Kubernetes diagnostics remain available.",
     "developerName": "Dell Technologies",
     "category": "Productivity",
     "capabilities": [

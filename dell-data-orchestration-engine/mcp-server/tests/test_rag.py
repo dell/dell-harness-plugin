@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Tests for RAG (Retrieval-Augmented Generation) pipeline tools.
 
 These tests verify that RAG pipeline creation, node addition, and querying work correctly.

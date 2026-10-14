@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # Interactive terminal helper; never capture the Developer Workspace URI in chat/logs.
 # Launch with powershell.exe -NoProfile -File <this file> rather than an interactive
 # -NoExit shell. Do not disable module auto-loading or change execution policy.

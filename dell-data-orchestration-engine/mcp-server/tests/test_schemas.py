@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Node specs reject unusable input at construction time, before any platform call.
 
 Complements test_dql.py (the DQL structural rules themselves) and test_code_node.py (the

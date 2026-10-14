@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Profile-scoped entrypoints (plan §4 Phase 3's zero-protocol-risk fallback).
 
 `tools/list_changed` support is client-contingent and untested here (that's the point of the

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Embeddings and clustering over a dataset's feature vectors.
 
 DOE ships a native Clustering app — the TensorBoard Embedding Projector, reachable from the

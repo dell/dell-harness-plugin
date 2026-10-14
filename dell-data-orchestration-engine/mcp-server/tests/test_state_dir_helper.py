@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Deployment-specific DATALOOP_PATH helper."""
 
 import os
@@ -24,8 +27,8 @@ def mode_of(path: Path) -> int:
 
 
 def test_alias_is_safe_and_deterministic(tmp_path):
-    assert slugify("CTO Lab") == "cto-lab"
-    assert provision("CTO Lab", None, base=tmp_path) == (tmp_path / "dataloop-cto-lab")
+    assert slugify("Private Lab") == "private-lab"
+    assert provision("Private Lab", None, base=tmp_path) == (tmp_path / "dataloop-private-lab")
     with pytest.raises(ValueError, match="no usable"):
         slugify("///")
 
@@ -47,16 +50,16 @@ def test_provision_records_gate_and_repairs_permissions(tmp_path):
 
 
 def test_alias_cannot_be_reused_for_another_gate(tmp_path):
-    provision("cloud", "https://gate.one/api/v1", base=tmp_path)
+    provision("cloud", "https://gate-one.example.test/api/v1", base=tmp_path)
     with pytest.raises(ValueError, match="already provisioned"):
-        provision("cloud", "https://gate.two/api/v1", base=tmp_path)
+        provision("cloud", "https://gate-two.example.test/api/v1", base=tmp_path)
 
 
 def test_symlink_is_refused_and_listing_is_bounded(tmp_path):
-    provision("cloud", "https://gate.one/api/v1", base=tmp_path)
+    provision("cloud", "https://gate-one.example.test/api/v1", base=tmp_path)
     (tmp_path / "dataloop-link").symlink_to(tmp_path / "dataloop-cloud")
     with pytest.raises(ValueError, match="symlink"):
-        provision("link", "https://gate.one/api/v1", base=tmp_path)
+        provision("link", "https://gate-one.example.test/api/v1", base=tmp_path)
     assert [alias for alias, _, _ in list_aliases(tmp_path)] == ["cloud"]
 
 
@@ -65,7 +68,7 @@ def test_custom_existing_base_permissions_are_not_changed(tmp_path):
     shared.mkdir()
     shared.chmod(0o755)
 
-    directory = provision("cloud", "https://gate.one/api/v1", base=shared)
+    directory = provision("cloud", "https://gate-one.example.test/api/v1", base=shared)
 
     if os.name == "posix":
         assert mode_of(shared) == 0o755

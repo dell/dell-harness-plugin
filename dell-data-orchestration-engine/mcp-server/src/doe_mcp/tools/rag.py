@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """RAG (Retrieval-Augmented Generation) pipeline tools.
 
 This module provides tools to create and manage RAG pipelines that:

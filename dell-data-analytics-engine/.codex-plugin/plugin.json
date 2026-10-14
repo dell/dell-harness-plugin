@@ -7,7 +7,7 @@
     "url": "https://www.dell.com/"
   },
   "homepage": "https://www.dell.com/support/product-details/en-us/product/dell-data-lakehouse/overview",
-  "license": "Proprietary",
+  "license": "Apache-2.0",
   "keywords": [
     "dell",
     "data-analytics",

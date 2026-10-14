@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Deterministic pipeline construction from a resolved blueprint.
 
 The property under test is the one the plan calls for: when an agent builds a pipeline itself

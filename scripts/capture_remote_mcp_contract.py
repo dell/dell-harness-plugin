@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Capture a sanitized, pagination-aware tools/list snapshot from DDAE or DDSE.
 
 Credentials are read only from environment variables and are never accepted as
@@ -306,7 +309,7 @@ def main() -> int:
         action="store_true",
         help=(
             "retain chain and hostname verification but disable OpenSSL X509 strict "
-            "mode for a legacy internal CA"
+            "mode for a legacy private CA"
         ),
     )
     args = parser.parse_args()

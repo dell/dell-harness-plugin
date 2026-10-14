@@ -8,14 +8,14 @@ Version 0.2.0 changes the display name. Plugin ID/folder `dell-devspaces-sandbox
 
 The skill begins each new Dev Spaces workflow by asking for the user's credential-free HTTPS Dev Spaces browser URL, unless it was supplied in the initiating request. It derives the cluster origin, verifies that the plugin runtime is configured for that instance, and reuses existing authentication when valid. The example URL below is not a user-selection default. A connector-prompted Developer Workspace URI is separate and must be entered privately in the terminal.
 
-Provide Python 3.10+ with the dependencies in `requirements.txt` and an approved connector executable. Python 3.12 on Windows is the tested runtime. The executable is not redistributed here. The inspected Windows build reports `0.1.0 (168c6b8)`; verify `--help` when upgrading. Direct dependencies are pinned; this is not a complete transitive lockfile.
+Provide Python 3.10+ with the dependencies in `requirements.txt` and a Devspaces CLI connector executable obtained through your organization. Python 3.12 on Windows is the tested runtime. The executable is not redistributed here. The inspected Windows build reports `0.1.0 (168c6b8)`; verify `--help` when upgrading. Direct dependencies are pinned; this is not a complete transitive lockfile.
 
-Set these variables in the environment that launches Codex:
+Set these variables in the environment that launches Codex. `DEVSPACES_CLUSTER_URL` is required and has no built-in default; until it is set, every remote tool fails closed without invoking the connector.
 
 ```powershell
 $env:DEVSPACES_CONNECTOR_COMMAND = 'C:/Tools/Devspaces/devspaces-cli-connector-win-x64.exe'
 $env:DEVSPACES_CLUSTER_URL = 'https://devspaces.example.com'
-$env:NODE_EXTRA_CA_CERTS = 'C:/Certificates/approved-internal-ca.pem'
+$env:NODE_EXTRA_CA_CERTS = 'C:/Certificates/your-organization-ca.pem'
 # Optional namespace restriction:
 $env:DEVSPACES_ALLOWED_NAMESPACES = 'your-devspaces-namespace'
 # Enable for intended lifecycle use:
@@ -24,7 +24,7 @@ $env:DEVSPACES_ENABLE_WRITES = 'true'
 # $env:DEVSPACES_ENABLE_DELETE = 'true'
 ```
 
-Use the actual approved CA file; omit NODE_EXTRA_CA_CERTS if the connector already trusts the server. The MCP backend ignores inherited NODE_TLS_REJECT_UNAUTHORIZED by default. An explicitly authorized certificate-failure retry can launch the plugin with DEVSPACES_ALLOW_INSECURE_TLS=true, which sets NODE_TLS_REJECT_UNAUTHORIZED=0 only on its connector children. Runtime reports tls_verification_enabled=false. This disables certificate verification and can permit interception; do not persist it in user/machine settings. See the skill troubleshooting reference for scoped authentication and restoration commands. The exception lasts for a connector tunnel's lifetime; restore normal trust on the next planned reconnect.
+Use the CA file your organization approves for the cluster; omit NODE_EXTRA_CA_CERTS if the connector already trusts the server. The MCP backend ignores inherited NODE_TLS_REJECT_UNAUTHORIZED by default. An explicitly authorized certificate-failure retry can launch the plugin with DEVSPACES_ALLOW_INSECURE_TLS=true, which sets NODE_TLS_REJECT_UNAUTHORIZED=0 only on its connector children. Runtime reports tls_verification_enabled=false. This disables certificate verification and can permit interception; do not persist it in user/machine settings. See the skill troubleshooting reference for scoped authentication and restoration commands. The exception lasts for a connector tunnel's lifetime; restore normal trust on the next planned reconnect.
 
 After the existing-session check shows authentication is needed, authenticate privately using the bundled Windows launcher (replace both example paths and the cluster origin):
 
@@ -80,4 +80,6 @@ python dell-devspaces-sandbox/scripts/connector_mcp_server.py --check
 
 Install `requirements-dev.txt` for offline validation. The validator checks packaging, boots an extracted ZIP, runs unit and MCP protocol tests, and writes evidence under `validation/evidence`. The last command is a read-only live check requiring authentication and CA trust. Synthetic tests do not validate live lifecycle changes or an end-to-end Codex SSH session. See [review and release gates](validation/REVIEW.md) and [workflow evaluation cases](evals/cases.json).
 
-This is an internal local Codex plugin. Public directory submission, hosted authentication, and ChatGPT/mobile compatibility are not established. Review support ownership, applicable privacy/terms URLs, and external-connector distribution before a public release.
+## Scope and support
+
+This is a local Codex plugin that runs on the user's workstation and talks to a Dev Spaces cluster that the user's organization operates. It is not a hosted connector, and ChatGPT web/mobile compatibility is out of scope. The Devspaces CLI connector is a separate executable that this repository does not distribute. Report issues through this repository's [issue tracker](https://github.com/dell/dell-harness-plugin/issues) and security vulnerabilities through [SECURITY.md](../SECURITY.md).

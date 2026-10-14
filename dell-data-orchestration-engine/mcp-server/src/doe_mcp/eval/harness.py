@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Drives one golden trace's intent through a live tool-use loop and scores it.
 
 Deliberately decoupled from `mcp.Client`: `ToolRunner` below is a `Protocol` matching just the two

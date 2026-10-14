@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Confirmation gates: the `confirm=true` fallback, and elicitation for clients that support it.
 
 Tool bodies are sync functions running in a worker thread (see server.py's module docstring), so

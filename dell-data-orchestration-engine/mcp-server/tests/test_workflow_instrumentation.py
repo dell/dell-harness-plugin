@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """The workflow-cost instrumentation itself must keep working (Phase 0 exit criterion).
 
 `scripts/measure_workflow_cost.py` drives real tool calls through the in-memory MCP client for

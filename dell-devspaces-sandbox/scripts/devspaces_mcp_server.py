@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Governed MCP adapter for Eclipse Che and Red Hat OpenShift Dev Spaces."""
 
 from __future__ import annotations

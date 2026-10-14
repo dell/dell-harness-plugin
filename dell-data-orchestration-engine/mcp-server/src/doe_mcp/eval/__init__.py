@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """doe-eval: golden intent -> execution traces (plan §4 Phase 5).
 
 Measures Pass@1, tool-call turns, and SDK error rate for a model driving `doe-mcp`'s real tools

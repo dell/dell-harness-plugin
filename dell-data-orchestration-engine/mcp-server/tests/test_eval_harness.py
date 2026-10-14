@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """doe-eval harness (plan §4 Phase 5): scoring logic, decoupled from any real LLM or platform.
 
 `ToolRunner` is a `Protocol` (see `harness.py`'s docstring), so this exercises `run_trace`'s

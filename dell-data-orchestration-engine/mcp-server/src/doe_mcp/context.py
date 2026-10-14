@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Project scoping for tool bodies.
 
 dtlpy's module-level repositories are not safe for writes: ``dl.pipelines`` substitutes an

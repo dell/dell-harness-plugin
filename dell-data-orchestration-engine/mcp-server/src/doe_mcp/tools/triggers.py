@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Event triggers: making something run when items arrive, without a human in the loop.
 
 A trigger is the only unattended thing this server can create. It outlives the conversation that

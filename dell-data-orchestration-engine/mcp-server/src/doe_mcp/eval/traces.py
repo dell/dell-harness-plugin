@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Golden intent -> tool-call traces for `doe-eval` (plan §4 Phase 5).
 
 Reuses the same three `docs/guides/*.md` workflows already measured for tokens/turns in

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 import asyncio
 import importlib.util
 import io
@@ -20,7 +23,19 @@ def adapter(monkeypatch):
     for name in ('DEVSPACES_CLUSTER_URL', 'DEVSPACES_ALLOWED_NAMESPACES',
                  'DEVSPACES_ENABLE_WRITES', 'DEVSPACES_ENABLE_DELETE', 'DEVSPACES_ALLOW_INSECURE_TLS'):
         monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv('DEVSPACES_CLUSTER_URL', 'https://devspaces.example.com')
     return SERVER.Connector()
+
+
+def test_unconfigured_cluster_fails_closed_without_a_default(monkeypatch):
+    monkeypatch.delenv('DEVSPACES_CLUSTER_URL', raising=False)
+    adapter = SERVER.Connector()
+    assert adapter.cluster == '' and adapter.cluster_id == ''
+    monkeypatch.setattr(adapter, 'run', lambda args: pytest.fail('connector must not be invoked'))
+    with pytest.raises(RuntimeError, match='DEVSPACES_CLUSTER_URL'):
+        adapter.list()
+    with pytest.raises(RuntimeError, match='DEVSPACES_CLUSTER_URL'):
+        adapter.require_cluster()
 
 
 def row(phase='Running', **changes):
@@ -246,6 +261,7 @@ def test_disconnect_escalates_only_owned_process(adapter):
 
 
 def test_explicit_tls_retry_scoped_to_child_environment(monkeypatch):
+    monkeypatch.setenv('DEVSPACES_CLUSTER_URL', 'https://devspaces.example.com')
     monkeypatch.setenv('DEVSPACES_ALLOW_INSECURE_TLS', 'true')
     monkeypatch.setenv('NODE_TLS_REJECT_UNAUTHORIZED', '1')
     adapter = SERVER.Connector()

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Progress notifications for tool calls that run one long blocking platform call.
 
 ``dtlpy`` gives no callback partway through ``embed_datasets``, ``pipelines.install`` or

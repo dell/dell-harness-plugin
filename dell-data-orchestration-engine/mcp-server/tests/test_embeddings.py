@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Embedding status, extraction, and in-server clustering.
 
 Clustering runs here because dtlpy exposes no vector-distance query; these tests pin the

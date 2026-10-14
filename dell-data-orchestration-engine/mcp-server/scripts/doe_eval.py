@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Run DOE golden traces against an operator-provided model and a live platform.
 
 The model adapter must implement `doe_mcp.eval.EvalModel`. Without one, the

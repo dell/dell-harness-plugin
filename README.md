@@ -46,10 +46,11 @@ product directory are the authoritative statement of current support.
 authentication guidance, workspace status, start/stop/restart, and managed SSH
 connections. Its existing plugin ID remains `dell-devspaces-sandbox`.
 
-Provide Python with `mcp` and set `DEVSPACES_CONNECTOR_COMMAND` to the approved
-utility. Configure `DEVSPACES_CLUSTER_URL` (default:
-`https://devspaces.example.com`) and the approved internal CA through
-`NODE_EXTRA_CA_CERTS`. Authenticate interactively with the connector before use.
+Provide Python with `mcp` and set `DEVSPACES_CONNECTOR_COMMAND` to the
+connector executable. Set `DEVSPACES_CLUSTER_URL` to your Dev Spaces HTTPS
+origin (required; there is no default) and, if the cluster uses a private
+certificate authority, point `NODE_EXTRA_CA_CERTS` at that CA bundle.
+Authenticate interactively with the connector before use.
 
 Lifecycle writes and deletion remain gated. See
 [dell-devspaces-sandbox/README.md](dell-devspaces-sandbox/README.md) for setup,
@@ -69,5 +70,27 @@ Python SDK MCP server.
 - `.agents/plugins/marketplace.json` is the Codex marketplace catalog.
 - Harness-specific manifests and connection configuration stay inside the
   corresponding product directory.
-- `requirements.toml` contains the enterprise MCP allowlist.
-- The repository contains no PAT values or other credentials.
+- `requirements.toml` is an example Codex MCP allowlist for these plugins.
+- The repository contains no PAT values or other credentials, and examples use
+  reserved `example.com` / `example.test` hostnames.
+
+## Contributing
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before
+opening a pull request; every commit must be signed off under the Developer
+Certificate of Origin (`git commit -s`). Participation is governed by the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Security
+
+Do not report security vulnerabilities through public GitHub issues. Follow
+[SECURITY.md](SECURITY.md).
+
+## License
+
+Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+
+Licensed under the [Apache License, Version 2.0](LICENSE). See [NOTICE](NOTICE)
+for attribution. Dell, Dell Technologies, and the Dell Technologies wordmark are
+trademarks of Dell Inc. or its subsidiaries; the license does not grant rights
+to use them except as required to describe the origin of the work.

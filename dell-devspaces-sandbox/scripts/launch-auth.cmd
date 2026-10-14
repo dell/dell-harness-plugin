@@ -1,4 +1,7 @@
 @echo off
+REM SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+REM SPDX-License-Identifier: Apache-2.0
+
 rem Supply only the approved executable path and credential-free cluster origin.
 rem With no arguments, PowerShell prompts locally for the required parameters.
 set "devspacesPowerShell=powershell.exe"

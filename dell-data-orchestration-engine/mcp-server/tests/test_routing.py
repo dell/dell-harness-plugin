@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Intent routing: one gated, cacheable decision in place of many ungated ones.
 
 Routing does not make anything deterministic on its own — a router is still choosing. What it does

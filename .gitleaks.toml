@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# gitleaks configuration. Uses the default ruleset; the allowlist covers only
+# deliberately fake values that tests use to prove secrets are redacted.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic secret-shaped test fixtures"
+regexTarget = "line"
+regexes = [
+  '''customer-secret-value''',
+  '''ApiKey <encoded-api-key>''',
+]

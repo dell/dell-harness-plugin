@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Measure real per-workflow turn and token counts for the three `docs/guides/*.md` walkthroughs.
 
 Phase 0 exit criterion (docs/plans/AGENT_OPTIMIZATION_HARNESS_SLM_PLAN.md §4): every number used

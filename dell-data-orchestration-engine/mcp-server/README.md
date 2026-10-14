@@ -4,9 +4,8 @@ This directory contains the Python MCP implementation shipped with the Dell
 Data Orchestration Engine plugin. It uses the Dataloop `dtlpy` SDK and is
 executed by `../scripts/dataloop_mcp_launcher.py`.
 
-The implementation began from the internal `doe-mcp` prototype. The
-released runtime, tests, dependency constraints, and plugin-focused tool
-profile are maintained here so installing the plugin does not depend on that
+The runtime, tests, dependency constraints, and plugin-focused tool profile
+are maintained here, so installing the plugin does not depend on any other
 repository.
 
 Install the runtime dependencies and optional command-line entry point from a

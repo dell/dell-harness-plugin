@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Run non-sensitive, read-only smoke checks against the DDSE MCP endpoint.
 
 The checks use only synthetic nonexistent names and an index-free constant

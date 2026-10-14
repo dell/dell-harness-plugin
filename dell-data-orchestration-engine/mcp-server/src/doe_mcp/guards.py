@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Confirmation gates for calls the caller cannot undo cheaply.
 
 Two different things are gated in this server and they are easy to conflate:

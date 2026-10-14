@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Graph editing.
 
 These use a real ``Pipeline`` entity built from JSON, so the dtlpy graph semantics under

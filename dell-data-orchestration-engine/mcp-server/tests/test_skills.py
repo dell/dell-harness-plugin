@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """The RAG skill: the five-stage chain built in one deterministic pass.
 
 The claim being tested is a port, not a rewrite: `rag_pipeline_build` must produce exactly the

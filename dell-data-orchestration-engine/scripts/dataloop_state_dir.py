@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Provision a private DATALOOP_PATH directory for one Dataloop deployment."""
 
 from __future__ import annotations
@@ -99,7 +102,7 @@ def list_aliases(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "alias", nargs="?", help="Short deployment name, e.g. cloud or cto-lab."
+        "alias", nargs="?", help="Short deployment name, e.g. cloud or private-lab."
     )
     parser.add_argument("--gate-url", help="DATALOOP_GATE_URL bound to this alias.")
     parser.add_argument("--base", default=str(DEFAULT_BASE))

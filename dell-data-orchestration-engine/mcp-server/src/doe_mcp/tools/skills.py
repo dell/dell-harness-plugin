@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Skills: whole pipelines built in one deterministic pass from resolved user choices.
 
 **Prototype, for measurement.** Registered only under `--profile skills`, deliberately not in

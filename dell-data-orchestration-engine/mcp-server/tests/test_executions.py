@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Running a pipeline, finding a stuck execution, and terminating it.
 
 Closes the widest gap in `scripts/measure_dtlpy_coverage.py` — `Executions` 0/12 and

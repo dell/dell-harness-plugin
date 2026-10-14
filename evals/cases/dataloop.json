@@ -189,7 +189,7 @@
       "pipeline_validate"
     ],
     "conditional_tools": {},
-    "chatgpt_transcripts": "deferred_for_initial_internal_review"
+    "chatgpt_transcripts": "deferred_for_initial_review"
   },
   "workflows": [
     {

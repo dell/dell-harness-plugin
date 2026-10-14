@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Compact entity summaries.
 
 A dtlpy ``to_json()`` carries far more than a model needs and costs a lot of context, so

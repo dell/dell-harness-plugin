@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Test-only synthetic connector behind the REAL plugin MCP transport and tools.
 
 No network, credentials, or real connector processes. Not an agent evaluation.

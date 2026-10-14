@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Repo-wide conventions, enforced rather than documented and hoped for.
 
 Each of these was a real defect at some point, found by a one-off sweep. A sweep only holds until

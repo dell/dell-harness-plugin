@@ -1,7 +1,7 @@
 # DDAE Codex-first initial review evidence
 
 Status: the plugin-owned package and local synthetic Codex evidence matrix are
-ready for initial OpenAI internal review. Attempt 6 passed all 12 selected
+ready for initial OpenAI plugin review. Attempt 6 passed all 12 selected
 cases: six positive and six negative. ChatGPT transcripts are explicitly
 deferred for this initial review and are not claimed as completed.
 
@@ -83,7 +83,7 @@ iteration.
 
 ## Readiness verdict and remaining blockers
 
-The package is ready to send for **initial OpenAI internal review with explicit
+The package is ready to send for **initial OpenAI plugin review with explicit
 caveats**. It is not yet an unqualified final submission candidate. Before a
 reviewer must exercise the hosted app or before public submission:
 
@@ -94,8 +94,8 @@ reviewer must exercise the hosted app or before public submission:
 3. Correct every raw-contract gap, including accurate safety annotations,
    per-tool OAuth security metadata, and required query inputs, then rescan.
 4. Provide a stable, publicly reachable HTTPS endpoint and a production-like
-   synthetic review account that does not depend on Dell's private tunnel.
+   synthetic review account that does not depend on a private network tunnel.
 5. Add ChatGPT transcripts before unified public submission; their deferral
-   applies only to this initial Codex-first internal review.
+   applies only to this initial Codex-first review.
 6. Confirm publisher/domain verification and public website, support, privacy,
    and terms links in the submission portal.

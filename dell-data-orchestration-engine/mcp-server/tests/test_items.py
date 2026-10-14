@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Item tools: paging, the metadata allow-list, and per-file upload reporting."""
 
 from types import SimpleNamespace

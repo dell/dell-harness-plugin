@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Uniform, bounded list results.
 
 dtlpy returns two different shapes from its ``list`` methods and neither is safe to hand

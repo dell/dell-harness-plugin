@@ -1,15 +1,15 @@
 # Dev Spaces plugin pre-push review
 
-Review date: 2026-09-30. Candidate version: 0.2.0. Scope: internal Dell repository distribution as a local Codex plugin.
+Review date: 2026-09-30. Candidate version: 0.2.0. Scope: Git repository distribution as a local Codex plugin.
 
 ## Decision
 
-**Internal development merge; production acceptance remains incomplete.** The user authorized opening a PR and merging to main after reviewing the remaining gaps. This is not approval of a production release or public submission. Offline validation establishes the implementation and package contract; live results below cover only the observed operations.
+**Development merge; production acceptance remains incomplete.** The maintainers approved merging to main after reviewing the remaining gaps. This is not approval of a production release or plugin-directory submission. Offline validation establishes the implementation and package contract; live results below cover only the observed operations.
 
 ### Live acceptance observed on 2026-09-30
 
 - Installed the connector-based v0.2.0 through an isolated local marketplace. MCP initialization and all 12 tool definitions succeeded. The local installation uses explicit bundled Python/dependency paths; the repository's portable manifest still requires its documented runtime prerequisites.
-- A real certificate-verification failure was reproduced. A previously authorized, process-scoped TLS retry verified existing authentication and non-empty inventory for the selected CEC cluster; no new login was needed. No global TLS exception was configured.
+- A real certificate-verification failure was reproduced. A previously authorized, process-scoped TLS retry verified existing authentication and non-empty inventory for the selected test cluster; no new login was needed. No global TLS exception was configured.
 - Invoked installed MCP `connect_devspace`, verified an actual new `--connect` process and listening tunnel, then verified strict SSH with a previously pinned host key and matching remote workspace identity.
 - Dispatched the Codex registration URL with `enabled=true`. Actual desktop Connected status and remote Codex app-server operation have not been confirmed; URL dispatch alone is not acceptance evidence for them.
 - Windows authentication helper and portable launcher tested with eight synthetic cases. Total automated suite: 48 passed. These are not model-driven workflow evaluations.
@@ -67,11 +67,11 @@ The retained Kubernetes adapter has regression unit tests only. Its live SSO, AP
 5. **Fresh-chat evaluation:** install the package in an isolated test configuration, begin a new chat, and run evals/cases.json. Capture real tool arguments/results, final answer, latency, and transcript reference. Exercise explicit, implicit, misspelled, follow-up, ambiguous, wrong-cluster, gated, and negative prompts. A reviewer grades each case against its checks and the global rubric. Synthetic backend results validate sequencing without interrupting real workspaces; live cases validate the integration separately.
 6. **Runtime/distribution:** confirm supported Python and approved connector installation on a clean target workstation, CA provisioning, connector integrity/distribution ownership, and supported OS versions. Only Windows/Python 3.12 is exercised here; do not advertise other platforms as verified.
 
-## Public-directory gaps (separate from internal Git distribution)
+## Plugin-directory gaps (separate from Git distribution)
 
-This package is a local stdio integration requiring an external executable, private Dell network access, and interactive local authentication. It has no hosted OAuth endpoint or registered app mapping. Public directory support and ChatGPT/mobile execution must be established with the intended deployment model; do not assume that a local Codex package is portable to those surfaces.
+This package is a local stdio integration requiring an external executable, network access to an organization-operated Dev Spaces cluster, and interactive local authentication. It has no hosted OAuth endpoint or registered app mapping. Public directory support and ChatGPT/mobile execution must be established with the intended deployment model; do not assume that a local Codex package is portable to those surfaces.
 
-Before a public submission, obtain an approved support contact, applicable privacy/terms URLs, rights/approval for the listing assets and product naming, a supported review/demo account with realistic dummy workspaces, and surface-specific end-to-end evidence. Do not invent these administrative facts or expose employee credentials to satisfy a review checklist. The current user-requested display name is retained; formal product branding approval remains outside this code review.
+Before a public submission, obtain an approved support contact, applicable privacy/terms URLs, rights/approval for the listing assets and product naming, a supported review/demo account with realistic dummy workspaces, and surface-specific end-to-end evidence. Do not invent these administrative facts or expose real user credentials to satisfy a review checklist. The current user-requested display name is retained; formal product branding approval remains outside this code review.
 
 ## Known implementation limits
 

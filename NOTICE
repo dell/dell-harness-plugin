@@ -1,0 +1,34 @@
+Dell Harness Plugins
+Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+
+This product includes software developed at Dell Technologies.
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+Dell, Dell Technologies, and the Dell Technologies wordmark included under
+*/assets/ are trademarks of Dell Inc. or its subsidiaries. The Apache License
+does not grant permission to use these trademarks except as required for
+reasonable and customary use in describing the origin of the work.
+
+Third-party dependencies are not redistributed in this repository; they are
+installed separately and retain their own licenses. Notable direct
+dependencies:
+
+  mcp (Model Context Protocol Python SDK)
+    MIT · https://github.com/modelcontextprotocol/python-sdk
+
+  dtlpy (Dataloop Python SDK)
+    Apache-2.0 · https://github.com/dataloop-ai/dtlpy
+
+  kubernetes (Kubernetes Python client)
+    Apache-2.0 · https://github.com/kubernetes-client/python
+
+  numpy
+    BSD-3-Clause · https://github.com/numpy/numpy
+
+  typing-extensions
+    PSF-2.0 · https://github.com/python/typing_extensions
+
+Product names such as Dataloop, Starburst, Trino, Elasticsearch, Kibana,
+Red Hat OpenShift Dev Spaces, and Eclipse Che are trademarks of their
+respective owners and are used only to identify compatible services.

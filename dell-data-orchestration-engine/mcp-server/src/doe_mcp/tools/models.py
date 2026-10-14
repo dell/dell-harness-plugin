@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Installing marketplace models and bringing them up as services.
 
 Getting a marketplace model running is a four-step sequence, and each step is its own tool

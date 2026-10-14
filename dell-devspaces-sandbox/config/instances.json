@@ -1,10 +1,10 @@
 {
   "instances": [
     {
-      "name": "devspaces-prod-drm",
-      "display_name": "Dell Dev Spaces Production DRM",
+      "name": "example-devspaces",
+      "display_name": "Example Dev Spaces cluster (replace before use)",
       "api_url": "https://api.devspaces.example.com:6443",
-      "ui_url": "https://devspaces-ui.example.com",
+      "ui_url": "https://devspaces.example.com",
       "default": true
     }
   ]

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """End-to-end proof that a gated tool asks a real elicitation-capable client, not just guards.py.
 
 `tests/test_guards.py` unit-tests `confirm_or_elicit` directly; this drives the whole protocol

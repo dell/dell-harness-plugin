@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Measure the advertised tool surface: chars and approximate tokens, broken down by component.
 
 Reproduces the numbers in `docs/plans/AGENT_OPTIMIZATION_HARNESS_SLM_PLAN.md` §1 so they stay

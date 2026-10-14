@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """The advertised-surface budget: what a client is sent before any work happens.
 
 Re-baselined 2026-08-27, in two ways that matter.

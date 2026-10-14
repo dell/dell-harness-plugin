@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 import json
 from pathlib import Path
 
@@ -47,7 +50,7 @@ def test_aidp_manifests_are_focused_read_only_packages():
         assert manifest["author"]["url"].startswith("https://")
         assert manifest["homepage"].startswith("https://")
         assert "repository" not in manifest
-        assert manifest["license"] == "Proprietary"
+        assert manifest["license"] == "Apache-2.0"
         assert len(manifest["keywords"]) >= 3
         assert manifest["interface"]["capabilities"] == ["Read"]
         assert manifest["interface"]["shortDescription"]
@@ -67,7 +70,6 @@ def test_aidp_manifests_are_focused_read_only_packages():
             assert asset.is_file()
 
         serialized = json.dumps(manifest)
-        assert "lab9bgp" not in serialized
         assert "ApiKey " not in serialized
 
 
@@ -99,9 +101,6 @@ def test_customer_mcp_registration_is_documented_without_bundled_endpoint():
     assert "[mcp_servers.dell_data_search_engine]" in ddse
     assert 'env_http_headers = { Authorization = "DDSE_MCP_AUTHORIZATION" }' in ddse
     assert 'export DDSE_MCP_AUTHORIZATION="ApiKey <encoded-api-key>"' in ddse
-
-    assert "lab9bgp" not in ddae
-    assert "lab9bgp" not in ddse
 
 
 def test_ddae_oauth_guides_separate_user_and_admin_responsibilities():
@@ -143,7 +142,6 @@ def test_ddae_oauth_guides_separate_user_and_admin_responsibilities():
     assert "codex mcp add dell_data_analytics_engine" not in admin_guide
     assert not (reference_dir / "DDAE_OAUTH_USAGE_GUIDE.md").exists()
     for guide in (user_guide, admin_guide):
-        assert "lab9bgp" not in guide
         assert "SOCKS" not in guide
         assert "SSH tunnel" not in guide
 

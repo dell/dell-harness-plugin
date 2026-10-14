@@ -29,10 +29,10 @@ The bundled [instance catalog](../../../config/instances.json) maps stable logic
 {
   "instances": [
     {
-      "name": "devspaces-prod-drm",
-      "display_name": "Dell Dev Spaces Production DRM",
-      "api_url": "https://api.example.net:6443",
-      "ui_url": "https://devspace-ui.apps.example.net",
+      "name": "example-devspaces",
+      "display_name": "Example Dev Spaces cluster",
+      "api_url": "https://api.devspaces.example.com:6443",
+      "ui_url": "https://devspaces.example.com",
       "default": true
     }
   ]
@@ -49,7 +49,7 @@ Export configuration before starting Codex:
 export DEVSPACES_CONTEXT=my-openshift-context
 export DEVSPACES_ALLOWED_CONTEXTS=my-openshift-context
 export DEVSPACES_ALLOWED_NAMESPACES=my-user-devspaces
-export DEVSPACES_DEFAULT_INSTANCE=devspaces-prod-drm
+export DEVSPACES_DEFAULT_INSTANCE=example-devspaces
 ```
 
 Keep the write variables unset for read-only evaluation. Use an OpenShift OAuth-backed, non-admin kubeconfig for the production pilot.

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """DOE credential resolution.
 
 Authentication is API-key only: ``DATALOOP_API_KEY`` must hold a valid DOE API key.

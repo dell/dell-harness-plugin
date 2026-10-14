@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """End-to-end check over a real stdio subprocess.
 
 The other tests drive the server in-process. This one starts it the way a host does, so it

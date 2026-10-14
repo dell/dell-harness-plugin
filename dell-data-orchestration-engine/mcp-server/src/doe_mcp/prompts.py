@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """MCP Prompts for the three evaluated plugin workflows.
 
 The constants are module-level so the live prompt and matching golden trace use

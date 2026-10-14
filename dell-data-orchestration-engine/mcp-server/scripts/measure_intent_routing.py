@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """How hard is it to route a plain-English request to the right doe-mcp tool?
 
 The question behind a possible fine-tuned router: **is intent→tool matching actually a problem?**

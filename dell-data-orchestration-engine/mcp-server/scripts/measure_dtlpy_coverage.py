@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """How much of the `dtlpy` SDK surface is reachable through doe-mcp's tools, and what is missing.
 
 Answers "what are we missing from dtlpy that could become a tool or a skill" mechanically, by

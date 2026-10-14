@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Running a pipeline, watching what it does, and stopping it when it wedges.
 
 The widest gap `scripts/measure_dtlpy_coverage.py` found: `Executions` 0/12 and

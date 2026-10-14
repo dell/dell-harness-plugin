@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Offline pre-push checks, relocated package tests, and reproducible evidence.
 
 Run with requirements-dev.txt installed. Does not claim live or agent evaluation.

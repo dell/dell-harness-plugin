@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Answering "does this dataset contain PII?", and acting on the answer.
 
 DOE ships a *PII Detection & Redaction (Microsoft Presidio)* solution in its marketplace.

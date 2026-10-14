@@ -1,0 +1,12 @@
+version = 1
+SPDX-PackageName = "dell-harness-plugin"
+SPDX-PackageSupplier = "Dell Inc. or its subsidiaries"
+SPDX-PackageDownloadLocation = "https://github.com/dell/dell-harness-plugin"
+
+# Files that cannot carry a comment header (JSON, Markdown, YAML, images,
+# evidence). Source files keep their own SPDX headers, which take precedence.
+[[annotations]]
+path = "**"
+precedence = "closest"
+SPDX-FileCopyrightText = "Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved."
+SPDX-License-Identifier = "Apache-2.0"

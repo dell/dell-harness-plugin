@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Build a pipeline CODE node from source text.
 
 ``dl.CodeNode`` cannot be used here. It takes a ``Callable`` and recovers the source with

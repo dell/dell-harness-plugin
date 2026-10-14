@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Deterministic pipeline construction from a resolved blueprint.
 
 **Prototype.** Not registered as a tool yet — see the note at the bottom of this docstring.

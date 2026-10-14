@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Structural validation for raw DQL filter dicts.
 
 ``dtlpy`` passes ``custom_filter`` straight through to the platform — see

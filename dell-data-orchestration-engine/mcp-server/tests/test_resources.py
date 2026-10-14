@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Bulk payloads exposed as MCP Resources (plan §4 Phase 2), so large JSON can live outside the
 conversation transcript instead of round-tripping through a tool's structured_content.
 """

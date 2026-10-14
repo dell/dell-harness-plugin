@@ -46,10 +46,10 @@ For multiple Dataloop gates, create one state directory and configuration file
 per deployment:
 
 ```bash
-STATE_PATH="$(python dell-data-orchestration-engine/scripts/dataloop_state_dir.py cto-lab \
+STATE_PATH="$(python dell-data-orchestration-engine/scripts/dataloop_state_dir.py private-lab \
   --gate-url https://gate.example.com/api/v1)"
 python dell-data-orchestration-engine/scripts/configure_dataloop.py \
-  --config ~/.config/dell-mcp/dataloop-cto-lab.json \
+  --config ~/.config/dell-mcp/dataloop-private-lab.json \
   --state-path "$STATE_PATH" \
   --gate-url https://gate.example.com/api/v1
 ```
