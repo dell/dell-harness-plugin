@@ -36,22 +36,45 @@ def test_dataset_serializer_normalizes_json_values():
     assert result["updated_at"] == "ready"
 
 
-def test_json_safe_handles_enum_like_value_properties():
-    assert serialize.json_safe(SimpleNamespace(value="ready")) == "ready"
-    assert serialize.json_safe(SimpleNamespace(value=None)) is None
+def test_json_safe_reads_a_value_like_attribute():
+    enum_like = SimpleNamespace(value="ready")
+
+    assert serialize.json_safe(enum_like) == "ready"
 
 
-def test_json_safe_does_not_raise_when_value_property_raises():
+def test_json_safe_does_not_raise_when_the_value_attribute_itself_raises():
+    """Regression: the `hasattr(value, "value")` fallback called `.value` unguarded, unlike
+    `optional()`, which exists in this same module specifically because dtlpy properties can
+    raise on access (`Item.platform_url`). A single bad `.value` access must not blow up the
+    serialization of an otherwise-successful entity.
+    """
+
     class RaisesOnValue:
         @property
         def value(self):
             raise RuntimeError("boom")
 
-    value = RaisesOnValue()
-    assert serialize.json_safe(value) == str(value)
+    instance = RaisesOnValue()
+
+    assert serialize.json_safe(instance) == str(instance)
 
 
-def test_json_safe_does_not_hide_deeper_conversion_failures():
+def test_json_safe_reads_a_value_attribute_that_is_legitimately_none():
+    """A sentinel, not `None`, marks "no .value attribute" -- otherwise a value type whose
+    `.value` really is None would fall through to `str(value)` and be reported as its repr.
+    """
+
+    class NoneValued:
+        value = None
+
+    assert serialize.json_safe(NoneValued()) is None
+
+
+def test_json_safe_does_not_swallow_a_failure_below_the_value_read():
+    """Only the `.value` read is guarded. A failure deeper in the conversion is a real defect;
+    hiding it would discard a partly-converted structure and return a plausible-looking string.
+    """
+
     class Exploding(dict):
         def items(self):
             raise RuntimeError("boom")

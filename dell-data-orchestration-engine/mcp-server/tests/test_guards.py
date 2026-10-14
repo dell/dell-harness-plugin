@@ -177,7 +177,15 @@ def test_the_refusal_says_the_work_would_happen_off_platform():
         )
 
 
-# --- running a foreign model locally: elicitation or nothing -----------------------------
+# --- decisions a model must not take on its own behalf: elicitation or nothing ------------
+#
+# The original case was running CLIP in-process to embed a text query. That was retired
+# 2026-08-31 (`test_conventions.py`'s LOCAL_ML_EXCEPTIONS is empty, and its import scan fails if
+# torch/transformers reappear). The gate itself is still load-bearing: `dataset_visual_search`'s
+# text path now uploads a temporary item and pays for inference to embed the query, which is the
+# same shape of decision -- a cost and a write a human should agree to, not something the model
+# waves through with an argument. See `test_embeddings.py::test_visual_search_refuses_a_text_
+# query_without_elicitation` for the tool-level proof.
 
 
 def test_elicit_or_refuse_has_no_confirm_escape_hatch():

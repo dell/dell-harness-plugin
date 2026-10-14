@@ -129,7 +129,7 @@ def register(mcp: MCPServer) -> None:
         project_id: Annotated[str, Field(description="Project that owns the dataset.")],
         dataset_id: Annotated[str, Field(description="Dataset that holds the item.")],
         annotation_id: Annotated[str, Field(description="Id of the annotation to fetch.")],
-    ) -> dict[str, Any]:
+    ) -> outputs.AnnotationSummary:
         """Fetch one annotation by id."""
         dataset = get_dataset(project_id, dataset_id)
         return serialize.annotation(

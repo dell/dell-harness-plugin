@@ -367,11 +367,14 @@ def rag_query_platform(monkeypatch, mock_project, mock_dataset):
 
     feature_set = SimpleNamespace(id="fs-1", name="clip", model_id="model-1")
     mock_dataset.feature_sets.list.return_value = SimpleNamespace(items=[feature_set])
-
+    query_feature = SimpleNamespace(id="f-q", entity_id="q-1", value=[1.0, 0.0], delete=MagicMock())
     mock_dataset.features.list.side_effect = [
-        # First call: the query's own vector, polled after the model embedded it.
-        SimpleNamespace(items=[SimpleNamespace(id="f-q", entity_id="q-1", value=[1.0, 0.0])]),
-        # Second: the chunk vectors to rank against it.
+        # Polling finds the query vector.
+        SimpleNamespace(items=[query_feature]),
+        # Cleanup discovers and deletes that vector, then verifies it is absent.
+        SimpleNamespace(items=[query_feature]),
+        SimpleNamespace(items=[]),
+        # Final call: the chunk vectors to rank against the cleaned-up query.
         SimpleNamespace(
             items=[
                 SimpleNamespace(id="f-1", entity_id="chunk-1", value=[0.0, 1.0]),
@@ -380,6 +383,7 @@ def rag_query_platform(monkeypatch, mock_project, mock_dataset):
             has_next_page=False,
         ),
     ]
+    mock_dataset.items.list.return_value = SimpleNamespace(items=[])
 
     chunks = {
         "chunk-1": chunk_item("chunk-1", "policy_chunk_00000.txt", 0, "General intro to company."),
@@ -392,7 +396,10 @@ def rag_query_platform(monkeypatch, mock_project, mock_dataset):
 
     monkeypatch.setattr("doe_mcp.tools.rag.get_dataset", lambda pid, did: mock_dataset)
     monkeypatch.setattr("doe_mcp.tools.rag.get_project", lambda pid: mock_project)
-    return SimpleNamespace(dataset=mock_dataset, model=model, query_item=query_item)
+    monkeypatch.setattr("doe_mcp.tools.rag.elicit_or_refuse", lambda *args, **kwargs: None)
+    return SimpleNamespace(
+        dataset=mock_dataset, model=model, query_item=query_item, query_feature=query_feature
+    )
 
 
 def test_rag_query_ranks_chunks_by_vector_similarity(call_tool, rag_query_platform):
@@ -411,6 +418,8 @@ def test_rag_query_ranks_chunks_by_vector_similarity(call_tool, rag_query_platfo
     assert result.is_error is False
     sc = result.structured_content
     assert sc["feature_set_id"] == "fs-1"
+    assert sc["query_cleanup"]["vector"]["status"] == "verified_absent"
+    assert sc["query_cleanup"]["item"]["status"] == "verified_absent"
     assert sc["vectors_scanned"] == 2
     assert sc["results_count"] == 2
     # chunk-2's vector is identical to the query's, so it must rank first.
@@ -429,6 +438,8 @@ def test_rag_query_deletes_its_throwaway_query_item(call_tool, rag_query_platfor
     )
 
     rag_query_platform.query_item.delete.assert_called_once()
+    rag_query_platform.query_feature.delete.assert_called_once()
+    rag_query_platform.dataset.items.list.assert_called_once()
 
 
 def test_rag_query_applies_min_similarity(call_tool, rag_query_platform):
@@ -453,7 +464,9 @@ def test_rag_query_skips_vectors_whose_item_is_gone(call_tool, rag_query_platfor
     """A vector can outlive its item — a deleted query item ranks perfectly and means nothing."""
     dataset = rag_query_platform.dataset
     dataset.features.list.side_effect = [
-        SimpleNamespace(items=[SimpleNamespace(id="f-q", entity_id="q-1", value=[1.0, 0.0])]),
+        SimpleNamespace(items=[rag_query_platform.query_feature]),
+        SimpleNamespace(items=[rag_query_platform.query_feature]),
+        SimpleNamespace(items=[]),
         SimpleNamespace(
             items=[
                 # Left behind by an earlier query, and an exact match for this one.
@@ -485,7 +498,9 @@ def test_rag_query_skips_vectors_for_non_chunk_items(call_tool, rag_query_platfo
     """Only chunk items are answers; a vector on the text item is not a retrievable passage."""
     dataset = rag_query_platform.dataset
     dataset.features.list.side_effect = [
-        SimpleNamespace(items=[SimpleNamespace(id="f-q", entity_id="q-1", value=[1.0, 0.0])]),
+        SimpleNamespace(items=[rag_query_platform.query_feature]),
+        SimpleNamespace(items=[rag_query_platform.query_feature]),
+        SimpleNamespace(items=[]),
         SimpleNamespace(
             items=[
                 SimpleNamespace(id="f-t", entity_id="text-1", value=[1.0, 0.0]),
@@ -586,3 +601,243 @@ def test_generated_code_never_reaches_for_item_project(template):
     ]
 
     assert reaches == [], "item.project is None inside a code-node runner; resolve via dl.* instead"
+
+
+def test_generated_node_identifiers_are_inert_python_literals(call_tool, monkeypatch, mock_pipeline):
+    """Quotes, newlines, comments and Unicode in all four ids stay AST string constants."""
+    monkeypatch.setattr("doe_mcp.tools.pipeline_nodes.get_pipeline", lambda pid, ppid: mock_pipeline)
+    dataset_id = 'ds");\n__import__("os").system("touch /tmp/rag-pwned")\n# snowman: ☃'
+    model_id = 'model\'");\nraise RuntimeError("injected")\n#'
+
+    call_tool(
+        "rag_add_pdf_to_text_node",
+        {
+            "project_id": "proj-1",
+            "pipeline_id": "pipe-1",
+            "output_dataset_id": dataset_id,
+            "node_name": "safe_pdf",
+        },
+    )
+    call_tool(
+        "rag_add_text_to_chunks_node",
+        {
+            "project_id": "proj-1",
+            "pipeline_id": "pipe-1",
+            "output_dataset_id": dataset_id,
+            "node_name": "safe_chunks",
+        },
+    )
+    call_tool(
+        "rag_add_embedding_node",
+        {
+            "project_id": "proj-1",
+            "pipeline_id": "pipe-1",
+            "output_dataset_id": dataset_id,
+            "model_id": model_id,
+            "node_name": "safe_embed",
+        },
+    )
+
+    cases = [
+        (node_code(mock_pipeline, "safe_pdf"), [dataset_id]),
+        (node_code(mock_pipeline, "safe_chunks"), [dataset_id]),
+        (node_code(mock_pipeline, "safe_embed"), [dataset_id, model_id]),
+    ]
+    for source, expected_values in cases:
+        tree = ast.parse(source)
+        constants = [node.value for node in ast.walk(tree) if isinstance(node, ast.Constant)]
+        assert all(value in constants for value in expected_values)
+        assert source.isascii()
+        assert "_LITERAL__" not in source
+        assert not any(
+            isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "system"
+            for node in ast.walk(tree)
+        )
+
+
+def test_rag_query_refuses_side_effects_without_human_elicitation(
+    call_tool, monkeypatch, mock_project, mock_dataset
+):
+    feature_set = SimpleNamespace(id="fs-1", name="clip", model_id="model-1")
+    mock_dataset.feature_sets.list.return_value = SimpleNamespace(items=[feature_set])
+    mock_project.models.get.return_value = SimpleNamespace(id="model-1", embed=MagicMock())
+    monkeypatch.setattr("doe_mcp.tools.rag.get_dataset", lambda pid, did: mock_dataset)
+    monkeypatch.setattr("doe_mcp.tools.rag.get_project", lambda pid: mock_project)
+
+    result = call_tool(
+        "rag_query",
+        {"project_id": "proj-1", "dataset_id": "ds-1", "query": "returns", "model_id": "model-1"},
+    )
+
+    assert result.is_error is True
+    assert "Refusing to upload and embed a temporary RAG query item" in result.content[0].text
+    mock_dataset.items.upload.assert_not_called()
+
+
+def test_embed_query_preserves_primary_error_and_reports_cleanup_failures():
+    item = SimpleNamespace(id="q-1", delete=MagicMock(side_effect=RuntimeError("delete boom")))
+    dataset = SimpleNamespace(items=MagicMock(), features=MagicMock())
+    dataset.items.upload.return_value = item
+    dataset.items.list.return_value = SimpleNamespace(items=[item])
+    dataset.features.list.side_effect = [
+        SimpleNamespace(items=[]),
+        SimpleNamespace(items=[]),
+    ]
+    model = SimpleNamespace(id="model-1", embed=MagicMock(side_effect=RuntimeError("embed boom")))
+
+    with pytest.raises(RuntimeError) as excinfo:
+        rag.embed_query(dataset, model, "query", "fs-1")
+
+    message = str(excinfo.value)
+    assert "Query embedding failed" in message
+    assert "embed boom" in message
+    assert "cleanup also failed" in message
+    assert "delete boom" in message
+    assert "query item still exists" in message
+
+
+def test_embed_query_reports_residual_vector_after_delete():
+    item = SimpleNamespace(id="q-1", delete=MagicMock())
+    feature = SimpleNamespace(id="f-q", entity_id="q-1", value=[1.0, 0.0], delete=MagicMock())
+    dataset = SimpleNamespace(items=MagicMock(), features=MagicMock())
+    dataset.items.upload.return_value = item
+    dataset.items.list.return_value = SimpleNamespace(items=[])
+    dataset.features.list.side_effect = [
+        SimpleNamespace(items=[feature]),
+        SimpleNamespace(items=[feature]),
+        SimpleNamespace(items=[feature]),
+    ]
+    model = SimpleNamespace(id="model-1", embed=MagicMock(return_value=None))
+
+    with pytest.raises(RuntimeError, match="embedding succeeded but cleanup failed") as excinfo:
+        rag.embed_query(dataset, model, "query", "fs-1")
+
+    assert "query vector still exists: f-q" in str(excinfo.value)
+    feature.delete.assert_called_once()
+    item.delete.assert_called_once()
+
+
+class GeneratedChunkItems:
+    """Small item repository that executes the generated chunker's overwrite/cleanup contract."""
+
+    def __init__(self):
+        self.by_name = {}
+        self.current_source_id = None
+        self.prepared_filters = []
+
+    def upload(self, *, remote_name, item_metadata, **_):
+        entity = SimpleNamespace(name=remote_name, metadata=item_metadata)
+
+        def delete(name=remote_name):
+            self.by_name.pop(name, None)
+
+        entity.delete = delete
+        self.by_name[remote_name] = entity
+        return entity
+
+    def list(self, filters):
+        self.prepared_filters.append(str(filters.prepare()))
+        visible = [
+            entity
+            for entity in self.by_name.values()
+            if entity.metadata["user"]["rag"]["source_item_id"] == self.current_source_id
+        ]
+        return SimpleNamespace(all=lambda: list(visible))
+
+
+def generated_chunk_runner(call_tool, monkeypatch, mock_pipeline):
+    monkeypatch.setattr("doe_mcp.tools.pipeline_nodes.get_pipeline", lambda pid, ppid: mock_pipeline)
+    result = call_tool(
+        "rag_add_text_to_chunks_node",
+        {
+            "project_id": "proj-1",
+            "pipeline_id": "pipe-1",
+            "output_dataset_id": "ds-out",
+            "chunk_size": 100,
+            "chunk_overlap": 0,
+            "node_name": "generated_chunker",
+        },
+    )
+    assert result.is_error is False
+    namespace = {}
+    source = (
+        rag.TEXT_TO_CHUNKS_CODE.replace("__OUTPUT_DATASET_ID_LITERAL__", rag.python_string_literal("ds-out"))
+        .replace("__CHUNK_FOLDER__", rag.CHUNK_FOLDER)
+        .replace("__CHUNK_SIZE__", "100")
+        .replace("__CHUNK_OVERLAP__", "0")
+    )
+    exec(compile(source, "<generated-chunker>", "exec"), namespace)  # noqa: S102
+    repository = GeneratedChunkItems()
+    dataset = SimpleNamespace(items=repository)
+    monkeypatch.setattr(rag.dl.datasets, "get", lambda dataset_id: dataset)
+
+    def run(source_item_id, text):
+        repository.current_source_id = source_item_id
+        item = SimpleNamespace(
+            id=f"text-{source_item_id}",
+            name="report.txt",
+            metadata={
+                "user": {
+                    "rag": {
+                        "source_item_id": source_item_id,
+                        "source_item_name": "report.pdf",
+                    }
+                }
+            },
+            download=lambda save_locally=False: io.BytesIO(text.encode("utf-8")),
+            update=MagicMock(),
+        )
+        namespace["run"](item)
+        return item
+
+    return repository, run
+
+
+def test_generated_chunks_with_same_basename_are_scoped_by_source_id(call_tool, monkeypatch, mock_pipeline):
+    repository, run = generated_chunk_runner(call_tool, monkeypatch, mock_pipeline)
+
+    run("pdf-a", "A" * 150)
+    names_a = {
+        name
+        for name, entity in repository.by_name.items()
+        if entity.metadata["user"]["rag"]["source_item_id"] == "pdf-a"
+    }
+    run("pdf-b", "B" * 150)
+    names_b = {
+        name
+        for name, entity in repository.by_name.items()
+        if entity.metadata["user"]["rag"]["source_item_id"] == "pdf-b"
+    }
+
+    assert len(names_a) == 2
+    assert len(names_b) == 2
+    assert names_a.isdisjoint(names_b)
+
+
+def test_generated_chunk_rerun_removes_only_stale_chunks_for_that_source(
+    call_tool, monkeypatch, mock_pipeline
+):
+    repository, run = generated_chunk_runner(call_tool, monkeypatch, mock_pipeline)
+    run("pdf-b", "B" * 250)
+    names_b = {
+        name
+        for name, entity in repository.by_name.items()
+        if entity.metadata["user"]["rag"]["source_item_id"] == "pdf-b"
+    }
+    run("pdf-a", "A" * 250)
+    run("pdf-a", "A" * 80)
+
+    remaining_a = [
+        entity
+        for entity in repository.by_name.values()
+        if entity.metadata["user"]["rag"]["source_item_id"] == "pdf-a"
+    ]
+    remaining_b = {
+        name
+        for name, entity in repository.by_name.items()
+        if entity.metadata["user"]["rag"]["source_item_id"] == "pdf-b"
+    }
+    assert len(remaining_a) == 1
+    assert remaining_b == names_b
+    assert any("metadata.user.rag.source_item_id" in value for value in repository.prepared_filters)
+    assert any("metadata.user.rag.role" in value for value in repository.prepared_filters)

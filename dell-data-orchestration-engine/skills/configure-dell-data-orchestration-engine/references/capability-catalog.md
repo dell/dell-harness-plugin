@@ -7,9 +7,9 @@ plugin launcher.
 
 ## Plugin v1 default profile
 
-The default contains the 36 tools listed in `evals/cases/dataloop.json` under
+The default contains the 42 tools listed in `evals/cases/dataloop.json` under
 `declared_tools`. They cover authorization discovery, bounded dataset
-exploration, RAG, pipeline execution and recovery, PII assessment, image-classifier lifecycle, and exact cleanup.
+exploration, RAG, pipeline execution and recovery, PII assessment, image-classifier lifecycle, exact cleanup, and inspection and rollback of exact items, annotations, pipelines, and model subsets.
 
 ## Discovery profile
 
@@ -105,9 +105,9 @@ confirmation whenever adapter-specific `configuration` overrides are supplied.
 
 - The `dtlpy` SDK uses one authenticated identity per process.
 - The current integration uses API keys, not OAuth.
-- The complete development surface is about 30,800 measured tokens. The
-  focused 36-tool
-  default is about 19,500 measured tokens with typed output contracts; use an
+- The complete development surface is about 31,500 measured tokens. The
+  focused 42-tool
+  default is about 21,100 measured tokens with typed output contracts; use an
   even smaller profile when a
   deployment needs only one functional group.
 - The focused tools have named, typed output contracts. Tools outside that

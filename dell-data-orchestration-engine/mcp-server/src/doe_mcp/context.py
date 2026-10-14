@@ -43,17 +43,47 @@ def get_project(project_id: str) -> dl.entities.Project:
     return dataloop_call("project lookup", lambda: dl.projects.get(project_id=project_id))
 
 
+def _verify_resource_project(resource: T, project_id: str, resource_name: str) -> T:
+    """Reject a resource lookup whose response is not owned by the requested project.
+
+    Repository scoping is necessary but not sufficient as an authorization boundary: a mocked,
+    buggy, or permission-filtered backend can return an entity from another project. Verify the
+    response itself before any caller is allowed to use it.
+    """
+    owner = getattr(resource, "project_id", None)
+    if owner is None:
+        project = getattr(resource, "project", None)
+        owner = getattr(project, "id", None) if project is not None else None
+    if owner is None:
+        raise DoeError(
+            f"DOE {resource_name} lookup failed: the returned resource has no project identity; "
+            f"ownership by requested project {project_id!r} could not be verified."
+        )
+    if str(owner) != str(project_id):
+        raise DoeError(
+            f"DOE {resource_name} lookup failed: the returned resource belongs to project "
+            f"{owner!r}, not requested project {project_id!r}."
+        )
+    return resource
+
+
 def get_dataset(project_id: str, dataset_id: str) -> dl.entities.Dataset:
-    """Fetch a dataset within its project."""
+    """Fetch a dataset and verify the response belongs to the requested project."""
     return dataloop_call(
-        "dataset lookup", lambda: get_project(project_id).datasets.get(dataset_id=dataset_id)
+        "dataset lookup",
+        lambda: _verify_resource_project(
+            get_project(project_id).datasets.get(dataset_id=dataset_id), project_id, "dataset"
+        ),
     )
 
 
 def get_pipeline(project_id: str, pipeline_id: str) -> dl.entities.Pipeline:
-    """Fetch a pipeline within its project."""
+    """Fetch a pipeline and verify the response belongs to the requested project."""
     return dataloop_call(
-        "pipeline lookup", lambda: get_project(project_id).pipelines.get(pipeline_id=pipeline_id)
+        "pipeline lookup",
+        lambda: _verify_resource_project(
+            get_project(project_id).pipelines.get(pipeline_id=pipeline_id), project_id, "pipeline"
+        ),
     )
 
 

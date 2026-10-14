@@ -44,8 +44,12 @@ from doe_mcp.routing import LexicalRouter, catalogue_from  # noqa: E402
 from doe_mcp.server import PROFILE_ONLY, build_server  # noqa: E402
 
 #: (request, tool that should handle it). Provenance matters, so it is marked per entry:
-#: `trace` — the intent comes from a golden trace in `doe_mcp.eval.traces`, expected tool is that
-#:   trace's first required tool, i.e. what the workflow actually opens with.
+#: `trace` — the intent comes from a golden trace in `doe_mcp.eval.traces`, and the expected tool
+#:   is one of that trace's `required_tools`: the one the phrasing is asking for, which is the
+#:   trace's opening call for "what projects do I have" and a later phase's call for the rest.
+#:   (It is *not* always `required_tools[0]`; that would be `project_list` for all three traces.)
+#:   Pinned by `tests/test_measure_intent_routing.py`, after an entry named a plausible-looking
+#:   tool no trace calls at all and quietly skewed the score.
 #: `guide` — phrasing drawn from a `docs/guides/*.md` walkthrough.
 #: `written` — written for this file. These are the weakest evidence: they are one person's guess
 #:   at how a user phrases things, and a corpus authored by the same person who wrote the tool
@@ -56,7 +60,7 @@ CORPUS: list[tuple[str, str, str]] = [
     ("what kinds of files are in this dataset", "dataset_profile", "trace"),
     ("find a PII detection solution in the marketplace", "marketplace_search", "trace"),
     ("does this dataset contain personal information", "pii_report", "trace"),
-    ("build me a RAG pipeline from my PDFs", "rag_pipeline_build", "trace"),
+    ("build me a RAG pipeline from my PDFs", "rag_pipeline_create", "trace"),
     ("list the models installed in this project", "model_list", "guide"),
     ("what items are in this dataset", "item_list", "guide"),
     ("group the images by what they look like", "dataset_cluster", "guide"),

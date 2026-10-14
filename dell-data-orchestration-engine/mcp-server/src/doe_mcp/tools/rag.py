@@ -30,6 +30,7 @@ vector-distance query to delegate to (see tools/embeddings.py).
 """
 
 import io
+import json
 import time
 import uuid
 from typing import Annotated, Any
@@ -43,7 +44,7 @@ from pydantic import Field
 
 from .. import outputs, paging, serialize
 from ..context import dataloop_call, get_dataset, get_project
-from ..guards import gate_local_compute
+from ..guards import elicit_or_refuse, gate_local_compute
 from ..schemas import CodeNodeSpec, DatasetNodeSpec
 from . import pipeline_nodes
 from .embeddings import cosine_similarity, read_vectors
@@ -75,6 +76,7 @@ MAX_CHUNK_TEXT_CHARS = 4000
 
 PDF_TO_TEXT_CODE = r'''def run(item):
     """Extract text from a PDF and store it as a text item in the RAG output dataset."""
+    import hashlib
     import io
     import re
     import zlib
@@ -146,13 +148,15 @@ PDF_TO_TEXT_CODE = r'''def run(item):
     # context to fetch by id. (Note: keep this comment ASCII-only -- a non-ASCII character
     # here previously caused the platform to silently truncate the packaged code by a couple
     # of bytes, corrupting the trailing statement.)
-    output_dataset = dl.datasets.get(dataset_id="__OUTPUT_DATASET_ID__")
+    output_dataset = dl.datasets.get(dataset_id=__OUTPUT_DATASET_ID_LITERAL__)
     buffer = io.BytesIO(text.encode("utf-8"))
     base_name = item.name.rsplit(".", 1)[0]
+    source_token = hashlib.sha256(str(item.id).encode("utf-8")).hexdigest()[:16]
+    derived_name = "{}__{}.txt".format(base_name, source_token)
     text_item = output_dataset.items.upload(
         local_path=buffer,
         remote_path="__TEXT_FOLDER__",
-        remote_name="{}.txt".format(base_name),
+        remote_name=derived_name,
         overwrite=True,
         item_metadata={
             "user": {
@@ -161,6 +165,8 @@ PDF_TO_TEXT_CODE = r'''def run(item):
                     "source_item_id": item.id,
                     "source_item_name": item.name,
                     "char_count": len(text),
+                    "source_token": source_token,
+                    "derived_name": derived_name,
                 }
             }
         },
@@ -171,6 +177,7 @@ PDF_TO_TEXT_CODE = r'''def run(item):
 
 TEXT_TO_CHUNKS_CODE = r'''def run(item):
     """Split a text item into overlapping chunk items in the RAG output dataset."""
+    import hashlib
     import io
 
     import dtlpy as dl
@@ -185,32 +192,39 @@ TEXT_TO_CHUNKS_CODE = r'''def run(item):
         raise ValueError("Text item {} is empty; nothing to chunk.".format(item.id))
 
     rag_metadata = (item.metadata or {}).get("user", {}).get("rag", {})
+    source_item_id = rag_metadata.get("source_item_id") or item.id
     # item.project is unreliable here: the item JSON a pipeline code node receives can omit
     # projectId, leaving item.project None (verified live). dl.datasets.get needs no project
     # context to fetch by id.
-    output_dataset = dl.datasets.get(dataset_id="__OUTPUT_DATASET_ID__")
+    output_dataset = dl.datasets.get(dataset_id=__OUTPUT_DATASET_ID_LITERAL__)
     base_name = item.name.rsplit(".", 1)[0]
+    source_token = hashlib.sha256(str(source_item_id).encode("utf-8")).hexdigest()[:16]
     stride = max(1, chunk_size - chunk_overlap)
 
     chunk_count = 0
+    expected_names = set()
     for start in range(0, len(text), stride):
         chunk = text[start : start + chunk_size]
         if not chunk.strip():
             continue
         # One upload per chunk: item_metadata applies to the whole call, and each chunk needs its
         # own offsets so a retrieved chunk can be located in the source document.
+        chunk_name = "{}__{}_chunk_{:05d}.txt".format(base_name, source_token, chunk_count)
+        expected_names.add(chunk_name)
         output_dataset.items.upload(
             local_path=io.BytesIO(chunk.encode("utf-8")),
             remote_path="__CHUNK_FOLDER__",
-            remote_name="{}_chunk_{:05d}.txt".format(base_name, chunk_count),
+            remote_name=chunk_name,
             overwrite=True,
             item_metadata={
                 "user": {
                     "rag": {
                         "role": "chunk",
                         "text_item_id": item.id,
-                        "source_item_id": rag_metadata.get("source_item_id"),
+                        "source_item_id": source_item_id,
                         "source_item_name": rag_metadata.get("source_item_name"),
+                        "source_token": source_token,
+                        "derived_name": chunk_name,
                         "chunk_index": chunk_count,
                         "start_pos": start,
                         "end_pos": min(start + chunk_size, len(text)),
@@ -222,6 +236,15 @@ TEXT_TO_CHUNKS_CODE = r'''def run(item):
 
     if chunk_count == 0:
         raise ValueError("Text item {} produced no chunks.".format(item.id))
+
+    # Reprocessing a shorter source must not leave old tail chunks searchable. Scope cleanup by
+    # stable source id and role so no other document's output can be touched.
+    stale_filters = dl.Filters(resource=dl.FiltersResource.ITEM)
+    stale_filters.add(field="metadata.user.rag.source_item_id", values=source_item_id)
+    stale_filters.add(field="metadata.user.rag.role", values="chunk")
+    for stale_item in output_dataset.items.list(filters=stale_filters).all():
+        if stale_item.name not in expected_names:
+            stale_item.delete()
 
     # Provenance only -- the count, not the content, and never a vector.
     if item.metadata is None:
@@ -241,8 +264,8 @@ EMBEDDING_CODE = r'''def run(item):
     # item.project is unreliable here: the item JSON a pipeline code node receives can omit
     # projectId, leaving item.project None (verified live). dl.models.get/dl.datasets.get need
     # no project context to fetch by id.
-    model = dl.models.get(model_id="__MODEL_ID__")
-    output_dataset = dl.datasets.get(dataset_id="__OUTPUT_DATASET_ID__")
+    model = dl.models.get(model_id=__MODEL_ID_LITERAL__)
+    output_dataset = dl.datasets.get(dataset_id=__OUTPUT_DATASET_ID_LITERAL__)
 
     # Chunk items are found by DQL rather than by an id list carried in metadata: a long document
     # produces thousands of chunks, and the query pages instead of growing the item document.
@@ -271,6 +294,15 @@ EMBEDDING_CODE = r'''def run(item):
 '''
 
 
+def python_string_literal(value: str) -> str:
+    """Render caller-controlled text as one inert ASCII Python string literal.
+
+    JSON string syntax is valid Python string syntax for strings and escapes quotes, slashes,
+    control characters, newlines, and non-ASCII code points without executing any of them.
+    """
+    return json.dumps(value, ensure_ascii=True)
+
+
 def resolve_feature_set(dataset: Any, model_id: str, feature_set_id: str | None) -> str:
     """Which feature set holds this dataset's chunk vectors."""
     if feature_set_id is not None:
@@ -288,18 +320,98 @@ def resolve_feature_set(dataset: Any, model_id: str, feature_set_id: str | None)
     return str(candidates[0].id)
 
 
-def embed_query(dataset: Any, model: Any, query: str, feature_set_id: str) -> tuple[np.ndarray, str]:
-    """Vector for a query string, produced by the same model that embedded the chunks.
+def query_feature_filters(feature_set_id: str, item_id: str) -> dl.Filters:
+    """The exact temporary vector scope used for polling, deletion, and verification."""
+    filters = dl.Filters(resource=dl.FiltersResource.FEATURE)
+    filters.add(field="featureSetId", values=feature_set_id)
+    filters.add(field="entityId", values=item_id)
+    return filters
 
-    A query vector is only comparable with the chunk vectors if the same model made it, and that
-    model runs on the platform over *items*. So the query is uploaded as a throwaway text item,
-    embedded, read back, and deleted — the upload exists only to give the model something to
-    embed.
 
-    Deleting the item may or may not take its vector with it, so the ranking below cannot assume
-    the feature set holds chunk vectors only: it re-reads each hit's item and drops anything that
-    is not a live chunk.
+def cleanup_query_resources(dataset: Any, item: Any, feature_set_id: str) -> tuple[dict[str, Any], list[str]]:
+    """Delete and independently verify the temporary vector and item.
+
+    Cleanup failures are returned rather than raised immediately so the caller can preserve a
+    primary embedding error and report both failures together.
     """
+    item_id = str(item.id)
+    report: dict[str, Any] = {
+        "vector": {
+            "feature_set_id": feature_set_id,
+            "entity_id": item_id,
+            "status": "unverified",
+            "deleted_feature_ids": [],
+            "residual_feature_ids": [],
+        },
+        "item": {"item_id": item_id, "status": "unverified"},
+    }
+    errors: list[str] = []
+
+    filters = query_feature_filters(feature_set_id, item_id)
+    try:
+        listed = dataloop_call("query vector cleanup lookup", lambda: dataset.features.list(filters=filters))
+        features = [
+            feature
+            for feature in paging.page_entities(listed)
+            if str(getattr(feature, "entity_id", "")) == item_id
+        ]
+        for feature in features:
+            feature_id = str(getattr(feature, "id", ""))
+            dataloop_call("query vector delete", feature.delete)
+            report["vector"]["deleted_feature_ids"].append(feature_id)
+    except Exception as exc:  # noqa: BLE001 - cleanup must continue to the temporary item
+        errors.append(f"vector delete failed: {exc}")
+
+    try:
+        listed = dataloop_call(
+            "query vector cleanup verification", lambda: dataset.features.list(filters=filters)
+        )
+        residual = [
+            str(getattr(feature, "id", ""))
+            for feature in paging.page_entities(listed)
+            if str(getattr(feature, "entity_id", "")) == item_id
+        ]
+        report["vector"]["residual_feature_ids"] = residual
+        if residual:
+            report["vector"]["status"] = "residual"
+            errors.append(f"query vector still exists: {', '.join(residual)}")
+        else:
+            report["vector"]["status"] = "verified_absent"
+    except Exception as exc:  # noqa: BLE001 - item cleanup is independent
+        errors.append(f"vector absence could not be verified: {exc}")
+
+    try:
+        dataloop_call("query item delete", item.delete)
+    except Exception as exc:  # noqa: BLE001 - verification can still prove it absent
+        errors.append(f"item delete failed: {exc}")
+
+    item_filters = dl.Filters(resource=dl.FiltersResource.ITEM)
+    item_filters.add(field="id", values=item_id)
+    try:
+        listed = dataloop_call(
+            "query item cleanup verification", lambda: dataset.items.list(filters=item_filters)
+        )
+        residual = [
+            str(getattr(entity, "id", ""))
+            for entity in paging.page_entities(listed)
+            if str(getattr(entity, "id", "")) == item_id
+        ]
+        if residual:
+            report["item"]["status"] = "residual"
+            report["item"]["residual_item_ids"] = residual
+            errors.append(f"query item still exists: {', '.join(residual)}")
+        else:
+            report["item"]["status"] = "verified_absent"
+    except Exception as exc:  # noqa: BLE001 - report the unverifiable cleanup
+        errors.append(f"item absence could not be verified: {exc}")
+
+    return report, errors
+
+
+def embed_query(
+    dataset: Any, model: Any, query: str, feature_set_id: str
+) -> tuple[np.ndarray, str, dict[str, Any]]:
+    """Embed a temporary query item, then remove and verify both item and vector."""
     item = dataloop_call(
         "query item upload",
         lambda: dataset.items.upload(
@@ -309,28 +421,50 @@ def embed_query(dataset: Any, model: Any, query: str, feature_set_id: str) -> tu
             item_metadata={"user": {"rag": {"role": "query"}}},
         ),
     )
+    vector: np.ndarray | None = None
+    primary_error: Exception | None = None
+    filters = query_feature_filters(feature_set_id, str(item.id))
     try:
         execution = dataloop_call("query embed", lambda: model.embed(item_ids=[item.id]))
         if execution is not None and hasattr(execution, "wait"):
             dataloop_call("query embed wait", execution.wait)
-        filters = dl.Filters(resource=dl.FiltersResource.FEATURE)
-        filters.add(field="featureSetId", values=feature_set_id)
-        filters.add(field="entityId", values=item.id)
         for attempt in range(QUERY_POLL_ATTEMPTS):
             listed = dataloop_call("query feature list", lambda: dataset.features.list(filters=filters))
             for feature in paging.page_entities(listed):
                 value = getattr(feature, "value", None)
                 if value:
-                    return np.asarray(value, dtype=float), str(item.id)
+                    vector = np.asarray(value, dtype=float)
+                    break
+            if vector is not None:
+                break
             if attempt < QUERY_POLL_ATTEMPTS - 1:
                 time.sleep(QUERY_POLL_SECONDS)
+        if vector is None:
+            raise RuntimeError(
+                f"The query was uploaded and sent to model {getattr(model, 'id', '?')}, but no "
+                f"vector appeared in feature set {feature_set_id} within "
+                f"{int(QUERY_POLL_ATTEMPTS * QUERY_POLL_SECONDS)}s. Check the model's service is up."
+            )
+    except Exception as exc:  # noqa: BLE001 - preserve until cleanup has also completed
+        primary_error = exc
+
+    cleanup, cleanup_errors = cleanup_query_resources(dataset, item, feature_set_id)
+    if primary_error is not None:
+        if cleanup_errors:
+            details = "; ".join(cleanup_errors)
+            raise RuntimeError(
+                f"Query embedding failed ({type(primary_error).__name__}: {primary_error}); "
+                f"cleanup also failed: {details}; cleanup report: {json.dumps(cleanup, sort_keys=True)}"
+            ) from primary_error
+        raise primary_error
+    if cleanup_errors:
         raise RuntimeError(
-            f"The query was uploaded and sent to model {getattr(model, 'id', '?')}, but no vector "
-            f"appeared in feature set {feature_set_id} within "
-            f"{int(QUERY_POLL_ATTEMPTS * QUERY_POLL_SECONDS)}s. Check the model's service is up."
+            "Query embedding succeeded but cleanup failed: "
+            f"{'; '.join(cleanup_errors)}; cleanup report: {json.dumps(cleanup, sort_keys=True)}"
         )
-    finally:
-        dataloop_call("query item delete", item.delete)
+    if vector is None:  # Defensive: the primary-error branch above should make this unreachable.
+        raise RuntimeError("Query embedding returned no vector.")
+    return vector, str(item.id), cleanup
 
 
 def live_chunk(dataset: Any, item_id: str) -> Any | None:
@@ -445,9 +579,9 @@ def register(mcp: MCPServer) -> None:
         Extracts with pypdf on DOE, uploads to `/rag/text` tagged with the source id, and
         returns that item. A PDF yielding no text fails the execution.
         """
-        code = PDF_TO_TEXT_CODE.replace("__OUTPUT_DATASET_ID__", output_dataset_id).replace(
-            "__TEXT_FOLDER__", TEXT_FOLDER
-        )
+        code = PDF_TO_TEXT_CODE.replace(
+            "__OUTPUT_DATASET_ID_LITERAL__", python_string_literal(output_dataset_id)
+        ).replace("__TEXT_FOLDER__", TEXT_FOLDER)
         return add_node(
             project_id,
             pipeline_id,
@@ -472,7 +606,10 @@ def register(mcp: MCPServer) -> None:
         feature vector attaches to an entity, so chunk-level retrieval needs chunk items.
         """
         code = (
-            TEXT_TO_CHUNKS_CODE.replace("__OUTPUT_DATASET_ID__", output_dataset_id)
+            TEXT_TO_CHUNKS_CODE.replace(
+                "__OUTPUT_DATASET_ID_LITERAL__",
+                python_string_literal(output_dataset_id),
+            )
             .replace("__CHUNK_FOLDER__", CHUNK_FOLDER)
             .replace("__CHUNK_SIZE__", str(chunk_size))
             .replace("__CHUNK_OVERLAP__", str(chunk_overlap))
@@ -501,8 +638,11 @@ def register(mcp: MCPServer) -> None:
         metadata. Billable, and the model must already be deployed.
         """
         code = (
-            EMBEDDING_CODE.replace("__OUTPUT_DATASET_ID__", output_dataset_id)
-            .replace("__MODEL_ID__", model_id)
+            EMBEDDING_CODE.replace(
+                "__OUTPUT_DATASET_ID_LITERAL__",
+                python_string_literal(output_dataset_id),
+            )
+            .replace("__MODEL_ID_LITERAL__", python_string_literal(model_id))
             .replace("__BATCH_SIZE__", str(EMBED_BATCH_SIZE))
         )
         return add_node(
@@ -534,7 +674,7 @@ def register(mcp: MCPServer) -> None:
             ),
         )
 
-    @mcp.tool(title="Query RAG dataset", annotations=READ_ONLY)
+    @mcp.tool(title="Query RAG dataset", annotations=MUTATING)
     def rag_query(
         project_id: Annotated[str, Field(description="Project owning the dataset.")],
         dataset_id: Annotated[str, Field(description="Dataset holding the chunk items.")],
@@ -556,21 +696,32 @@ def register(mcp: MCPServer) -> None:
     ) -> outputs.RagQueryResult:
         """Rank chunk items against a query by vector similarity over the feature set.
 
-        The query is embedded by the same model as the chunks — uploaded as a throwaway item,
-        embedded, read back, deleted. Ranking is local (`dtlpy` has no vector-distance query)
-        over a bounded sample: check `scan_truncated`.
+        With human approval, the query is uploaded as a temporary item and embedded by the same
+        model as the chunks. Its vector and item are then deleted and independently verified
+        absent. Ranking is local over a bounded sample: check `scan_truncated`.
         """
         dataset = get_dataset(project_id, dataset_id)
         project = get_project(project_id)
         model = dataloop_call("model lookup", lambda: project.models.get(model_id=model_id))
         resolved_set = resolve_feature_set(dataset, model_id, feature_set_id)
 
-        query_vector, _ = embed_query(dataset, model, query, resolved_set)
         # Ranking happens here, not on the platform (dtlpy has no vector-distance query), so the
         # same tripwire applies as for dataset_cluster: see guards.gate_local_compute.
         gate_local_compute(
             ctx, requested=max_vectors, action="rank these chunks locally", parameter="max_vectors"
         )
+        elicit_or_refuse(
+            ctx,
+            action="upload and embed a temporary RAG query item",
+            consequence=(
+                "the query text is written to the dataset and sent to the model for inference; "
+                "the server will then delete and verify both its item and feature vector"
+            ),
+            remedy=(
+                "Use dataset_visual_search with a precomputed query_vector to avoid writing a temporary item"
+            ),
+        )
+        query_vector, _, cleanup = embed_query(dataset, model, query, resolved_set)
         features, truncated = dataloop_call(
             "feature list", lambda: read_vectors(dataset, resolved_set, max_vectors)
         )
@@ -609,6 +760,7 @@ def register(mcp: MCPServer) -> None:
             "query": query,
             "dataset_id": dataset_id,
             "feature_set_id": resolved_set,
+            "query_cleanup": cleanup,
             "vectors_scanned": len(usable),
             "scan_truncated": truncated,
             "results_count": len(results),

@@ -81,33 +81,42 @@ def test_task_node_spec_accepts_shares_that_sum_to_100():
         node_type="task",
         name="label",
         dataset_id="ds-1",
-        task_owner="owner@example.com",
+        task_owner="me@example.com",
         workload=[
             {"assignee_id": "a@example.com", "load": 60},
             {"assignee_id": "b@example.com", "load": 40},
         ],
     )
+
     assert [unit.load for unit in spec.workload] == [60, 40]
 
 
-def test_task_node_spec_rejects_invalid_total_and_duplicate_assignee():
-    with pytest.raises(ValidationError, match="over 100"):
+def test_task_node_spec_rejects_shares_that_sum_over_100():
+    """Regression: each unit's `load` was bounded 0-100, but nothing checked the sum, so a
+    workload the platform would only reject later (e.g. three assignees each at 100%) passed
+    local validation.
+    """
+    with pytest.raises(ValidationError, match="sum to 250"):
         TaskNodeSpec(
             node_type="task",
             name="label",
             dataset_id="ds-1",
-            task_owner="owner@example.com",
+            task_owner="me@example.com",
             workload=[
-                {"assignee_id": "a@example.com", "load": 70},
-                {"assignee_id": "b@example.com", "load": 40},
+                {"assignee_id": "a@example.com", "load": 100},
+                {"assignee_id": "b@example.com", "load": 100},
+                {"assignee_id": "c@example.com", "load": 50},
             ],
         )
+
+
+def test_task_node_spec_rejects_a_duplicate_assignee():
     with pytest.raises(ValidationError, match="duplicate assignee"):
         TaskNodeSpec(
             node_type="task",
             name="label",
             dataset_id="ds-1",
-            task_owner="owner@example.com",
+            task_owner="me@example.com",
             workload=[
                 {"assignee_id": "a@example.com", "load": 50},
                 {"assignee_id": "a@example.com", "load": 30},

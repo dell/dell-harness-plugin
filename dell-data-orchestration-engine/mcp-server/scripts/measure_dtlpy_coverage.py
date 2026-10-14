@@ -72,7 +72,16 @@ OUT_OF_SCOPE: dict[str, str] = {
 TOOL_TO_SDK: dict[str, tuple[str, ...]] = {
     "dataset_profile": ("Items.list",),
     "dataset_cluster": ("Features.list", "FeatureSets.list"),
-    "dataset_visual_search": ("Features.list",),
+    # The text-query path embeds via the deployed model, which means a model lookup, an item
+    # upload, an embed call and a delete on top of the vector read (see rag.embed_query).
+    "dataset_visual_search": (
+        "Features.list",
+        "FeatureSets.list",
+        "Models.get",
+        "Items.upload",
+        "Model.embed",
+        "Item.delete",
+    ),
     "dataset_embed": ("Models.embed_datasets",),
     "dataset_embeddings_status": ("FeatureSets.list",),
     "marketplace_search": ("Dpks.list",),

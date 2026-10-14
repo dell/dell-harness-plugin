@@ -103,7 +103,8 @@ def test_annotation_list_filters_by_label(dataset, call_tool):
     assert item.annotations.list_filters is not None
 
 
-def test_annotation_list_threads_page_inputs_to_platform(dataset, call_tool):
+def test_annotation_list_threads_page_and_page_size_to_the_platform(dataset, call_tool):
+    """Regression: annotation_list took only `limit`, with no way to reach a page past the first."""
     call_tool("annotation_list", {**ARGS, "page": 2, "page_size": 10})
 
     item = dataset.items.get()

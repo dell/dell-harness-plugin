@@ -76,8 +76,8 @@ class TraceResult:
     failure_reason: str | None = None
     #: Per-kind breakdown of `sdk_errors`; see `ERROR_KINDS`.
     error_kinds: dict[str, int] = field(default_factory=dict)
-    #: The model's closing message, when it produced one. Not scored — recorded so a human can
-    #: audit what the agent actually claimed, which a tool-name list cannot show.
+    #: The model's closing message. Golden traces can grade it against recorded result evidence,
+    #: and it remains persisted for human audit.
     final_text: str = ""
     #: The criteria this result was scored against, captured so a persisted run is auditable even
     #: after the trace definition changes.
@@ -252,6 +252,7 @@ def score_transcript(
     sdk_errors: int | None = None,
     turns_used: int | None = None,
     usage: TokenUsage | None = None,
+    final_text: str = "",
     enforce_turn_cap: bool = False,
 ) -> TraceResult:
     """Score an already-finished transcript against `trace`, instead of driving one.
@@ -262,8 +263,8 @@ def score_transcript(
 
     Pass `ToolCall` records where you can and bare tool names where you cannot. Names alone are
     enough for the ordering and forbidden-tool rules, but **not** for a trace with an
-    `outcome_check`: there are no results to check, so the trace cannot pass, and the failure
-    reason says so rather than quietly scoring a pass on choreography alone.
+    outcome or answer check: there are no results to check, so the trace cannot pass, and the
+    failure reason says so rather than quietly scoring a pass on choreography alone.
 
     `enforce_turn_cap` defaults off, because this path is usually handed a transcript from a driver
     whose "turns" are not comparable to `run_trace`'s. Turn it on to apply the same three-condition
@@ -287,8 +288,10 @@ def score_transcript(
         turns_used=resolved_turns,
         calls=calls,
         usage=usage if usage is not None else TokenUsage(),
+        final_text=final_text,
         cap_hit=enforce_turn_cap and resolved_turns > trace.max_turns,
-        outcome_unverifiable=names_only and trace.outcome_check is not None,
+        outcome_unverifiable=names_only
+        and (trace.outcome_check is not None or trace.answer_check is not None),
     )
 
 
@@ -334,13 +337,17 @@ def _score(
         reasons.append(f"required tools {list(trace.required_tools)} were not all called, in order")
     if outcome_unverifiable:
         reasons.append(
-            "this trace has an outcome check but was scored from tool names alone; pass ToolCall "
-            "records so the run's result can be verified, not just its tool sequence"
+            "this trace has an evidence check but was scored from tool names alone; pass ToolCall "
+            "records and final text so the result can be verified, not just its tool sequence"
         )
     elif trace.outcome_check is not None:
         outcome = trace.outcome_check(calls)
         if outcome:
             reasons.append(f"outcome check failed: {outcome}")
+    if not outcome_unverifiable and trace.answer_check is not None:
+        answer = trace.answer_check(calls, final_text)
+        if answer:
+            reasons.append(f"final answer check failed: {answer}")
 
     return TraceResult(
         trace_id=trace.id,
@@ -357,5 +364,6 @@ def _score(
             "forbidden_tools": list(trace.forbidden_tools),
             "max_turns": trace.max_turns,
             "outcome_check": getattr(trace.outcome_check, "__name__", None),
+            "answer_check": getattr(trace.answer_check, "__name__", None),
         },
     )

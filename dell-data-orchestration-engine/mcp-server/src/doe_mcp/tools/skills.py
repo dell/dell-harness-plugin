@@ -25,6 +25,13 @@ Two differences from the per-node tools this replaces, both load-bearing:
   the same choices produced a different graph, so this is part of the determinism property, not
   just a speed one. It does not *close* the race, which needs a precondition dtlpy does not offer.
 
+**Binding condition: reuse before building.** Before constructing anything, `apply_blueprint`
+looks up a pipeline already named for this blueprint and, if one exists, compares its live
+`canonical_graph` against `blueprint.expected_canonical_graph` -- what these exact choices would
+build. A match is adopted as-is; a same name with a different graph, or no existing pipeline,
+falls through to building from scratch. A skill must never construct a duplicate of a pipeline
+that already has the correct structure.
+
 **Not in `ALL_MODULES`, on purpose.** A skill is meant to be an *alternative* to the fine-grained
 node tools, not an addition: a session that has `rag_pipeline_build` does not also need six
 `rag_add_*_node` tools. Registering it everywhere would grow the default surface past its ceiling
@@ -34,13 +41,21 @@ while making that surface strictly more confusing. Whether the `skills` profile 
 
 from typing import Annotated, Any
 
+import dtlpy as dl
 from mcp.server import MCPServer
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import serialize
-from ..blueprint import Edge, PipelineBlueprint, build_graph, canonical_graph, fingerprint
-from ..context import dataloop_call, get_pipeline, get_project
+from ..blueprint import (
+    Edge,
+    PipelineBlueprint,
+    build_graph,
+    canonical_graph,
+    expected_canonical_graph,
+    fingerprint,
+)
+from ..context import DoeError, dataloop_call, get_pipeline, get_project
 from ..guards import confirm_or_elicit
 from ..routing import CachingRouter, LexicalRouter, catalogue_from
 from ..schemas import CodeNodeSpec, DatasetNodeSpec
@@ -51,6 +66,7 @@ from .rag import (
     PDF_TO_TEXT_CODE,
     TEXT_FOLDER,
     TEXT_TO_CHUNKS_CODE,
+    python_string_literal,
 )
 
 MUTATING = ToolAnnotations(read_only_hint=False, open_world_hint=False)
@@ -80,18 +96,18 @@ def rag_blueprint(
     produce one at a time, so this is a port rather than a second, subtly different RAG shape.
     """
     pdf_filter = {"filter": {"$and": [{"metadata.system.mimetype": {"$eq": "application/pdf"}}]}}
-    to_text = PDF_TO_TEXT_CODE.replace("__OUTPUT_DATASET_ID__", output_dataset_id).replace(
-        "__TEXT_FOLDER__", TEXT_FOLDER
-    )
+    to_text = PDF_TO_TEXT_CODE.replace(
+        "__OUTPUT_DATASET_ID_LITERAL__", python_string_literal(output_dataset_id)
+    ).replace("__TEXT_FOLDER__", TEXT_FOLDER)
     to_chunks = (
-        TEXT_TO_CHUNKS_CODE.replace("__OUTPUT_DATASET_ID__", output_dataset_id)
+        TEXT_TO_CHUNKS_CODE.replace("__OUTPUT_DATASET_ID_LITERAL__", python_string_literal(output_dataset_id))
         .replace("__CHUNK_FOLDER__", CHUNK_FOLDER)
         .replace("__CHUNK_SIZE__", str(chunk_size))
         .replace("__CHUNK_OVERLAP__", str(chunk_overlap))
     )
     embed = (
-        EMBEDDING_CODE.replace("__OUTPUT_DATASET_ID__", output_dataset_id)
-        .replace("__MODEL_ID__", model_id)
+        EMBEDDING_CODE.replace("__OUTPUT_DATASET_ID_LITERAL__", python_string_literal(output_dataset_id))
+        .replace("__MODEL_ID_LITERAL__", python_string_literal(model_id))
         .replace("__BATCH_SIZE__", str(EMBED_BATCH_SIZE))
     )
     return PipelineBlueprint(
@@ -124,13 +140,54 @@ def rag_blueprint(
     )
 
 
-def apply_blueprint(project_id: str, plan: PipelineBlueprint) -> dict[str, Any]:
-    """Create the pipeline and write the whole graph in one PATCH, then verify by re-reading.
+def reusable_pipeline(
+    project: dl.entities.Project, project_id: str, plan: PipelineBlueprint
+) -> dict[str, Any] | None:
+    """A same-named pipeline this blueprint's choices already match, if one exists.
 
-    The re-read is independent, never `update()`'s own return value: that echoes back what this
-    process sent rather than what the platform now holds (techspec A.4).
+    Binding condition: a skill must not build a duplicate of a pipeline that is already correct.
+    Existence of the name alone is not enough -- a same-named pipeline left over from a different
+    set of choices should not be adopted silently -- so this compares `canonical_graph` of the
+    live pipeline against what `plan` would build, not just the name. Returns None on any
+    mismatch or absence, which tells the caller to build from scratch as before.
+    """
+    # Not routed through `dataloop_call`: that normalizes every non-`ValueError` failure into a
+    # `RuntimeError`, which would swallow the `NotFound` this depends on distinguishing from a
+    # genuine failure (auth, network, a name collision `Pipelines.get` itself refuses to resolve).
+    try:
+        existing = project.pipelines.get(pipeline_name=plan.name)
+    except dl.exceptions.NotFound:
+        return None
+    except Exception as exc:
+        # DoeError, not a bare RuntimeError: this message is hand-built in the same shape
+        # dataloop_call produces, so it must also be recognised as already-normalized if it ever
+        # ends up inside one -- otherwise it would come back double-prefixed.
+        raise DoeError(f"DOE pipeline lookup by name failed: {exc}") from exc
+
+    verified = get_pipeline(project_id, existing.id)
+    live_graph = canonical_graph(verified)
+    if live_graph != expected_canonical_graph(project, plan):
+        return None
+    return {
+        "pipeline": serialize.pipeline(verified, include_graph=True),
+        "blueprint_fingerprint": fingerprint(plan),
+        "canonical_graph": live_graph,
+        "reused_existing_pipeline": True,
+    }
+
+
+def apply_blueprint(project_id: str, plan: PipelineBlueprint) -> dict[str, Any]:
+    """Reuse a matching same-named pipeline; otherwise create one and write the graph in one PATCH.
+
+    A fresh build is always verified by an independent re-read, never `update()`'s own return
+    value: that echoes back what this process sent rather than what the platform now holds
+    (techspec A.4).
     """
     project = get_project(project_id)
+    reused = reusable_pipeline(project, project_id, plan)
+    if reused is not None:
+        return reused
+
     created = dataloop_call(
         "pipeline create", lambda: project.pipelines.create(name=plan.name, project_id=project_id)
     )
@@ -152,6 +209,7 @@ def apply_blueprint(project_id: str, plan: PipelineBlueprint) -> dict[str, Any]:
         "pipeline": serialize.pipeline(verified, include_graph=True),
         "blueprint_fingerprint": fingerprint(plan),
         "canonical_graph": built,
+        "reused_existing_pipeline": False,
     }
 
 

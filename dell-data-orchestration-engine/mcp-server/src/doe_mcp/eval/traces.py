@@ -54,18 +54,33 @@ BILLABLE_OR_MUTATING = (
     "dataset_delete",
     "dataset_embed",
     "dataset_visual_search",
+    "execution_terminate",
+    "item_update",
     "item_upload",
     "model_create",
     "model_delete",
+    "model_delete_subset",
     "model_deploy",
     "model_install",
     "model_predict",
+    "model_set_subset",
     "model_train",
+    "pii_set_findings",
+    "pipeline_connect_nodes",
     "pipeline_create",
     "pipeline_create_from_template",
     "pipeline_delete",
+    "pipeline_execute",
     "pipeline_install",
+    "pipeline_pause",
+    "rag_add_embedding_node",
+    "rag_add_output_node",
+    "rag_add_pdf_filter_node",
+    "rag_add_pdf_to_text_node",
+    "rag_add_text_to_chunks_node",
     "rag_pipeline_create",
+    # Query text is uploaded as a temporary item and sent through billable model inference.
+    "rag_query",
     "trigger_create",
     "trigger_delete",
 )
@@ -93,6 +108,9 @@ class GoldenTrace:
     #: Checks what the run actually achieved, from the recorded tool results. Returns an empty
     #: string when satisfied, or a short reason why not.
     outcome_check: Callable[[Sequence[ToolCall]], str] | None = field(default=None, compare=False)
+    #: Checks that the final response communicates evidence from the tool results, rather than
+    #: merely ending after correct tool choreography.
+    answer_check: Callable[[Sequence[ToolCall], str], str] | None = field(default=None, compare=False)
 
 
 def _last_payload(calls: Sequence[ToolCall], name: str) -> object:
@@ -113,23 +131,111 @@ def _explored_a_dataset(calls: Sequence[ToolCall]) -> str:
 
 
 def _reported_on_pii(calls: Sequence[ToolCall]) -> str:
-    """A report that never verified the marker convention is the guide's documented false negative."""
+    """Require a substantive, allowlisted PII report and a real marker-convention check."""
     report = _last_payload(calls, "pii_report")
     if not isinstance(report, dict):
         return "pii_report never returned a payload"
-    if _last_payload(calls, "item_get") is None:
-        return "no item_get: the marker convention was never verified against a known-PII item"
+    required = {
+        "dataset_id",
+        "verdict",
+        "flagged_items",
+        "flagged_count_is_exact",
+        "dataset_items",
+        "marker",
+        "sample",
+    }
+    missing = sorted(required - report.keys())
+    if missing:
+        return f"pii_report omitted required evidence fields: {missing}"
+    flagged = report.get("flagged_items")
+    if isinstance(flagged, bool) or not isinstance(flagged, int) or flagged < 0:
+        return "pii_report flagged_items is not a non-negative integer"
+    if not isinstance(report.get("flagged_count_is_exact"), bool):
+        return "pii_report did not say whether its count is exact"
+    if not isinstance(report.get("verdict"), str) or not report["verdict"].strip():
+        return "pii_report returned no verdict"
+    samples = report.get("sample")
+    if not isinstance(samples, list):
+        return "pii_report sample is not a list"
+    allowed_sample_fields = {"item_id", "matched_entity_types"}
+    for sample in samples:
+        if not isinstance(sample, dict) or not sample.get("item_id"):
+            return "pii_report sample omitted a safe item identifier"
+        leaked = set(sample) - allowed_sample_fields
+        if leaked:
+            return f"pii_report sample exposed non-allowlisted fields: {sorted(leaked)}"
+
+    known_item = _last_payload(calls, "item_get")
+    if not isinstance(known_item, dict) or not known_item.get("id"):
+        return "item_get returned no item identity to verify the marker convention"
     return ""
 
 
 def _built_a_working_rag_graph(calls: Sequence[ToolCall]) -> str:
-    """Five nodes and one edge is not a RAG pipeline; the graph has to be fully wired."""
-    edges = sum(1 for call in calls if call.name == "pipeline_connect_nodes" and not call.is_error)
-    if edges < 4:
-        return f"only {edges} of the 4 edges a five-node RAG graph needs were connected"
+    """Require the final connected graph and installed pipeline payload, not call counts alone."""
+    connects = [call for call in calls if call.name == "pipeline_connect_nodes" and not call.is_error]
+    if len(connects) < 4:
+        return f"only {len(connects)} of the 4 edges a five-node RAG graph needs were connected"
+    graph = connects[-1].payload
+    if not isinstance(graph, dict):
+        return "the final pipeline_connect_nodes call returned no graph payload"
+    nodes = graph.get("nodes")
+    connections = graph.get("connections")
+    if not isinstance(nodes, list) or len(nodes) < 5:
+        return "the final RAG graph does not contain five nodes"
+    if not isinstance(connections, list) or len(connections) < 4:
+        return "the final RAG graph does not contain four connections"
+
     installed = _last_payload(calls, "pipeline_install")
     if not isinstance(installed, dict):
         return "pipeline_install never returned a payload"
+    if not installed.get("id") or not installed.get("status"):
+        return "pipeline_install omitted pipeline identity or status"
+    if not isinstance(installed.get("node_count"), int) or installed["node_count"] < 5:
+        return "installed pipeline does not report the five-node graph"
+    if graph.get("id") and graph["id"] != installed["id"]:
+        return "the installed pipeline is not the graph that was connected"
+    return ""
+
+
+def _answered_dataset_profile(calls: Sequence[ToolCall], final_text: str) -> str:
+    profile = _last_payload(calls, "dataset_profile")
+    if not isinstance(profile, dict) or not final_text.strip():
+        return "the final answer did not report dataset-profile evidence"
+    lowered = final_text.lower()
+    for bucket in ("by_mimetype", "by_folder"):
+        values = profile.get(bucket)
+        if not isinstance(values, dict):
+            continue
+        for label, count in values.items():
+            labels = {str(label).lower(), str(label).lower().rsplit("/", 1)[-1]}
+            if any(value and value in lowered for value in labels) and str(count) in final_text:
+                return ""
+    return "the final answer did not cite any observed profile category and count"
+
+
+def _answered_pii_report(calls: Sequence[ToolCall], final_text: str) -> str:
+    report = _last_payload(calls, "pii_report")
+    if not isinstance(report, dict):
+        return "the final answer has no PII report to ground itself in"
+    if "pii" not in final_text.lower():
+        return "the final answer never states the PII finding"
+    if str(report.get("flagged_items")) not in final_text:
+        return "the final answer omits the reported flagged-item count"
+    return ""
+
+
+def _answered_rag_install(calls: Sequence[ToolCall], final_text: str) -> str:
+    installed = _last_payload(calls, "pipeline_install")
+    if not isinstance(installed, dict):
+        return "the final answer has no installed pipeline result to ground itself in"
+    lowered = final_text.lower()
+    identifiers = [str(installed.get(key) or "") for key in ("id", "name")]
+    if not any(identifier and identifier.lower() in lowered for identifier in identifiers):
+        return "the final answer omits the installed pipeline identity"
+    status = str(installed.get("status") or "")
+    if not status or status.lower() not in lowered:
+        return "the final answer omits the installed pipeline status"
     return ""
 
 
@@ -149,6 +255,7 @@ DATASET_EXPLORATION = GoldenTrace(
     # model that double-checks something before profiling.
     max_turns=8,
     outcome_check=_explored_a_dataset,
+    answer_check=_answered_dataset_profile,
 )
 
 PII_DETECTION = GoldenTrace(
@@ -178,6 +285,7 @@ PII_DETECTION = GoldenTrace(
     # scripted measurement skips, so the cap allows for that.
     max_turns=14,
     outcome_check=_reported_on_pii,
+    answer_check=_answered_pii_report,
 )
 
 AGENTIC_RAG = GoldenTrace(
@@ -217,6 +325,7 @@ AGENTIC_RAG = GoldenTrace(
     # that inspects the graph before installing.
     max_turns=28,
     outcome_check=_built_a_working_rag_graph,
+    answer_check=_answered_rag_install,
 )
 
 GOLDEN_TRACES: tuple[GoldenTrace, ...] = (DATASET_EXPLORATION, PII_DETECTION, AGENTIC_RAG)
@@ -245,6 +354,7 @@ def criteria_baseline() -> dict[str, Any]:
                 "max_turns": trace.max_turns,
                 "operator_replies": len(trace.operator_replies),
                 "outcome_check": getattr(trace.outcome_check, "__name__", None),
+                "answer_check": getattr(trace.answer_check, "__name__", None),
             }
             for trace in GOLDEN_TRACES
         ]

@@ -59,6 +59,14 @@ class MissingCredentials(MCPError):
         super().__init__(code=INVALID_REQUEST, message=message)
 
 
+#: Owner-only, for the state directory and for the token file dtlpy leaves in it.
+STATE_DIR_MODE = 0o700
+TOKEN_FILE_MODE = 0o600
+
+#: dtlpy's token lives here, written with a plain ``open(path, "w")``.
+COOKIE_FILE_NAME = "cookie.json"
+
+
 def _require_state_directory() -> str:
     state_dir = os.environ.get(STATE_DIR_ENV_VAR)
     if not state_dir:

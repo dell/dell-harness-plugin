@@ -127,6 +127,7 @@ class FakeDatasetsRepo:
         dataset = FakeDataset(
             id=f"ds-{dataset_name}",
             name=dataset_name,
+            project_id="proj-1",
             items_count=0,
             annotations_count=0,
             readonly=False,
@@ -245,6 +246,7 @@ def build_fixture() -> tuple[FakeProject, FakeDpksRepo]:
         "ds-1": FakeDataset(
             id="ds-1",
             name="documents",
+            project_id="proj-1",
             items_count=len(items),
             annotations_count=1,
             readonly=False,
@@ -258,6 +260,7 @@ def build_fixture() -> tuple[FakeProject, FakeDpksRepo]:
         "ds-2": FakeDataset(
             id="ds-2",
             name="videos",
+            project_id="proj-1",
             items_count=0,
             annotations_count=0,
             readonly=False,

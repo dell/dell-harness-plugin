@@ -5,6 +5,17 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## Unreleased
 
+### Added
+
+- `dell-data-orchestration-engine` 0.4.0: synchronized the bundled MCP server
+  with the upstream DOE MCP server as of 2026-09-21. The `plugin-v1` profile
+  grows from 36 to 42 tools (`item_get`, `annotation_get`, `pipeline_list`,
+  `pipeline_pause`, `pipeline_delete`, `model_delete_subset`). Upstream also
+  brings verified cleanup of temporary `rag_query` items and vectors
+  (`query_cleanup`), allowlisted `pii_report` samples, project-ownership checks
+  on lookups, and reuse of an identical existing pipeline. A new
+  inspect-and-rollback evaluation workflow covers the added tools.
+
 ### Changed
 
 - Licensed the repository under Apache-2.0. Plugin manifests now declare

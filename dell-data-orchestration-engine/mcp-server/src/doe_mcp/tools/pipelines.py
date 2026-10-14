@@ -247,7 +247,7 @@ def register(mcp: MCPServer) -> None:
             Field(description="Must be true to proceed. Deletion cannot be undone; ask the user first."),
         ] = False,
         ctx: Context | None = None,
-    ) -> dict[str, Any]:
+    ) -> outputs.DeleteResult:
         """Permanently delete a pipeline."""
         confirm_or_elicit(
             ctx, confirm, "delete this pipeline", "it destroys the pipeline and cannot be undone"
@@ -292,7 +292,7 @@ def register(mcp: MCPServer) -> None:
             bool | None,
             Field(description="Keep triggers collecting events while the pipeline is paused."),
         ] = None,
-    ) -> dict[str, Any]:
+    ) -> outputs.PipelineStatusSummary:
         """Pause (uninstall) a running pipeline."""
         pipeline = get_pipeline(project_id, pipeline_id)
         pipeline.project.pipelines.pause(pipeline=pipeline, keep_triggers_active=keep_triggers_active)

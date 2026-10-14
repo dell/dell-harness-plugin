@@ -596,13 +596,15 @@ async def run(project_id: str) -> None:
                 # coercing it, so this run is what tells us what to expect.
                 record("Pipelines.validate returns", repr(res.structured_content.get("result"))[:160])
             elif "Invalid roles" in _detail(res, 300):
-                # Same class as the documented /ml/models 403: this API key's JWT carries
-                # `"roles": []`, so the endpoint refuses it regardless of project ownership. The
-                # tool surfaced it cleanly, which is all that can be verified with this credential
-                # -- whether validate *works* needs a properly-roled one. Not scored as a pass.
+                # The endpoint refuses this credential. Deliberately *not* attributed to the
+                # key's `"roles": []` JWT claim, and deliberately not called "the same class as
+                # the /ml/models 403": that generalisation was disproved on 2026-08-31, when a
+                # key carrying the identical claim turned out to have full ML CRUD (techspec
+                # Appendix B.3). The cause here is unknown; what is verified is that the tool
+                # surfaces the refusal cleanly. Not scored as a pass.
                 record(
                     "pipeline_validate with an API-key credential",
-                    "refused, 400 Invalid roles - unverifiable with this key, same as /ml/models",
+                    "refused, 400 Invalid roles - cause unknown, not verifiable with this key",
                 )
             else:
                 check("pipeline_validate on a two-node graph", False, _detail(res))

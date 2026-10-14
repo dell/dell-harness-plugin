@@ -187,7 +187,7 @@ def register(mcp: MCPServer) -> None:
         project_id: Annotated[str, Field(description="Project that owns the dataset.")],
         dataset_id: Annotated[str, Field(description="Dataset that holds the item.")],
         item_id: Annotated[str, Field(description="Id of the item to fetch.")],
-    ) -> dict[str, Any]:
+    ) -> outputs.ItemSummary:
         """Fetch one item by id."""
         dataset = get_dataset(project_id, dataset_id)
         return serialize.item(dataloop_call("item lookup", lambda: dataset.items.get(item_id=item_id)))

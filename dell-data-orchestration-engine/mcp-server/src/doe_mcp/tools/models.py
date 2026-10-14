@@ -25,6 +25,7 @@ from ..context import get_project, marketplace_dpks
 from ..guards import confirm_or_elicit
 from ..progress import report_progress
 from ..schemas import PiiMarkerSpec
+from .pii import apply_marker_filter, marker_exclusion_warning
 
 READ_ONLY = ToolAnnotations(
     read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
@@ -404,25 +405,11 @@ def register(mcp: MCPServer) -> None:
         if directory is not None:
             filters.add(field="dir", values=directory)
         pii_warning = None
+        pii_filter = None
         if exclude_pii is not None:
-            if exclude_pii.metadata_field is not None:
-                filters.add(
-                    field=f"metadata.user.{exclude_pii.metadata_field}",
-                    values=exclude_pii.metadata_value,
-                    operator=dl.FiltersOperations.NOT_EQUAL,
-                )
-            else:
-                filters.add_join(
-                    field="label",
-                    values=exclude_pii.annotation_label,
-                    operator=dl.FiltersOperations.NOT_EQUAL,
-                )
-                pii_warning = (
-                    "PII exclusion by annotation label uses a negated join, which DQL evaluates "
-                    "per annotation — an item carrying both a PII and a non-PII annotation can "
-                    "still enter the subset. Prefer a metadata marker when withholding data from "
-                    "training actually matters."
-                )
+            apply_marker_filter(filters, exclude_pii, flagged=False)
+            pii_warning = marker_exclusion_warning(exclude_pii)
+            pii_filter = filters.prepare()
 
         # Count before applying, not after: if the count read fails, the tool raises and the
         # caller must be able to trust that nothing was applied. Applying first would leave the
@@ -450,6 +437,7 @@ def register(mcp: MCPServer) -> None:
             "subset": subset,
             "matched_items": matched_count,
             "pii_excluded": exclude_pii is not None,
+            "pii_exclusion_filter": pii_filter,
             "warning": " ".join(warnings) or None,
         }
 
@@ -460,7 +448,7 @@ def register(mcp: MCPServer) -> None:
         subset: Annotated[
             Literal["train", "validation"], Field(description="Which subset definition to remove.")
         ],
-    ) -> dict[str, Any]:
+    ) -> outputs.ModelSubsetRemovalResult:
         """Remove a training or validation subset definition from a model."""
         project = get_project(project_id)
         model = project.models.get(model_id=model_id)

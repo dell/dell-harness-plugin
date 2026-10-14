@@ -30,7 +30,7 @@ def load_launcher():
 def test_manifest_mcp_marketplace_and_governance_are_registered():
     manifest = load_json(PLUGIN / ".codex-plugin" / "plugin.json")
     assert manifest["name"] == "dell-data-orchestration-engine"
-    assert manifest["version"] == "0.3.0"
+    assert manifest["version"] == "0.4.0"
     assert manifest["skills"] == "./skills/"
     assert manifest["mcpServers"] == "./.mcp.json"
     assert manifest["homepage"].startswith("https://")
@@ -167,12 +167,12 @@ def test_dataloop_evaluation_definition_and_contract_inventory_validate():
         text=True,
     )
     summary = json.loads(completed.stdout)["plugins"]["dell-data-orchestration-engine"]
-    assert summary["workflows"] == 7
+    assert summary["workflows"] == 8
     assert summary["submission_cases"]["positive"] >= 5
     assert summary["submission_cases"]["negative"] >= 3
 
     definition = load_json(ROOT / "evals" / "cases" / "dataloop.json")
-    assert len(definition["contract_tools"]) == 36
+    assert len(definition["contract_tools"]) == 42
     assert definition["contract_tools"] == definition["declared_tools"]
     assert len(definition["upstream_tools"]) == 70
     assert len(set(definition["upstream_tools"])) == 70

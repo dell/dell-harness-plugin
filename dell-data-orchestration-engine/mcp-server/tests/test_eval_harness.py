@@ -247,7 +247,12 @@ def test_score_transcript_fails_on_reported_sdk_errors():
     assert "returned an error" in result.failure_reason
 
 
-def test_score_transcript_preserves_arguments_when_reconciling_sdk_errors():
+def test_score_transcript_preserves_arguments_on_sdk_error_reconciliation():
+    """Regression: reconstructing the first `sdk_errors` calls as errored used to drop
+    `arguments`, replacing it with the dataclass default `{}`. Nothing reads `.arguments` off a
+    `TraceResult` directly, but `outcome_check` receives the full `ToolCall` list, so a check that
+    reads `.arguments` is the reachable way to observe the bug.
+    """
     seen_arguments: list[Any] = []
 
     def _check(calls):
@@ -368,6 +373,7 @@ def test_trace_criteria_stay_meaningful(trace):
     assert len(trace.required_tools) >= 3, "a trace this thin cannot distinguish success from noise"
     assert trace.max_turns >= len(trace.required_tools)
     assert trace.outcome_check is not None, "ordering alone measures choreography, not the job"
+    assert trace.answer_check is not None, "a correct backend result still needs a grounded answer"
     if trace.operator_replies:
         assert trace.forbidden_tools or trace.forbidden_before_approval, (
             "a trace with a scripted approval is modelling a human-gated intent, so it must forbid "
@@ -391,7 +397,7 @@ def test_every_required_and_forbidden_tool_exists_on_the_server():
     referenced = {
         name
         for trace in GOLDEN_TRACES
-        for name in (trace.required_tools + trace.forbidden_tools + trace.forbidden_before_approval)
+        for name in trace.required_tools + trace.forbidden_tools + trace.forbidden_before_approval
     }
 
     assert referenced <= available, f"traces reference tools that do not exist: {referenced - available}"
@@ -444,7 +450,7 @@ def test_names_only_transcript_cannot_pass_a_trace_with_an_outcome_check():
     result = score_transcript(trace, ["dataset_profile"])
 
     assert not result.passed
-    assert "outcome check but was scored from tool names alone" in result.failure_reason
+    assert "evidence check but was scored from tool names alone" in result.failure_reason
 
 
 def test_dataset_exploration_outcome_check_rejects_an_empty_profile():
@@ -457,14 +463,28 @@ def test_dataset_exploration_outcome_check_rejects_an_empty_profile():
     assert real == ""
 
 
-def test_agentic_rag_outcome_check_rejects_a_partially_wired_graph():
+def test_agentic_rag_outcome_check_requires_graph_and_install_evidence():
     trace = next(t for t in GOLDEN_TRACES if t.id == "agentic-rag")
-    one_edge = [ToolCall(name="pipeline_connect_nodes")] + [ToolCall(name="pipeline_install", payload={})]
-    four_edges = [ToolCall(name="pipeline_connect_nodes") for _ in range(4)]
-    four_edges.append(ToolCall(name="pipeline_install", payload={}))
+    one_edge = [ToolCall(name="pipeline_connect_nodes")]
+    choreography_only = [ToolCall(name="pipeline_connect_nodes", payload={}) for _ in range(4)]
+    choreography_only.append(ToolCall(name="pipeline_install", payload={}))
+    graph = {
+        "id": "pipe-1",
+        "nodes": [{} for _ in range(5)],
+        "connections": [{} for _ in range(4)],
+    }
+    working = [ToolCall(name="pipeline_connect_nodes", payload={}) for _ in range(3)]
+    working.append(ToolCall(name="pipeline_connect_nodes", payload=graph))
+    working.append(
+        ToolCall(
+            name="pipeline_install",
+            payload={"id": "pipe-1", "name": "rag", "status": "installed", "node_count": 5},
+        )
+    )
 
     assert "only 1 of the 4 edges" in trace.outcome_check(one_edge)
-    assert trace.outcome_check(four_edges) == ""
+    assert "does not contain five nodes" in trace.outcome_check(choreography_only)
+    assert trace.outcome_check(working) == ""
 
 
 # --- operator replies --------------------------------------------------------------------
@@ -653,3 +673,53 @@ def test_never_pausing_for_approval_counts_as_never_approved():
 
     assert not result.passed
     assert "before the operator approved" in result.failure_reason
+
+
+def test_pii_outcome_check_requires_substantive_safe_payloads():
+    trace = next(t for t in GOLDEN_TRACES if t.id == "pii-detection")
+    item = ToolCall(name="item_get", payload={"id": "item-1", "name": "known-positive.txt"})
+    empty = [item, ToolCall(name="pii_report", payload={})]
+    valid_report = {
+        "dataset_id": "ds-1",
+        "verdict": "PII markers found",
+        "flagged_items": 2,
+        "flagged_count_is_exact": True,
+        "dataset_items": 10,
+        "marker": {"entity_types": ["US_SSN"]},
+        "sample": [{"item_id": "item-1", "matched_entity_types": ["US_SSN"]}],
+    }
+    valid = [item, ToolCall(name="pii_report", payload=valid_report)]
+    leaked_report = {**valid_report, "sample": [{"item_id": "item-1", "metadata": {"ssn": "raw"}}]}
+    leaked = [item, ToolCall(name="pii_report", payload=leaked_report)]
+
+    assert "omitted required evidence" in trace.outcome_check(empty)
+    assert trace.outcome_check(valid) == ""
+    assert "non-allowlisted fields" in trace.outcome_check(leaked)
+
+
+def test_final_answer_check_can_fail_an_otherwise_successful_trace():
+    trace = _trace(
+        required_tools=("a",),
+        answer_check=lambda calls, text: "" if "42" in text else "known answer 42 was omitted",
+    )
+    calls = [ToolCall(name="a", payload={"answer": 42})]
+
+    failed = score_transcript(trace, calls, final_text="Done.")
+    passed = score_transcript(trace, calls, final_text="The verified answer is 42.")
+
+    assert not failed.passed
+    assert "final answer check failed: known answer 42 was omitted" in failed.failure_reason
+    assert passed.passed
+
+
+def test_golden_pii_answer_check_requires_reported_count():
+    trace = next(t for t in GOLDEN_TRACES if t.id == "pii-detection")
+    calls = [
+        ToolCall(
+            name="pii_report",
+            payload={"verdict": "PII markers found", "flagged_items": 2},
+        )
+    ]
+
+    assert trace.answer_check(calls, "PII was found.") != ""
+    assert trace.answer_check(calls, "PII was found on 2 flagged items.") == ""

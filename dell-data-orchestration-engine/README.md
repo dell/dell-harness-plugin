@@ -60,8 +60,8 @@ from silently sharing one dtlpy cookie and selected-environment pointer.
 
 ## Limit the tool surface
 
-The launcher defaults to the reviewed `plugin-v1` profile: the 36 tools used by
-the plugin's seven evaluated workflows. This keeps tool-selection context bounded
+The launcher defaults to the reviewed `plugin-v1` profile: the 42 tools used by
+the plugin's eight evaluated workflows. This keeps tool-selection context bounded
 while retaining the complete bundled server for deliberate development use.
 
 Set `DATALOOP_MCP_PROFILES` to a comma-separated selection of `discovery`,

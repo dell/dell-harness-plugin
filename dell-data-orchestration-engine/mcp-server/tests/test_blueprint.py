@@ -85,28 +85,45 @@ def test_a_different_choice_gives_a_different_graph():
     assert [n["id"] for n in default["nodes"]] != [n["id"] for n in other["nodes"]]
 
 
-def test_editing_one_node_keeps_unrelated_node_ids_stable():
+def test_editing_one_node_does_not_change_an_unrelated_nodes_id():
+    """Regression: deriving every node's id from a digest of the *whole* plan meant editing any
+    one node -- or adding/removing an unrelated one -- also changed every other node's id, which
+    defeated "referential integrity across a rebuild": a connection recorded against a node id
+    would stop meaning the same node the moment the blueprint was edited at all. Each node's id
+    must depend only on that node's own spec.
+    """
     default = construct(rag_blueprint()).to_json()
-    edited = construct(rag_blueprint(output_dataset="ds-other")).to_json()
-    before = {node["name"]: node["id"] for node in default["nodes"]}
-    after = {node["name"]: node["id"] for node in edited["nodes"]}
+    edited = construct(rag_blueprint(output_dataset="ds-somewhere-else")).to_json()
 
-    assert before["ingest"] == after["ingest"]
-    assert before["to_text"] == after["to_text"]
-    assert before["out"] != after["out"]
+    by_name_default = {n["name"]: n["id"] for n in default["nodes"]}
+    by_name_edited = {n["name"]: n["id"] for n in edited["nodes"]}
+
+    # "out" is the node whose dataset_id changed, so only its id may change.
+    assert by_name_default["ingest"] == by_name_edited["ingest"]
+    assert by_name_default["to_text"] == by_name_edited["to_text"]
+    assert by_name_default["out"] != by_name_edited["out"]
 
 
-def test_different_pipeline_names_do_not_share_node_or_port_ids():
-    first = construct(rag_blueprint()).to_json()
-    other = rag_blueprint().model_copy(update={"name": "rag-v2"})
-    second = construct(other).to_json()
+def test_two_pipelines_with_the_same_nodes_do_not_share_ids():
+    """The other half of the property above, and the one it was accidentally traded for.
 
-    first_nodes = {node["id"] for node in first["nodes"]}
-    second_nodes = {node["id"] for node in second["nodes"]}
-    first_ports = {port["portId"] for node in first["nodes"] for port in node["inputs"] + node["outputs"]}
-    second_ports = {port["portId"] for node in second["nodes"] for port in node["inputs"] + node["outputs"]}
-    assert first_nodes.isdisjoint(second_nodes)
-    assert first_ports.isdisjoint(second_ports)
+    Scoping the digest to a node's own spec stopped a sibling's edit from moving this node's id --
+    but it also dropped the pipeline from the hash entirely, so two *different* pipelines built
+    from the same choices produced byte-identical node and port ids. `skills.rag_blueprint`
+    derives its graph from the datasets/model/chunking, so "rag-v1" and "rag-v2" over the same
+    inputs collided on all of them.
+    """
+    v1 = construct(rag_blueprint()).to_json()
+    other = rag_blueprint()
+    v2 = construct(other.model_copy(update={"name": "rag-v2"})).to_json()
+
+    v1_nodes = {node["id"] for node in v1["nodes"]}
+    v2_nodes = {node["id"] for node in v2["nodes"]}
+    v1_ports = {p["portId"] for n in v1["nodes"] for p in n["inputs"] + n["outputs"]}
+    v2_ports = {p["portId"] for n in v2["nodes"] for p in n["inputs"] + n["outputs"]}
+
+    assert v1_nodes.isdisjoint(v2_nodes), "two pipelines must not share node ids"
+    assert v1_ports.isdisjoint(v2_ports), "two pipelines must not share port ids"
 
 
 def test_identifiers_are_unique_within_a_graph():
@@ -264,3 +281,32 @@ def test_canonical_form_carries_no_platform_assigned_identifier():
     flattened = repr(canonical)
     for node in construct(rag_blueprint()).nodes:
         assert node.node_id not in flattened
+
+
+# --- expected_canonical_graph: checking reuse without touching the platform ----------------
+
+
+def test_expected_canonical_graph_matches_a_pipeline_built_from_the_same_plan():
+    """What a caller compares a live pipeline against before deciding to reuse it."""
+    plan = rag_blueprint()
+    project = SimpleNamespace(id="proj-1", name="proj")
+
+    assert bp.expected_canonical_graph(project, plan) == bp.canonical_graph(construct(plan))
+
+
+def test_expected_canonical_graph_differs_when_a_choice_differs():
+    project = SimpleNamespace(id="proj-1", name="proj")
+
+    default = bp.expected_canonical_graph(project, rag_blueprint())
+    other = bp.expected_canonical_graph(project, rag_blueprint(output_dataset="ds-somewhere-else"))
+
+    assert default != other
+
+
+def test_expected_canonical_graph_touches_neither_network_nor_platform():
+    """Must be computable from the plan alone -- that is what makes the reuse check cheap."""
+    project = SimpleNamespace(id="proj-1", name="proj")
+
+    # A project stub with no repositories attached would blow up on any call that reached for
+    # the platform (datasets, services, ...); it not blowing up is the assertion.
+    bp.expected_canonical_graph(project, rag_blueprint())

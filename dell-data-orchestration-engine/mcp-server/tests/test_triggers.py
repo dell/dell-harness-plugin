@@ -50,6 +50,7 @@ class FakeTriggers:
 
 @pytest.fixture(autouse=True)
 def mock_get_dataset(monkeypatch):
+    """trigger_create validates dataset_id against project_id before anything else."""
     dataset = SimpleNamespace(id="ds-1", name="my-dataset")
     monkeypatch.setattr(triggers, "get_dataset", lambda project_id, dataset_id: dataset)
     return dataset
@@ -141,32 +142,69 @@ def test_list_returns_all_project_triggers(monkeypatch, call_tool):
     assert [item["id"] for item in result.structured_content["items"]] == ["trg-1", "trg-2"]
 
 
-def test_list_pages_and_preserves_project_scope(monkeypatch, call_tool):
+def test_list_pages_through_more_triggers_than_fit_one_page(monkeypatch, call_tool):
+    """Regression: trigger_list took only `limit`, with no way to reach a page past the first."""
+    existing = [fake_trigger("trg-1"), fake_trigger("trg-2", "pipe-2")]
+
+    class ServerPagedTriggers(FakeTriggers):
+        def list(self, filters=None):
+            page, page_size = filters.page, filters.page_size
+            window = existing[page * page_size : (page + 1) * page_size]
+            return SimpleNamespace(
+                items=window, items_count=len(existing), page_offset=page, page_size=page_size
+            )
+
+    fake = ServerPagedTriggers()
+    proj = SimpleNamespace(id="proj-1", name="proj", triggers=fake)
+    monkeypatch.setattr(triggers, "get_project", lambda project_id: proj)
+
+    first = call_tool("trigger_list", {"project_id": "proj-1", "page": 0, "page_size": 1})
+    second = call_tool("trigger_list", {"project_id": "proj-1", "page": 1, "page_size": 1})
+
+    assert [item["id"] for item in first.structured_content["items"]] == ["trg-1"]
+    assert [item["id"] for item in second.structured_content["items"]] == ["trg-2"]
+
+
+def test_list_stays_scoped_to_the_project(monkeypatch, call_tool):
+    """Regression: adding paging meant passing an explicit Filters, and dtlpy adds `projectId`
+    *only* when `filters is None` (`Triggers.__generate_default_filter`). So the paged version
+    went out as `{"filter": {}}` -- every trigger the key can see, from any project -- while the
+    docstring still promised project scoping.
+
+    Asserts the *prepared* query rather than the call kwargs: a fake repository cannot show what
+    the platform would have been asked, which is exactly how this slipped through the first time.
+    """
+    prepared = {}
+
+    class RecordingTriggers(FakeTriggers):
+        def list(self, filters=None):
+            prepared.update(filters.prepare())
+            return super().list()
+
+    proj = SimpleNamespace(id="proj-1", name="proj", triggers=RecordingTriggers(existing=[fake_trigger()]))
+    monkeypatch.setattr(triggers, "get_project", lambda project_id: proj)
+
+    call_tool("trigger_list", {"project_id": "proj-1"})
+
+    assert prepared["filter"] == {"$and": [{"projectId": "proj-1"}]}
+
+
+def test_list_threads_page_and_page_size_into_the_filters(monkeypatch, call_tool):
     seen = {}
 
     class RecordingTriggers(FakeTriggers):
         def list(self, filters=None):
             seen["page"] = filters.page
             seen["page_size"] = filters.page_size
-            seen["prepared"] = filters.prepare()
             return super().list()
 
-    proj = SimpleNamespace(
-        id="proj-1",
-        name="proj",
-        triggers=RecordingTriggers(existing=[fake_trigger()]),
-    )
+    fake = RecordingTriggers(existing=[fake_trigger()])
+    proj = SimpleNamespace(id="proj-1", name="proj", triggers=fake)
     monkeypatch.setattr(triggers, "get_project", lambda project_id: proj)
 
-    result = call_tool(
-        "trigger_list",
-        {"project_id": "proj-1", "page": 2, "page_size": 25},
-    )
+    call_tool("trigger_list", {"project_id": "proj-1", "page": 2, "page_size": 25})
 
-    assert result.is_error is False
-    assert seen["page"] == 2
-    assert seen["page_size"] == 25
-    assert seen["prepared"]["filter"] == {"$and": [{"projectId": "proj-1"}]}
+    assert seen == {"page": 2, "page_size": 25}
 
 
 def test_get_reports_whether_the_trigger_is_still_active(project, call_tool):
@@ -190,11 +228,16 @@ def test_delete_removes_the_trigger_when_confirmed(project, call_tool):
     assert project.triggers.deleted == "trg-1"
 
 
-def test_create_refuses_dataset_outside_the_project(project, monkeypatch, call_tool):
+def test_create_refuses_a_dataset_that_does_not_belong_to_the_project(project, monkeypatch, call_tool):
+    """Regression: trigger_create used to inline dataset_id into a filter without ever checking
+    it resolves within project_id, so a stale or wrong id would silently create a dead trigger.
+    """
+
     def missing(project_id, dataset_id):
         raise ValueError(f"Dataset {dataset_id!r} not found in project {project_id!r}.")
 
     monkeypatch.setattr(triggers, "get_dataset", missing)
+
     result = call_tool("trigger_create", {**CREATE, "confirm": True})
 
     assert result.is_error is True
@@ -202,8 +245,9 @@ def test_create_refuses_dataset_outside_the_project(project, monkeypatch, call_t
     assert project.triggers.created is None
 
 
-def test_create_names_the_dataset_in_confirmation(project, call_tool):
+def test_create_names_the_dataset_in_the_confirmation_prompt(project, call_tool):
     result = call_tool("trigger_create", CREATE)
+
     assert result.is_error is True
     assert "my-dataset" in result.content[0].text
 

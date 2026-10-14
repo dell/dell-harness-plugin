@@ -31,9 +31,17 @@ This release bundles the Dell-authored DOE MCP server required by the plugin.
 The bundled copy incorporates the safety and correctness changes validated for
 this release, together with the plugin's typed output contracts and focused
 profile. It is a maintained plugin distribution rather than a byte-for-byte
-mirror of another repository.
+mirror of another repository. It is synchronized with the upstream DOE MCP
+server as of 2026-09-21; upstream changes are merged three-way so the typed
+output contracts above are preserved.
 
-The default plugin launcher exposes 36 tools. Version 0.3 adds a hard
+The default plugin launcher exposes 42 tools. The 2026-09-21 upstream sync adds
+`item_get`, `annotation_get`, `pipeline_list`, `pipeline_pause`,
+`pipeline_delete`, and `model_delete_subset` for exact inspection and rollback.
+It also deletes and verifies each temporary `rag_query` item and vector,
+reporting the result as `query_cleanup`, returns only allowlisted fields in
+`pii_report` samples, rejects cross-project lookups, and reuses an existing
+pipeline whose graph already matches. Version 0.3 adds a hard
 confirmation gate for pipeline installation and for model configuration
 overrides, repairs SDK state and cookie permissions, preserves nested platform
 errors, adds annotation pagination, and stabilizes derived node IDs across

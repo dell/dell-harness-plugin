@@ -472,27 +472,32 @@ def register(mcp: MCPServer) -> None:
         if query_vector is not None:
             q_vec = np.asarray(query_vector, dtype=float)
         else:
-            model_id = getattr(feature_set, "model_id", None)
+            model_id = getattr(feature_set, "model_id", None) if feature_set is not None else None
             if not model_id:
                 raise ValueError(
-                    f"Cannot resolve which model embedded feature set {feature_set_id}. "
-                    "Provide query_vector instead."
+                    f"Cannot resolve which model embedded feature set {feature_set_id}, so a text "
+                    "query cannot be embedded to compare against it. Provide query_vector instead."
                 )
+            # Elicitation-only, and before the upload: embedding a text query writes an item into
+            # the caller's dataset and bills for inference, which is a decision a human makes.
+            # No `confirm` parameter, deliberately -- the model could set that itself, and the
+            # advertised surface has no headroom for one (AGENTS.md, Computation & Processing).
             elicit_or_refuse(
                 ctx,
                 action="embed this text query on the platform",
                 consequence=(
-                    "it uploads a temporary item into this dataset, runs the deployed model "
-                    "over it (billable), and deletes the item again"
+                    "it uploads a temporary item into this dataset, runs the deployed model over "
+                    "it (billable), and deletes the item again"
                 ),
                 remedy="Pass query_vector instead to search without writing anything.",
             )
             project = get_project(project_id)
             model = dataloop_call("model lookup", lambda: project.models.get(model_id=model_id))
-            # Deferred to avoid embeddings.py <-> rag.py import recursion.
+            # Deferred import: rag.py imports read_vectors/cosine_similarity from this module, so
+            # importing embed_query at module level here would be circular.
             from .rag import embed_query
 
-            q_vec, query_item_id = embed_query(dataset, model, query or "", feature_set_id)
+            q_vec, query_item_id, _query_cleanup = embed_query(dataset, model, query or "", feature_set_id)
 
         # Cosine similarity over every vector pulled, computed here rather than on the platform.
         gate_local_compute(

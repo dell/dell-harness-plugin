@@ -8,6 +8,7 @@ verified offline; these tests pin the behaviour that follows from that choice â€
 an absent marker is never reported as "no PII" without saying why that might be wrong.
 """
 
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -51,6 +52,32 @@ def test_report_answers_the_question_with_counts_and_a_sample(dataset, call_tool
     assert body["flagged_items"] == 3
     assert body["dataset_items"] == 50
     assert len(body["sample"]) == 2
+
+
+def test_report_sample_allowlists_identifiers_and_entity_types(dataset, call_tool):
+    dataset.items._items = [
+        fake_item(
+            "item-sensitive",
+            "person-ssn-1234.pdf",
+            metadata={
+                "user": {
+                    "pii": {"US_SSN": True, "EMAIL_ADDRESS": True},
+                    "raw_ssn": "111-22-3333",
+                    "nested": {"email": "secret@example.com"},
+                }
+            },
+        )
+    ]
+
+    body = call_tool(
+        "pii_report", {**ARGS, "marker": {"entity_types": ["US_SSN", "CREDIT_CARD"]}}
+    ).structured_content
+
+    assert body["sample"] == [{"item_id": "item-sensitive", "matched_entity_types": ["US_SSN"]}]
+    serialized = json.dumps(body)
+    assert "111-22-3333" not in serialized
+    assert "secret@example.com" not in serialized
+    assert "person-ssn-1234.pdf" not in serialized
 
 
 def test_report_does_not_claim_a_clean_dataset_when_the_marker_is_simply_absent(dataset, call_tool):
@@ -399,3 +426,43 @@ def test_writeback_code_ignores_a_finding_with_no_entity_type(call_tool):
 
     # A malformed finding must not become a "None: true" key in the map.
     assert item.metadata["user"]["pii"] == {"US_SSN": True}
+
+
+def test_report_sample_zero_returns_no_item_fields(dataset, call_tool):
+    dataset.items._items = [
+        fake_item(
+            "item-sensitive",
+            "person.pdf",
+            metadata={"user": {"raw_ssn": "111-22-3333"}},
+        )
+    ]
+
+    body = call_tool("pii_report", {**ARGS, "marker": META_MARKER, "sample": 0}).structured_content
+
+    assert body["sample"] == []
+    assert "111-22-3333" not in json.dumps(body)
+
+
+@pytest.mark.parametrize(
+    "entity_types",
+    [["US_SSN"], ["US_SSN", "CREDIT_CARD"]],
+)
+def test_set_subset_uses_canonical_entity_type_exclusion(project, call_tool, entity_types):
+    result = call_tool(
+        "model_set_subset",
+        {
+            "project_id": "proj-1",
+            "model_id": "model-1",
+            "subset": "train",
+            "exclude_pii": {"entity_types": entity_types},
+        },
+    )
+
+    assert result.is_error is False
+    prepared = project.models.subsets["train"].prepare()
+    rendered = str(prepared)
+    assert all(f"metadata.user.pii.{entity_type}" in rendered for entity_type in entity_types)
+    assert "$ne" in rendered or "ne" in rendered
+    if len(entity_types) == 2:
+        assert "$and" in rendered.lower() or "and" in rendered.lower()
+    assert result.structured_content["pii_exclusion_filter"] == prepared

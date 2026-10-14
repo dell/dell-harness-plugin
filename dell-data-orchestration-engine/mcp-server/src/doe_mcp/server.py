@@ -15,6 +15,7 @@ from types import ModuleType
 from typing import Any
 
 from mcp.server import MCPServer
+from mcp.types import ToolAnnotations
 
 from . import __version__, prompts
 from .tools import (
@@ -88,9 +89,8 @@ PROFILES: dict[str, tuple[ModuleType, ...]] = {
 #: and does not belong behind a flag.
 PROFILE_ONLY: tuple[ModuleType, ...] = (skills,)
 
-# Focused surface used by the Dell plugin. Execution controls close the
-# run/inspect/terminate gap found by upstream live evaluation while retaining a
-# bounded, reviewable tool contract. Prototype skill-router tools stay excluded.
+# Focused contract shipped by the Dell plugin. It keeps the core discovery, governed workflow,
+# rollback, and lifecycle tools together while excluding specialist and prototype surfaces.
 PLUGIN_V1_TOOLS = frozenset(
     {
         "project_list",
@@ -99,8 +99,11 @@ PLUGIN_V1_TOOLS = frozenset(
         "dataset_get",
         "dataset_profile",
         "item_list",
+        "item_get",
         "annotation_labels",
         "annotation_list",
+        "annotation_get",
+        "pipeline_list",
         "rag_pipeline_create",
         "rag_add_pdf_filter_node",
         "rag_add_pdf_to_text_node",
@@ -109,11 +112,13 @@ PLUGIN_V1_TOOLS = frozenset(
         "rag_add_output_node",
         "pipeline_connect_nodes",
         "pipeline_get",
+        "pipeline_validate",
         "pipeline_install",
+        "pipeline_pause",
+        "pipeline_delete",
         "pipeline_execute",
         "execution_list",
         "execution_terminate",
-        "pipeline_validate",
         "rag_query",
         "pii_report",
         "pii_set_findings",
@@ -123,6 +128,7 @@ PLUGIN_V1_TOOLS = frozenset(
         "app_list",
         "model_create",
         "model_set_subset",
+        "model_delete_subset",
         "model_train",
         "model_deploy",
         "model_predict",
@@ -183,6 +189,29 @@ dataset, and subset IDs for later calls.
 Anything billable, persistent, long-running, or destructive needs a visible plan and current user
 approval. `pipeline_install`, `model_train`, and `model_deploy` enforce `confirm=true` or accepted
 elicitation. `model_create` enforces the same gate when configuration overrides are supplied.
+"""
+
+PLUGIN_V1_INSTRUCTIONS = """\
+Manage authorized DOE datasets, reviewed RAG pipelines, executions, PII findings, and marketplace
+models through the focused Dell plugin profile.
+
+Start with `project_list`. Inspect data through `dataset_list`, `dataset_get`,
+`dataset_profile`, `item_list`, and `item_get`; inspect labels and exact annotations through
+`annotation_labels`, `annotation_list`, and `annotation_get`.
+
+Use `pipeline_list` before creating another workflow. Build RAG in order:
+`rag_pipeline_create` -> `rag_add_pdf_filter_node` -> `rag_add_pdf_to_text_node` ->
+`rag_add_text_to_chunks_node` -> `rag_add_embedding_node` -> `rag_add_output_node` ->
+`pipeline_connect_nodes` -> `pipeline_validate` -> `pipeline_install`. Use
+`pipeline_execute` for an approved bounded run, `execution_list` to inspect it, and
+`execution_terminate` only for an exact approved execution. `pipeline_pause` stops an installed
+pipeline; `pipeline_delete` is permanent and requires confirmation.
+
+Install a marketplace model as `marketplace_search` -> `marketplace_get_dpk` ->
+`model_install` -> `model_create` -> `model_deploy`. Apply reviewed training filters with
+`model_set_subset`; `model_delete_subset` is its rollback. Anything billable, persistent,
+long-running, or destructive needs a visible plan and current user approval. `rag_query` also
+asks the user before uploading and embedding its temporary query item.
 """
 
 
@@ -249,6 +278,20 @@ def strip_schema_titles(mcp: MCPServer) -> None:
             tool.output_schema = _without_titles(tool.output_schema)
 
 
+def make_tool_annotations_explicit(mcp: MCPServer) -> None:
+    """Materialize every optional MCP behavior hint for a stable plugin contract."""
+    for tool in mcp._tool_manager._tools.values():
+        current = tool.annotations or ToolAnnotations()
+        read_only = current.read_only_hint is True
+        tool.annotations = ToolAnnotations(
+            title=current.title,
+            read_only_hint=read_only,
+            destructive_hint=current.destructive_hint is True,
+            idempotent_hint=(current.idempotent_hint if current.idempotent_hint is not None else read_only),
+            open_world_hint=current.open_world_hint is True,
+        )
+
+
 def build_server(profiles: list[str] | None = None) -> MCPServer:
     """Create the server for the selected module profiles or focused plugin surface."""
     selected = set(profiles or [])
@@ -271,6 +314,7 @@ def build_server(profiles: list[str] | None = None) -> MCPServer:
             raise RuntimeError(f"Plugin profile references missing tools: {sorted(missing)}")
         for tool_name in registered - PLUGIN_V1_TOOLS:
             mcp.remove_tool(tool_name)
+        make_tool_annotations_explicit(mcp)
     prompts.register(mcp)
     strip_schema_titles(mcp)
     return mcp

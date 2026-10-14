@@ -127,8 +127,19 @@ def test_every_profile_only_tool_is_reachable_through_some_profile():
             assert tool.name in reachable, f"{tool.name} is registered by no profile"
 
 
-def test_plugin_v1_profile_is_exact_and_cannot_be_combined():
-    assert tool_names(["plugin-v1"]) == PLUGIN_V1_TOOLS
+def test_plugin_v1_profile_is_exact_and_closes_feedback_gaps():
+    offered = tool_names(["plugin-v1"])
+
+    assert offered == PLUGIN_V1_TOOLS
+    assert len(offered) == 42
+    assert {
+        "item_get",
+        "annotation_get",
+        "pipeline_list",
+        "model_delete_subset",
+        "pipeline_pause",
+        "pipeline_delete",
+    } <= offered
     with pytest.raises(ValueError, match="cannot be combined"):
         build_server(profiles=["plugin-v1", "discovery"])
 
@@ -138,3 +149,20 @@ def test_plugin_v1_instructions_reference_only_advertised_tools():
     referenced = set(re.findall(r"`([a-z][a-z0-9_]+)`", server.instructions or ""))
 
     assert referenced - {"project_id"} <= PLUGIN_V1_TOOLS
+
+
+def test_plugin_v1_tools_have_output_schemas_and_explicit_annotations():
+    tools = run(build_server(profiles=["plugin-v1"]).list_tools())
+
+    for tool in tools:
+        assert tool.output_schema is not None, tool.name
+        assert tool.output_schema.get("type") == "object", tool.name
+        annotations = tool.annotations
+        assert annotations is not None, tool.name
+        assert isinstance(annotations.read_only_hint, bool), tool.name
+        assert isinstance(annotations.destructive_hint, bool), tool.name
+        assert isinstance(annotations.idempotent_hint, bool), tool.name
+        assert isinstance(annotations.open_world_hint, bool), tool.name
+
+    by_name = {tool.name: tool for tool in tools}
+    assert by_name["rag_query"].annotations.read_only_hint is False

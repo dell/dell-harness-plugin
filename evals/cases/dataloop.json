@@ -37,7 +37,13 @@
     "pipeline_execute",
     "execution_list",
     "execution_terminate",
-    "pipeline_validate"
+    "pipeline_validate",
+    "item_get",
+    "annotation_get",
+    "pipeline_list",
+    "pipeline_pause",
+    "pipeline_delete",
+    "model_delete_subset"
   ],
   "contract_tools": [
     "project_list",
@@ -75,7 +81,13 @@
     "pipeline_execute",
     "execution_list",
     "execution_terminate",
-    "pipeline_validate"
+    "pipeline_validate",
+    "item_get",
+    "annotation_get",
+    "pipeline_list",
+    "pipeline_pause",
+    "pipeline_delete",
+    "model_delete_subset"
   ],
   "upstream_tools": [
     "project_list",
@@ -188,7 +200,16 @@
       "execution_terminate",
       "pipeline_validate"
     ],
-    "conditional_tools": {},
+    "conditional_tools": {
+      "inspect_and_rollback": [
+        "item_get",
+        "annotation_get",
+        "pipeline_list",
+        "pipeline_pause",
+        "pipeline_delete",
+        "model_delete_subset"
+      ]
+    },
     "chatgpt_transcripts": "deferred_for_initial_review"
   },
   "workflows": [
@@ -791,6 +812,90 @@
           ],
           "manual_checks": [
             "Do not consume compute or terminate work without exact scope and approval."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dataloop-inspect-rollback",
+      "title": "Inspect exact records and roll back approved resources",
+      "covered_tools": [
+        "item_get",
+        "annotation_get",
+        "pipeline_list",
+        "pipeline_pause",
+        "pipeline_delete",
+        "model_get",
+        "model_delete_subset"
+      ],
+      "variants": [
+        {
+          "id": "dataloop-inspect-item-annotation",
+          "kind": "success",
+          "submission_class": "not_selected",
+          "invocation": "explicit",
+          "prompt": "Show item item-1 and its annotation annotation-1 from the synthetic pilot dataset.",
+          "expected_tool_path": [
+            "item_get",
+            "annotation_get"
+          ],
+          "required_facts": [
+            "item-1",
+            "annotation-1"
+          ],
+          "forbidden_tools": [
+            "pii_set_findings"
+          ],
+          "manual_checks": [
+            "Fetch only the exact item and annotation IDs requested.",
+            "Do not echo raw metadata values that could contain PII."
+          ]
+        },
+        {
+          "id": "dataloop-rollback-pipeline",
+          "kind": "edge",
+          "submission_class": "not_selected",
+          "invocation": "implicit",
+          "prompt": "The synthetic RAG pipeline is no longer needed; stop it and remove it. That exact pipeline is approved for deletion.",
+          "expected_tool_path": [
+            "pipeline_list",
+            "pipeline_pause",
+            "pipeline_delete"
+          ],
+          "required_facts": [
+            "paused",
+            "deleted"
+          ],
+          "forbidden_tools": [
+            "pipeline_install",
+            "pipeline_execute"
+          ],
+          "manual_checks": [
+            "Resolve the exact pipeline ID before pausing.",
+            "Pause before deleting, and obtain confirmation for the irreversible delete."
+          ]
+        },
+        {
+          "id": "dataloop-rollback-subset",
+          "kind": "success",
+          "submission_class": "not_selected",
+          "invocation": "explicit",
+          "prompt": "Remove the validation subset definition from model model-disposable-1 in the synthetic pilot project; this is approved.",
+          "expected_tool_path": [
+            "model_get",
+            "model_delete_subset"
+          ],
+          "required_facts": [
+            "validation",
+            "removed"
+          ],
+          "forbidden_tools": [
+            "model_delete",
+            "model_train"
+          ],
+          "manual_checks": [
+            "Confirm the exact model and subset name before removal.",
+            "Report that only the subset definition was removed, not the model."
           ]
         }
       ]

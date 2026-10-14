@@ -11,7 +11,7 @@ entity.
 
 from typing import Any
 
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 
 class ProjectSummary(TypedDict):
@@ -232,7 +232,15 @@ class ModelSubsetResult(TypedDict):
     subset: str
     matched_items: int | None
     pii_excluded: bool
+    # The exact filter clause applied, so the exclusion can be audited.
+    pii_exclusion_filter: dict[str, Any] | None
     warning: str | None
+
+
+class ModelSubsetRemovalResult(TypedDict):
+    model_id: str
+    subset: str
+    removed: bool
 
 
 class DeleteResult(TypedDict):
@@ -246,6 +254,12 @@ class AppUninstallResult(TypedDict):
     id: str
 
 
+class PiiReportSample(TypedDict):
+    # Allowlisted on purpose: item names and metadata can themselves contain PII.
+    item_id: str
+    matched_entity_types: NotRequired[list[str]]
+
+
 class PiiReportResult(TypedDict):
     dataset_id: str
     verdict: str
@@ -253,7 +267,7 @@ class PiiReportResult(TypedDict):
     flagged_count_is_exact: bool
     dataset_items: int | None
     marker: dict[str, Any]
-    sample: list[ItemSummary]
+    sample: list[PiiReportSample]
     caveat: str | None
 
 
@@ -280,6 +294,8 @@ class RagQueryResult(TypedDict):
     query: str
     dataset_id: str
     feature_set_id: str
+    # Proof the temporary query item and its vector were deleted after embedding.
+    query_cleanup: dict[str, Any]
     vectors_scanned: int
     scan_truncated: bool
     results_count: int

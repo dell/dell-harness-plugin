@@ -244,13 +244,16 @@ def test_create_binds_the_model_to_the_installed_app(project, call_tool):
     assert created["project_id"] == "proj-1"
 
 
-def test_create_refuses_configuration_overrides_before_platform_calls(monkeypatch, project, call_tool):
+def test_create_refuses_configuration_overrides_without_confirmation(monkeypatch, project, call_tool):
+    """Regression: `configuration` used to reach dtlpy verbatim with no confirmation boundary,
+    unlike `custom_installation`/`service_config`, which both require confirm=true.
+
+    Also pins that the gate runs *before* any platform call. It was originally evaluated inline in
+    the `models.create(...)` argument list, which fired only after two round-trips and would have
+    been dropped silently by any refactor that pre-built the kwargs.
+    """
     looked_up = []
-    monkeypatch.setattr(
-        models,
-        "get_project",
-        lambda project_id: looked_up.append(project_id) or project,
-    )
+    monkeypatch.setattr(models, "get_project", lambda project_id: looked_up.append(project_id) or project)
 
     result = call_tool(
         "model_create",
@@ -266,10 +269,10 @@ def test_create_refuses_configuration_overrides_before_platform_calls(monkeypatc
     assert result.is_error is True
     assert "confirm=true" in result.content[0].text
     assert project.models.created is None
-    assert looked_up == []
+    assert looked_up == [], "refused before reaching the platform"
 
 
-def test_create_passes_confirmed_configuration_overrides(project, call_tool):
+def test_create_passes_configuration_through_once_confirmed(project, call_tool):
     result = call_tool(
         "model_create",
         {

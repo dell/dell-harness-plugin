@@ -43,7 +43,7 @@ from doe_mcp.eval import (
     load_model,
     run_trace,
 )
-from doe_mcp.server import build_server
+from doe_mcp.server import PROFILES, build_server
 
 EXIT_OK, EXIT_FAILED, EXIT_USAGE, EXIT_BROKEN = 0, 1, 2, 3
 
@@ -76,6 +76,7 @@ async def _run_all(
     *,
     repeats: int,
     allow_billable: bool,
+    profile: str,
     on_result: Any = None,
 ) -> list[TraceResult]:
     system_prompt = (
@@ -84,7 +85,7 @@ async def _run_all(
     )
     results: list[TraceResult] = []
     callback = _accept_billable if allow_billable else _decline_billable
-    async with Client(build_server(), elicitation_callback=callback) as client:
+    async with Client(build_server(profiles=[profile]), elicitation_callback=callback) as client:
         for trace in traces:
             for _ in range(repeats):
                 result = await run_trace(trace, model, client, system_prompt=system_prompt)
@@ -142,6 +143,7 @@ def _write_artifact(path: Path, results: list[TraceResult], args: argparse.Names
             "git_revision": _git_revision(),
             "model": args.model,
             "project_id": args.project_id,
+            "profile": args.profile,
             "repeats": args.repeat,
             "allow_billable": args.allow_billable,
         },
@@ -157,6 +159,12 @@ def main() -> int:
     )
     parser.add_argument("--project-id", help="A disposable DOE project id.")
     parser.add_argument("--model", help="'package.module:ClassName' implementing EvalModel.")
+    parser.add_argument(
+        "--profile",
+        choices=sorted(PROFILES),
+        default="plugin-v1",
+        help="Server profile to evaluate (default: plugin-v1, the shipped Dell plugin contract).",
+    )
     parser.add_argument(
         "--trace", action="append", dest="trace_ids", help="Run only this trace id; repeatable."
     )
@@ -222,6 +230,7 @@ def main() -> int:
                 args.project_id,
                 repeats=args.repeat,
                 allow_billable=args.allow_billable,
+                profile=args.profile,
                 on_result=completed.append,
             )
         )

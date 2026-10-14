@@ -37,14 +37,16 @@ from doe_mcp.server import INSTRUCTIONS, build_server  # noqa: E402
 #: Advertised tool surface, in real `o200k_base` tokens.
 #:
 #: Measured at 30,772 with typed outputs across the full surface, leaving roughly 225 tokens of
-#: deliberate headroom — enough for a small parameter, not enough for a tool. Zero headroom was
+#: deliberate headroom — enough for a small parameter, not enough for a tool. Re-baselined
+#: 2026-10-14 to 31,481 after syncing upstream doe-mcp f797319 (query-cleanup reporting, PII
+#: sample allowlisting, typed outputs for the newly exposed tools); same ~220 headroom. Zero headroom was
 #: actively harmful: it forced two capability sets behind profile flags and made a `confirm`
 #: parameter unaffordable. Headroom is not permission to spend; the ratchet below still applies.
 #:
 #: **This must go down, not up.** Anything that grows the surface is paid for by trimming, exactly
 #: as before. Raising it again needs the same thing this re-baseline had: a measurement, a stated
 #: reason, and a note in the plan.
-TOTAL_TOKEN_CEILING = 31_000
+TOTAL_TOKEN_CEILING = 31_700
 
 #: Where this should end up. Phase 1 set 12,000 in chars/4 terms, which is ~13,300 real tokens, and
 #: never got near it. Recorded as an aspiration rather than an assertion so the remaining gap
@@ -58,7 +60,12 @@ OFF_TURN_PROSE_TOKEN_CEILING = 1_150
 
 DEGENERATE_OUTPUT_SCHEMA_CEILING = 57
 
-PLUGIN_TOKEN_CEILING = 19_800
+#: Focused plugin profile. Re-baselined 2026-10-14 from 36 tools / 19,511 tokens to 42 tools /
+#: 21,109 tokens: upstream doe-mcp 7c79016 added item_get, annotation_get, pipeline_list,
+#: pipeline_pause, pipeline_delete and model_delete_subset to close OpenAI review gaps (rollback,
+#: pause and cleanup paths). Same ~240 tokens of headroom as before.
+PLUGIN_TOOL_COUNT = 42
+PLUGIN_TOKEN_CEILING = 21_350
 PLUGIN_DEGENERATE_OUTPUT_SCHEMA_CEILING = 0
 
 
@@ -86,7 +93,7 @@ def test_advertised_surface_does_not_regress():
 
 def test_plugin_surface_does_not_regress():
     report = measure(["plugin-v1"])
-    assert report["tool_count"] == 36
+    assert report["tool_count"] == PLUGIN_TOOL_COUNT
     assert report["total_tokens"] <= PLUGIN_TOKEN_CEILING, (
         f"Plugin surface grew to {report['total_tokens']} tok, over the {PLUGIN_TOKEN_CEILING} tok ceiling."
     )

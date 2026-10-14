@@ -71,23 +71,11 @@ def write_pii_findings(item):
 '''
 
 
-def build_marker_filters(marker: PiiMarkerSpec, *, flagged: bool) -> dl.Filters:
-    """A filter selecting items that do (or do not) carry the PII marker.
-
-    Two shapes, because the marker can be either kind:
-
-    * **metadata** — a plain field comparison on the item, negatable with `ne`.
-    * **annotation label** — a join onto the item's annotations. Negating a join is the weaker
-      of the two: DQL evaluates it per annotation, so "no annotation has label X" is not
-      reliably expressible this way. `pii_filter` says so rather than returning a filter that
-      quietly means something else.
-    """
-    filters = dl.Filters(resource=dl.FiltersResource.ITEM)
+def apply_marker_filter(filters: dl.Filters, marker: PiiMarkerSpec, *, flagged: bool) -> dl.Filters:
+    """Apply the canonical PII marker predicate to an existing item filter."""
     operator = dl.FiltersOperations.EQUAL if flagged else dl.FiltersOperations.NOT_EQUAL
     if marker.entity_types:
-        # `metadata.user.pii` holds only detected types, so each clause is "<TYPE> is true".
-        # Selecting is any-of (OR); excluding is none-of, which is AND over the negations —
-        # NOT(a OR b) is (NOT a) AND (NOT b), so the method flips with the operator.
+        # Selecting is any-of (OR); excluding is none-of, which is AND over the negations.
         method = dl.FiltersMethod.OR if flagged else dl.FiltersMethod.AND
         for entity in marker.entity_types:
             filters.add(
@@ -105,6 +93,36 @@ def build_marker_filters(marker: PiiMarkerSpec, *, flagged: bool) -> dl.Filters:
     else:
         filters.add_join(field="label", values=marker.annotation_label, operator=operator)
     return filters
+
+
+def build_marker_filters(marker: PiiMarkerSpec, *, flagged: bool) -> dl.Filters:
+    """Build an item filter using the same marker predicate every consumer applies."""
+    filters = dl.Filters(resource=dl.FiltersResource.ITEM)
+    return apply_marker_filter(filters, marker, flagged=flagged)
+
+
+def marker_exclusion_warning(marker: PiiMarkerSpec) -> str | None:
+    """Explain the weaker annotation-label exclusion shape consistently."""
+    if marker.annotation_label is None:
+        return None
+    return (
+        "PII exclusion by annotation label uses a negated join, which DQL evaluates per "
+        "annotation: an item with both a PII annotation and a non-PII annotation can still "
+        "match. For a dependable exclusion, have the scan record its verdict in item metadata "
+        "and use metadata_field instead. Verify against a known dataset before relying on this "
+        "filter to withhold data."
+    )
+
+
+def safe_report_sample(entity: Any, marker: PiiMarkerSpec) -> outputs.PiiReportSample:
+    """Allowlisted PII sample fields; arbitrary item metadata and names never leave the tool."""
+    sample: outputs.PiiReportSample = {"item_id": str(getattr(entity, "id", ""))}
+    if marker.entity_types:
+        findings = ((getattr(entity, "metadata", None) or {}).get("user") or {}).get(FINDINGS_KEY) or {}
+        sample["matched_entity_types"] = sorted(
+            entity_type for entity_type in marker.entity_types if findings.get(entity_type) is True
+        )
+    return sample
 
 
 def exact_count(listed: Any) -> tuple[int, bool]:
@@ -165,7 +183,7 @@ def register(mcp: MCPServer) -> None:
             "flagged_count_is_exact": flagged_exact,
             "dataset_items": total,
             "marker": marker.model_dump(exclude_none=True),
-            "sample": [serialize.item(entity) for entity in items],
+            "sample": [safe_report_sample(entity, marker) for entity in items],
             "caveat": caveat,
         }
 
@@ -260,18 +278,7 @@ def register(mcp: MCPServer) -> None:
         flagged = mode == "only"
         filters = build_marker_filters(marker, flagged=flagged)
         prepared = dataloop_call("filter prepare", lambda: filters.prepare())
-
-        warning = None
-        if mode == "exclude" and marker.annotation_label is not None:
-            # Honest about the weaker of the two shapes rather than returning a query whose
-            # meaning differs from the caller's intent.
-            warning = (
-                "Excluding by annotation label uses a negated join, which DQL evaluates per "
-                "annotation: an item with both a PII annotation and a non-PII annotation can "
-                "still match. For a dependable exclusion, have the scan record its verdict in "
-                "item metadata and use metadata_field instead. Verify against a known dataset "
-                "before relying on this filter to withhold data."
-            )
+        warning = marker_exclusion_warning(marker) if mode == "exclude" else None
         return {
             "dataset_id": dataset_id,
             "mode": mode,

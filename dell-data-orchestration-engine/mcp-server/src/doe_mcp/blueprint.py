@@ -22,8 +22,10 @@ Deriving them buys three things beyond reproducibility:
 - **Idempotent re-runs.** The same blueprint re-applied targets the same node ids, so it converges
   instead of accumulating duplicates.
 - **Diffability.** Two runs, or a run against the platform's current state, compare directly.
-- **Referential integrity across a rebuild.** A connection recorded against a node id still means
-  the same node after the graph is rebuilt from the blueprint.
+- **Referential integrity across a rebuild — including an edited one.** A connection recorded
+  against a node id still means the same node after the graph is rebuilt from the blueprint, and
+  because each node's id is derived from that node's own spec alone (`_node_fingerprint`), editing
+  one node does not also change every other node's id the way hashing the whole plan would.
 
 **One write, not one per node.** `build_graph` assembles the whole graph in memory and PATCHes
 once. `Pipelines.update` sends the entire node list every time (techspec A.4), so each extra call
@@ -107,8 +109,10 @@ def fingerprint(plan: PipelineBlueprint) -> str:
     """A stable digest of every choice in the blueprint.
 
     Two blueprints that would build the same graph share a fingerprint; any difference in a
-    dataset id, a code body, a position or an edge changes it. Sorted keys and a compact separator
-    so dict ordering cannot leak in.
+    dataset id, a code body, a position or an edge changes it. This is a whole-plan signal for
+    "did anything about this build change" (reported to the caller as `blueprint_fingerprint`) —
+    it is **not** used to derive node/port ids; see `_node_fingerprint` for that, which is scoped
+    to one node so an edit to node B does not also change node A's id.
     """
     payload = {
         "name": plan.name,
@@ -136,6 +140,7 @@ def _derived_id(*parts: str) -> str:
 def _apply_derived_ids(node: Any, digest: str) -> None:
     """Replace dtlpy's randomly minted node and port ids with derived ones.
 
+    `digest` is that node's own `_node_fingerprint`, not the whole plan's — see its docstring.
     Ports are keyed by direction and position rather than by their own name: a node can carry two
     ports with the same name in different directions, and `name` is not required to be unique
     within a direction either.
@@ -181,6 +186,32 @@ def build_graph(
     return pipeline
 
 
+def expected_canonical_graph(project: dl.entities.Project, plan: PipelineBlueprint) -> dict[str, Any]:
+    """The canonical graph `plan` would build, computed without touching the platform.
+
+    Lets a caller check whether a same-named pipeline already on the platform matches this
+    blueprint's resolved choices -- so it can be reused instead of building a duplicate -- by
+    comparing against `canonical_graph` of the real pipeline. `project` only needs `id` and
+    `name`; nothing here is written or fetched over the network.
+    """
+    pipeline = dl.entities.Pipeline.from_json(
+        _json={
+            "id": "expected",
+            "name": plan.name,
+            "projectId": project.id,
+            "nodes": [],
+            "connections": [],
+            "startNodes": [],
+            "variables": [],
+        },
+        client_api=dl.client_api,
+        project=project,
+        is_fetched=False,
+    )
+    build_graph(pipeline, plan)
+    return canonical_graph(pipeline)
+
+
 def canonical_graph(pipeline: dl.entities.Pipeline) -> dict[str, Any]:
     """A comparable form of a graph: structure and settings, without platform-assigned noise.
 
@@ -196,6 +227,12 @@ def canonical_graph(pipeline: dl.entities.Pipeline) -> dict[str, Any]:
                 "type": str(node.node_type),
                 "position": tuple(node.position),
                 "config": node.config,
+                # `dataset_id`, a DQL filter, `load_existing_data` and the like live in metadata,
+                # not config -- unlike a code node's source, which config already carries. Without
+                # this, two dataset nodes pointed at different datasets or filters compared equal,
+                # which is exactly what `skills.reusable_pipeline` depends on telling apart.
+                # `position` is dropped: it is already a field of its own above.
+                "metadata": {k: v for k, v in (node.metadata or {}).items() if k != "position"},
             }
             for node in pipeline.nodes
         ],
