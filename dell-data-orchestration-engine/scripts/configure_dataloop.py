@@ -10,7 +10,6 @@ import argparse
 import getpass
 import json
 import os
-import shutil
 import stat
 import sys
 from pathlib import Path
@@ -44,9 +43,8 @@ def check(path: Path) -> int:
     print(f"verify_ssl={value.get('verify_ssl', 'true')}")
     print(f"profiles={profiles}")
     if command:
-        print(
-            f"command={command} resolved={'yes' if shutil.which(str(command)) else 'no'}"
-        )
+        usable = os.path.isabs(str(command)) and os.access(str(command), os.X_OK)
+        print(f"command={command} absolute_executable={'yes' if usable else 'no'}")
     else:
         bundled = Path(__file__).resolve().parents[1] / "mcp-server" / "src"
         print(f"command=bundled-python-module resolved={'yes' if bundled.is_dir() else 'no'}")
@@ -73,6 +71,9 @@ def configure(path: Path, args: argparse.Namespace) -> int:
     if args.profiles:
         payload["profiles"] = ",".join(args.profiles)
     if args.command:
+        if not os.path.isabs(os.path.expanduser(args.command)):
+            print("--command must be an absolute path to an executable", file=sys.stderr)
+            return 2
         payload["command"] = args.command
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     if path.is_symlink():

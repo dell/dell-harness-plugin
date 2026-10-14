@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import os
-import shutil
 import stat
 import sys
 from pathlib import Path
@@ -44,10 +43,15 @@ def load_config(path: Path) -> dict[str, object]:
         raise ConfigurationError(
             f"Dataloop configuration cannot be a symbolic link: {path}"
         )
-    mode = stat.S_IMODE(path.stat().st_mode)
+    status = path.stat()
+    mode = stat.S_IMODE(status.st_mode)
     if os.name == "posix" and mode & 0o077:
         raise ConfigurationError(
             f"Dataloop configuration must be user-only (chmod 600): {path}"
+        )
+    if os.name == "posix" and status.st_uid != os.getuid():
+        raise ConfigurationError(
+            f"Dataloop configuration must be owned by the current user: {path}"
         )
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -87,13 +91,32 @@ def profiles_from(value: str | None) -> list[str]:
     return list(dict.fromkeys(profiles))
 
 
+def trusted_executable(requested: str) -> str:
+    """Validate a configured MCP command before it is executed.
+
+    Only an absolute path is accepted, so the command cannot be redirected through PATH, and
+    on POSIX the resolved file must not be writable by group or others.
+    """
+    path = Path(requested).expanduser()
+    if not path.is_absolute():
+        raise ConfigurationError(
+            "DATALOOP_MCP_COMMAND must be an absolute path to an executable, not a name "
+            "resolved through PATH."
+        )
+    resolved = path.resolve()
+    if not resolved.is_file() or not os.access(resolved, os.X_OK):
+        raise ConfigurationError(f"Configured MCP command is not an executable file: {requested}")
+    if os.name == "posix" and stat.S_IMODE(resolved.stat().st_mode) & 0o022:
+        raise ConfigurationError(
+            f"Configured MCP command must not be group- or world-writable: {resolved}"
+        )
+    return str(path)
+
+
 def build_command(environ: dict[str, str]) -> list[str]:
     requested = environ.get("DATALOOP_MCP_COMMAND")
     if requested:
-        executable = shutil.which(requested)
-        if executable is None:
-            raise ConfigurationError(f"Cannot find configured MCP command '{requested}'.")
-        command = [executable]
+        command = [trusted_executable(requested)]
     else:
         server_module = BUNDLED_SERVER_SRC / "doe_mcp" / "server.py"
         if not server_module.is_file():
@@ -153,7 +176,8 @@ def main() -> int:
         print(f"dell-dataloop configuration error: {exc}", file=sys.stderr)
         return 2
 
-    os.execvpe(command[0], command, environment)
+    # command[0] is always absolute (validated or sys.executable), so no PATH search occurs.
+    os.execve(command[0], command, environment)
     return 0
 
 

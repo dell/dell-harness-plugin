@@ -1,5 +1,5 @@
 {
-  "captured_at_utc": "2026-10-14T22:52:14.225072+00:00",
+  "captured_at_utc": "2026-10-14T23:38:27.184970+00:00",
   "plugin_version": "0.2.0",
   "python_version": "3.13.12",
   "platform": "linux",
@@ -9,12 +9,12 @@
   "failures": 0,
   "errors": 0,
   "skipped": 8,
-  "duration_seconds": 3.322,
+  "duration_seconds": 3.327,
   "package_checks": "passed",
   "relocated_entrypoint": "passed",
   "secret_pattern_scan": "passed; limited patterns, not a security certification",
   "archive": "dell-devspaces-sandbox-0.2.0.zip",
-  "archive_sha256": "980bf8eec2c9706a60e637748c23d996ff019880e9f51c2fd159d9e0fa1b1a7a",
+  "archive_sha256": "c22ed9dc3de56061bb17a1b058ac6f1b37fbcb03ac6674880b7d3406c6b1945b",
   "dependencies": {
     "mcp": "1.30.0",
     "kubernetes": "34.1.0",
@@ -33,8 +33,8 @@
     "requirements-dev.txt": "22d404d512966247b03f000f08c8ff267f7fec52d8ac5258a040e485a7588a61",
     "requirements.txt": "2f09cc5c1d9499739757d4429827d9d6cc395b8d4d9ae010235b2f965faa0342",
     "scripts/authenticate_devspaces.ps1": "bfb910fb8886206a41fd2f59a7223e0c33c93e21e7fa12fa750ffd58b3bb500e",
-    "scripts/connector_mcp_server.py": "d671059b22b750d4d06400079e630ecb89951d050d19e0d0965d984fec388b30",
-    "scripts/devspaces_mcp_server.py": "07e873cd2100c59f428f50ddca5f5a3326ab1f8c02db005b1f1d4392440e8dad",
+    "scripts/connector_mcp_server.py": "38182bd454a2afc85cc9c031ef6946c219cf2f44afda6c3d62f1823585e2cbdc",
+    "scripts/devspaces_mcp_server.py": "6e62e0a0a21f8b9d323db5c8903b6f478dd7ad3f70872f04a27f4c618ce6dacf",
     "scripts/launch-auth.cmd": "d5b96c23d2f4d8f91e83f7310d8c17159b30e541b3756fa7187b0850fdf128d3",
     "scripts/validate_plugin.py": "6901b9ea2e36fc51b3d142ef4ece53296a772ddab28307cc5d1b2207430c1413",
     "skills/manage-devspaces-sandbox/SKILL.md": "c56175b999586c45edb5ecdb5e257ecafc4d28874936a1306eabe3b7352be187",
@@ -46,7 +46,7 @@
     "tests/test_connector_mcp_server.py": "d2d19ad952d46a8feea66c5d4e1036209fc4bd6689ee54ecdffb11af67d6dd01",
     "tests/test_devspaces_mcp_server.py": "042622a3c993be848edb4849b1f82380c3a05dc1e22ffe6841b8627f5b8173e4",
     "tests/test_plugin_protocol.py": "675aef41e83cc11a1ca3fadd5034155f706042617a968bb7f026ea80f9b6e16e",
-    "tests/test_windows_auth_helper.py": "cfe49c44066fbdfe89549f80209bedb2576c36422e275cbc71bc8ef29416b0ef",
+    "tests/test_windows_auth_helper.py": "488ceb7240b319599d4716796e185ea51e961176e7e978fe68163ca3fe7aa0d8",
     "validation/REVIEW.md": "803e8b28137e82859b493b91879681f41e1f191de904b2d24f0c33db80b7e3da"
   },
   "not_validated": [

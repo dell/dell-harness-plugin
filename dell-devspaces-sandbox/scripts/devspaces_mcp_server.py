@@ -67,11 +67,11 @@ class DevSpacesInstance:
             raise ValueError("Each Dev Spaces instance requires name and display_name")
         for field_name, url in (("api_url", instance.api_url), ("ui_url", instance.ui_url)):
             parsed = urlparse(url)
+            # Reject any user-info ("user:pass@"); the credential itself is never read.
             if (
                 parsed.scheme != "https"
                 or not parsed.hostname
-                or parsed.username
-                or parsed.password
+                or "@" in parsed.netloc
                 or parsed.query
                 or parsed.fragment
             ):

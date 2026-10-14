@@ -5,6 +5,18 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## Unreleased
 
+### Security
+
+- Remediated the 2026-10-08 static-analysis scan (3 critical, 8 medium, 4 low).
+  The Codex evaluation runners send prompts on stdin (`codex exec -`) instead
+  of argv, validate case IDs, prompts and invocations, confine output
+  directories, and require an absolute `codex` path. The Dataloop launcher
+  accepts only an absolute, non-group/world-writable `DATALOOP_MCP_COMMAND`,
+  requires a user-owned configuration file, and executes without a `PATH`
+  search. URL validation no longer reads embedded credentials, label colours use
+  SHA-256, the token-file warning omits local paths, and test fixtures generate
+  their secrets at runtime.
+
 ### Added
 
 - `dell-data-orchestration-engine` 0.4.0: synchronized the bundled MCP server

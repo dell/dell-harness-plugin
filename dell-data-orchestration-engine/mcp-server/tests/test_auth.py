@@ -219,3 +219,20 @@ def test_gate_url_without_scheme_is_rejected(monkeypatch, env_calls):
         auth._configure_environment()
 
     assert env_calls["added"] == []
+
+
+@pytest.mark.skipif(os.name != "posix", reason="token-file chmod applies on POSIX only")
+def test_token_file_permission_failure_does_not_log_local_paths(tmp_path, monkeypatch, caplog):
+    (tmp_path / auth.COOKIE_FILE_NAME).write_text("{}", encoding="utf-8")
+    secret_path = str(tmp_path / "private-location")
+
+    def deny(path, mode):
+        raise PermissionError(13, "Permission denied", secret_path)
+
+    monkeypatch.setattr(auth.os, "chmod", deny)
+    with caplog.at_level("WARNING", logger=auth.logger.name):
+        auth._protect_token_file(str(tmp_path))
+
+    assert "errno 13" in caplog.text
+    assert secret_path not in caplog.text
+    assert str(tmp_path) not in caplog.text

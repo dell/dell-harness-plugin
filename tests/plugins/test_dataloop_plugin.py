@@ -4,6 +4,7 @@
 import importlib.util
 import json
 import os
+import secrets
 import stat
 import subprocess
 import sys
@@ -85,11 +86,13 @@ def test_six_outcome_skills_have_metadata_and_no_placeholders():
 
 def test_launcher_requires_private_config_and_never_serializes_secret(tmp_path):
     launcher = load_launcher()
+    # Random per run: no credential-shaped literal in source, and no coincidental match.
+    api_key = secrets.token_urlsafe(16)
     config = tmp_path / "dataloop.json"
     config.write_text(
         json.dumps(
             {
-                "api_key": "unit-test-secret",
+                "api_key": api_key,
                 "state_path": str(tmp_path / "state"),
                 "profiles": "discovery,models",
             }
@@ -101,7 +104,7 @@ def test_launcher_requires_private_config_and_never_serializes_secret(tmp_path):
     loaded = launcher.load_config(config)
     environment = launcher.merged_environment({}, loaded)
     launcher.validate_environment(environment)
-    assert environment["DATALOOP_API_KEY"] == "unit-test-secret"
+    assert environment["DATALOOP_API_KEY"] == api_key
     assert environment["DATALOOP_PATH"] == str(tmp_path / "state")
     assert launcher.profiles_from(environment["DATALOOP_MCP_PROFILES"]) == [
         "discovery",
@@ -109,14 +112,14 @@ def test_launcher_requires_private_config_and_never_serializes_secret(tmp_path):
     ]
     assert launcher.profiles_from(None) == ["plugin-v1"]
     assert launcher.profiles_from("all") == []
-    assert "unit-test-secret" not in json.dumps(load_json(PLUGIN / ".mcp.json"))
+    assert api_key not in json.dumps(load_json(PLUGIN / ".mcp.json"))
 
     config.chmod(0o644)
     try:
         launcher.load_config(config)
     except launcher.ConfigurationError as exc:
         assert "chmod 600" in str(exc)
-        assert "unit-test-secret" not in str(exc)
+        assert api_key not in str(exc)
     else:
         raise AssertionError("group-readable credentials must be rejected")
 
@@ -128,7 +131,7 @@ def test_launcher_requires_private_config_and_never_serializes_secret(tmp_path):
         assert stat.S_IMODE(state.stat().st_mode) == 0o700
 
 
-def test_launcher_builds_profiled_command_and_rejects_unknown_profile(monkeypatch):
+def test_launcher_builds_profiled_command_and_rejects_unknown_profile(tmp_path):
     launcher = load_launcher()
     bundled_environment = {"DATALOOP_MCP_PROFILES": "plugin-v1"}
     assert launcher.build_command(bundled_environment) == [
@@ -142,13 +145,15 @@ def test_launcher_builds_profiled_command_and_rejects_unknown_profile(monkeypatc
         PLUGIN / "mcp-server" / "src"
     )
 
-    monkeypatch.setattr(launcher.shutil, "which", lambda command: f"/safe/{command}")
+    executable = tmp_path / "doe-mcp"
+    executable.write_text("#!/bin/sh\n", encoding="utf-8")
+    executable.chmod(0o755)
     assert launcher.build_command(
         {
-            "DATALOOP_MCP_COMMAND": "doe-mcp",
+            "DATALOOP_MCP_COMMAND": str(executable),
             "DATALOOP_MCP_PROFILES": "rag,discovery,rag",
         }
-    ) == ["/safe/doe-mcp", "--profile", "rag", "--profile", "discovery"]
+    ) == [str(executable), "--profile", "rag", "--profile", "discovery"]
 
     try:
         launcher.profiles_from("discovery,administrator")
@@ -193,11 +198,12 @@ def test_dataloop_evaluation_definition_and_contract_inventory_validate():
 
 
 def test_configuration_check_does_not_print_api_key(tmp_path):
+    api_key = secrets.token_urlsafe(16)
     config = tmp_path / "dataloop.json"
     config.write_text(
         json.dumps(
             {
-                "api_key": "never-print-this-secret",
+                "api_key": api_key,
                 "state_path": str(tmp_path / "state"),
                 "command": sys.executable,
             }
@@ -219,4 +225,34 @@ def test_configuration_check_does_not_print_api_key(tmp_path):
         text=True,
     )
     assert "api_key=present" in completed.stdout
-    assert "never-print-this-secret" not in completed.stdout
+    assert api_key not in completed.stdout
+
+
+def test_launcher_rejects_a_command_resolved_through_path():
+    launcher = load_launcher()
+    try:
+        launcher.build_command({"DATALOOP_MCP_COMMAND": "python3"})
+    except launcher.ConfigurationError as exc:
+        assert "absolute path" in str(exc)
+    else:
+        raise AssertionError("a bare command name must not be resolved through PATH")
+
+
+def test_launcher_rejects_a_world_writable_command(tmp_path):
+    if os.name != "posix":
+        return
+    launcher = load_launcher()
+    executable = tmp_path / "doe-mcp"
+    executable.write_text("#!/bin/sh\n", encoding="utf-8")
+    executable.chmod(0o777)
+    try:
+        launcher.build_command({"DATALOOP_MCP_COMMAND": str(executable)})
+    except launcher.ConfigurationError as exc:
+        assert "world-writable" in str(exc)
+    else:
+        raise AssertionError("a tamperable executable must be rejected")
+
+    executable.chmod(0o755)
+    command = launcher.build_command({"DATALOOP_MCP_COMMAND": str(executable)})
+    assert command[0] == str(executable)
+    assert command[1:] == ["--profile", "plugin-v1"]

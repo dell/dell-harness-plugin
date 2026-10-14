@@ -10,7 +10,6 @@ import argparse
 import importlib.util
 import json
 import os
-import shutil
 import stat
 import subprocess
 import time
@@ -24,6 +23,20 @@ CASES_PATH = ROOT / "evals" / "cases" / "ddae.json"
 FIXTURE_PATH = ROOT / "evals" / "fixtures" / "ddae-review-fixture.json"
 FIXTURE_SERVER = ROOT / "scripts" / "ddae_fixture_mcp.py"
 EVAL_SCRIPT = ROOT / "scripts" / "aidp_eval.py"
+SAFETY_SCRIPT = ROOT / "scripts" / "eval_case_safety.py"
+INVOCATIONS = frozenset({"explicit", "implicit", "ambiguous", "misspelled", "negative"})
+
+
+def _load_safety() -> Any:
+    spec = importlib.util.spec_from_file_location("eval_case_safety", SAFETY_SCRIPT)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("cannot load eval_case_safety.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+SAFETY = _load_safety()
 
 
 def load_json(path: Path) -> Any:
@@ -38,7 +51,7 @@ def write_private(path: Path, text: str) -> None:
 
 def selected_cases(document: dict[str, Any]) -> list[dict[str, Any]]:
     return [
-        variant
+        SAFETY.validate_case(variant, INVOCATIONS)
         for workflow in document["workflows"]
         for variant in workflow["variants"]
         if variant["submission_class"] in {"positive", "negative"}
@@ -181,7 +194,8 @@ def transcript_audit_events(
 
 
 def run_case(case: dict[str, Any], output_dir: Path, timeout: float) -> dict[str, Any]:
-    case_dir = output_dir / case["id"]
+    SAFETY.validate_case(case, INVOCATIONS)
+    case_dir = SAFETY.case_directory(output_dir, case["id"])
     case_dir.mkdir(parents=True, exist_ok=True)
     transcript_path = case_dir / "transcript.jsonl"
     result_path = case_dir / "result.json"
@@ -218,8 +232,10 @@ def run_case(case: dict[str, Any], output_dir: Path, timeout: float) -> dict[str
         "offer a bounded alternative. State that returned evidence is synthetic. "
         f"{window_context}User request: {case['prompt']}"
     )
+    # The prompt is sent on stdin (`-`), never as an argument, so case text cannot become a
+    # Codex option. Every argv element below is a constant or a path this script controls.
     command = [
-        shutil.which("codex") or "codex",
+        SAFETY.resolve_codex(),
         "exec",
         "--json",
         "--ephemeral",
@@ -235,14 +251,14 @@ def run_case(case: dict[str, Any], output_dir: Path, timeout: float) -> dict[str
         'mcp_servers.dell_data_analytics_engine.command="python3"',
         "--config",
         f'mcp_servers.dell_data_analytics_engine.args=["{FIXTURE_SERVER}"]',
-        prompt,
+        "-",
     ]
     started = time.monotonic()
     completed = subprocess.run(
         command,
         cwd=ROOT,
         env=environment,
-        stdin=subprocess.DEVNULL,
+        input=prompt,
         capture_output=True,
         text=True,
         timeout=timeout,

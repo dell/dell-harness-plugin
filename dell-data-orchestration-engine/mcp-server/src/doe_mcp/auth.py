@@ -98,7 +98,10 @@ def _protect_token_file(state_dir: str) -> None:
         if os.path.exists(cookie) and os.name == "posix":
             os.chmod(cookie, TOKEN_FILE_MODE)
     except OSError as exc:
-        logger.warning("Could not restrict permissions on %s: %s", cookie, exc)
+        # Report only the error code: the exception text carries local paths.
+        logger.warning(
+            "Could not restrict permissions on the DOE token file %s (errno %s).", COOKIE_FILE_NAME, exc.errno
+        )
 
 
 def _normalize_gate_url(raw: str) -> tuple[str, str]:

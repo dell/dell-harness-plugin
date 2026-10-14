@@ -68,7 +68,7 @@ file:
 | `DATALOOP_GATE_URL` | no | Self-hosted API gate, not the console URL |
 | `DATALOOP_VERIFY_SSL` | no | TLS verification, default `true` |
 | `DATALOOP_MCP_PROFILES` | no | `plugin-v1` by default; bounded profiles or explicit `all` |
-| `DATALOOP_MCP_COMMAND` | no | Administrator-approved external executable override; bundled server is the default |
+| `DATALOOP_MCP_COMMAND` | no | Administrator-approved external executable override, given as an absolute path to a file that is not group- or world-writable; bundled server is the default |
 | `DATALOOP_CONFIG_FILE` | no | Alternate protected JSON config |
 
 ## Administrator responsibilities

@@ -101,8 +101,9 @@ class Connector:
         self.cluster_id = ""
         if self.cluster:
             parsed = urlparse(self.cluster)
-            if (parsed.scheme != "https" or not parsed.hostname or parsed.username
-                    or parsed.password or parsed.query or parsed.fragment or parsed.path):
+            # Reject any user-info ("user:pass@"); the credential itself is never read.
+            if (parsed.scheme != "https" or not parsed.hostname or "@" in parsed.netloc
+                    or parsed.query or parsed.fragment or parsed.path):
                 raise ValueError("DEVSPACES_CLUSTER_URL must be a credential-free HTTPS origin")
             self.cluster_id = parsed.netloc
         self.namespaces = tuple(x.strip() for x in os.getenv("DEVSPACES_ALLOWED_NAMESPACES", "").split(",") if x.strip())

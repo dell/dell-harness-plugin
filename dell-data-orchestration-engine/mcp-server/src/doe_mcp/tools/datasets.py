@@ -45,7 +45,8 @@ def color_for(tag: str) -> tuple[int, int, int]:
     solves this with ``random.randint``; hashing the tag instead keeps a given label the
     same colour on every run, which matters when a dataset is recreated.
     """
-    digest = hashlib.md5(tag.encode(), usedforsecurity=False).digest()
+    # SHA-256 rather than MD5: not for secrecy, but MD5 is refused outright on FIPS-mode hosts.
+    digest = hashlib.sha256(tag.encode()).digest()
     return digest[0], digest[1], digest[2]
 
 

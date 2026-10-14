@@ -4,6 +4,7 @@
 import importlib.util
 import json
 import os
+import secrets
 import stat
 from pathlib import Path
 
@@ -21,7 +22,8 @@ def load_module():
 
 def test_tool_result_summary_omits_raw_content():
     module = load_module()
-    secret_value = "customer-index-secret"
+    # Random per run: no credential-shaped literal in source, and no coincidental match.
+    secret_value = secrets.token_urlsafe(16)
     body = {
         "result": {
             "content": [{"type": "text", "text": secret_value}],

@@ -4,14 +4,33 @@
 """Exercise the Windows launcher with a synthetic executable; never real auth."""
 import os
 from pathlib import Path
+import secrets
 import shutil
 import subprocess
 
 import pytest
 
 HELPER = Path(__file__).parents[1] / 'scripts' / 'authenticate_devspaces.ps1'
-POWERSHELL = os.getenv('DEVSPACES_TEST_POWERSHELL') or shutil.which('powershell.exe')
-COMPILER_HOST = shutil.which('powershell.exe')
+POWERSHELL_NAMES = {'powershell.exe', 'pwsh.exe', 'pwsh'}
+# Generated per run so no credential-shaped literal lives in source, and a leak check cannot
+# pass by coincidence.
+URL_SECRET = secrets.token_urlsafe(12)
+
+
+def trusted_powershell(candidate):
+    """Resolve a PowerShell host, accepting only an existing powershell/pwsh executable."""
+    if not candidate:
+        return None
+    resolved = shutil.which(candidate)
+    if not resolved:
+        return None  # Not installed: the module-level skip applies.
+    if Path(resolved).name.lower() not in POWERSHELL_NAMES:
+        raise RuntimeError('DEVSPACES_TEST_POWERSHELL must name a powershell.exe or pwsh executable')
+    return os.path.abspath(resolved)
+
+
+POWERSHELL = trusted_powershell(os.getenv('DEVSPACES_TEST_POWERSHELL') or 'powershell.exe') if os.name == 'nt' else None
+COMPILER_HOST = trusted_powershell('powershell.exe') if os.name == 'nt' else None
 pytestmark = pytest.mark.skipif(os.name != 'nt' or not POWERSHELL, reason='Windows PowerShell required')
 
 
@@ -68,14 +87,14 @@ def test_explicit_tls_opt_in(connector_stub):
     assert 'Explicit TLS exception' in result.stdout
 
 
-@pytest.mark.parametrize('origin', ['http://example.test', 'https://user:secret@example.test',
-                                   'https://example.test/?token=secret', 'not a URL'])
+@pytest.mark.parametrize('origin', ['http://example.test', f'https://user:{URL_SECRET}@example.test',
+                                   f'https://example.test/?token={URL_SECRET}', 'not a URL'])
 def test_invalid_origin_never_invokes_connector(connector_stub, origin):
     result = run_helper(connector_stub, origin)
     assert result.returncode != 0
     assert 'ARGS=' not in result.stdout
     assert 'credential-free HTTPS cluster origin' in result.stdout
-    assert 'secret' not in result.stdout + result.stderr
+    assert URL_SECRET not in result.stdout + result.stderr
     assert 'Press Enter to close' in result.stdout
 
 
