@@ -5,7 +5,8 @@ description: >
   Data Analytics Engine or Starburst Enterprise MCP endpoint from Codex. Use
   for DDAE OAuth, protected-resource discovery, Data Product search, read-only
   Trino SQL, tool-catalog inspection, parameterized-query configuration, or
-  connection troubleshooting.
+  connection troubleshooting. Do not use for Dell Data Search Engine, Elastic,
+  Kibana, or ES|QL requests.
 ---
 
 # Configure Dell Data Analytics Engine

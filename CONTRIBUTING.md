@@ -51,6 +51,9 @@ packages pin different `mcp` releases, so test them in separate virtual
 environments:
 
 ```bash
+# Skill lint (frontmatter, routing exclusions, adapters, size)
+python scripts/validate_skills.py
+
 # Repository-wide packaging, evaluation, and release-hygiene tests
 python -m pytest tests -q
 
@@ -84,6 +87,10 @@ python -m venv .venv-doe
 
 - **Write safety.** New write or destructive MCP tools must stay behind explicit
   opt-in gates and carry accurate MCP tool annotations.
+- **Skills.** Each `SKILL.md` needs `name` matching its directory, a
+  description that says when to use it and when not to ("Do not use for ..."),
+  an `agents/openai.yaml` adapter, and at most 200 lines; move detail to
+  `references/`. `scripts/validate_skills.py` enforces this in CI.
 - **Docs.** User-visible behavior changes need an update to the affected plugin
   README and a [CHANGELOG](CHANGELOG.md) entry under "Unreleased".
 

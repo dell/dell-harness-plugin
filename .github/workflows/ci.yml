@@ -1,0 +1,77 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository:
+    name: Skills, packaging, evals, release hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pytest pyyaml
+      - name: Lint skills
+        run: python scripts/validate_skills.py
+      - name: Repository-wide tests
+        run: python -m pytest tests -q
+
+  devspaces:
+    name: Dev Spaces plugin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          python -m venv .venv-devspaces
+          .venv-devspaces/bin/pip install -r dell-devspaces-sandbox/requirements-dev.txt
+      - run: .venv-devspaces/bin/python -m pytest dell-devspaces-sandbox/tests -q
+      - run: .venv-devspaces/bin/python dell-devspaces-sandbox/scripts/validate_plugin.py
+
+  data-orchestration:
+    name: Data Orchestration Engine MCP server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          python -m venv .venv-doe
+          .venv-doe/bin/pip install -e "dell-data-orchestration-engine/mcp-server[dev]"
+      - working-directory: dell-data-orchestration-engine/mcp-server
+        run: ../../.venv-doe/bin/python -m pytest -q
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.21.2 \
+            detect --source /repo --config /repo/.gitleaks.toml --redact --no-banner
+
+  reuse:
+    name: REUSE compliance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: fsfe/reuse-action@v5

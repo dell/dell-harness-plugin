@@ -5,7 +5,8 @@ description: >
   Data Search Engine Kibana Agent Builder MCP endpoint from Codex. Use for DDSE
   or Elastic MCP setup, API-key authentication, Kibana spaces, tool catalogs,
   index search, ES|QL, Agent Builder model dependencies, observability,
-  security investigation, permissions, or connection troubleshooting.
+  security investigation, permissions, or connection troubleshooting. Do not
+  use for Dell Data Analytics Engine, Starburst, Trino, or Data Product requests.
 ---
 
 # Configure Dell Data Search Engine

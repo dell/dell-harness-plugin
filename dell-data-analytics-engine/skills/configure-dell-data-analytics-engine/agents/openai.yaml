@@ -1,0 +1,4 @@
+interface:
+  display_name: "Configure Dell Data Analytics Engine"
+  short_description: "Set up and validate a DDAE MCP connection."
+  default_prompt: "Use $configure-dell-data-analytics-engine to configure and validate my DDAE MCP connection."

@@ -4,7 +4,7 @@ description: >
   Configure, authenticate, validate, and troubleshoot the Dell Data
   Orchestration Engine (Dataloop) Python SDK MCP integration. Use for Dataloop
   API-key setup, bundled MCP runtime installation, MCP profile selection,
-  connection validation, TLS settings, or tool-catalog and authorization problems.
+  connection validation, TLS settings, or tool-catalog and authorization problems. Do not use for DDAE or DDSE connection setup.
 ---
 
 # Configure Dell Data Orchestration Engine

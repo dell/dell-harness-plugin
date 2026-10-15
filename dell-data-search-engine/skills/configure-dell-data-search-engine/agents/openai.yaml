@@ -1,0 +1,4 @@
+interface:
+  display_name: "Configure Dell Data Search Engine"
+  short_description: "Set up and validate a DDSE MCP connection."
+  default_prompt: "Use $configure-dell-data-search-engine to configure and validate my DDSE MCP connection."

@@ -5,7 +5,8 @@ description: >
   Orchestration Engine (Dataloop), including dataset readiness, marketplace
   model selection, subsets, training, deployment, prediction, and annotation
   review. Use when a user requests an image classifier or model-assisted image
-  labeling in Dataloop.
+  labeling in Dataloop. Do not use for dataset exploration, RAG pipelines, or
+  local model training outside Dataloop.
 ---
 
 # Build Dataloop Image Classifiers

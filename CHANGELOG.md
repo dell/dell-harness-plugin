@@ -28,6 +28,18 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 
+- Continuous integration (`.github/workflows/ci.yml`): repository tests, the
+  Dev Spaces and Data Orchestration Engine suites, gitleaks, and REUSE.
+- `scripts/validate_skills.py`, a skill linter enforced by
+  `tests/plugins/test_skill_lint.py`. Every skill needs matching frontmatter,
+  a "Do not use for ..." routing exclusion, an `agents/openai.yaml` adapter,
+  no template placeholders, and at most 200 lines.
+- Static routing guards (`test_skill_routing_boundaries.py`) so the DDAE and
+  DDSE skills exclude each other and positive evaluation prompts do not leak
+  another product's vocabulary, and release-consistency checks
+  (`test_release_consistency.py`) tying manifests, marketplace, changelog, and
+  docs together.
+
 - `dell-data-orchestration-engine` 0.4.0: synchronized the bundled MCP server
   with the upstream DOE MCP server as of 2026-09-21. The `plugin-v1` profile
   grows from 36 to 42 tools (`item_get`, `annotation_get`, `pipeline_list`,
@@ -77,6 +89,9 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/).
   verification disabled by default; set `DEVSPACES_AUTO_TLS_RETRY=false` to
   require verified TLS. Runtime adds `automatic_tls_retry` and reports the
   effective TLS state. Existing tool names and inputs are unchanged.
+
+- Added missing routing exclusions to five skills and `agents/openai.yaml`
+  adapters to the DDAE and DDSE `configure-*` skills, found by the new linter.
 
 - Licensed the repository under Apache-2.0. Plugin manifests now declare
   `"license": "Apache-2.0"`, and every source file carries an SPDX copyright
