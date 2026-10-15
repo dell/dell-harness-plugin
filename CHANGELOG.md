@@ -28,6 +28,17 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 
+- `scripts/record_run_metadata.py`: records the package hash, versions, effective
+  profile, tool-catalog hash, model, effort, fixture and limits for a validation
+  run, and validates per-case results so run status stays separate from quality.
+- `docs/validation/VALIDATION_PLAN.md`: the ten installed-plugin case families
+  from the 2026-09-17 technical feedback, with environment, acceptance evidence,
+  current offline coverage, and a results log. Cases needing a live environment
+  are marked `not run`.
+- Square listing icons (`dell-technologies-icon-square.png`, built by
+  `scripts/make_square_icon.py` from the existing wordmark) and a test that every
+  manifest icon is a square PNG. Replace with the brand-approved icon when available.
+
 - Continuous integration (`.github/workflows/ci.yml`): repository tests, the
   Dev Spaces and Data Orchestration Engine suites, gitleaks, and REUSE.
 - `scripts/validate_skills.py`, a skill linter enforced by
