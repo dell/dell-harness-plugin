@@ -2,8 +2,7 @@
 
 Observed August 10, 2026 from `elastic-mcp-server 0.0.1` using MCP protocol
 2025-06-18. A refreshed audit on August 12 again returned one page and 25
-tools. An authenticated September 10 audit through an authorized private-network
-gateway again returned `elastic-mcp-server 0.0.1`, MCP protocol 2025-06-18, one
+tools. An authenticated September 10 audit of the pilot deployment again returned `elastic-mcp-server 0.0.1`, MCP protocol 2025-06-18, one
 page, and the same 25 tools. Prefer the customer's current `tools/list`; release,
 license, Kibana space, privileges, data, installed content, and model
 configuration can change it.

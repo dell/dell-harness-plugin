@@ -66,7 +66,16 @@ FORBIDDEN_PHRASES = (
     "internal dell repository",
     "dell network access",
     "private dell network",
+    # Pilot-lab network access and identifiers must not ship.
+    "private tunnel",
+    "private-network tunnel",
+    "socks5://",
+    "the validated pilot used",
+    "ctolab",
+    "cto lab",
 )
+# Absolute paths from the machine that generated a file (evidence, logs, transcripts).
+LOCAL_PATH = re.compile(r"(/app/projects/|/home/[A-Za-z0-9_.-]+/|/Users/[A-Za-z0-9_.-]+/|[A-Za-z]:\\\\Users\\\\)")
 
 
 def repository_files():
@@ -121,6 +130,16 @@ def test_documentation_has_no_internal_distribution_language():
         if re.search(rf"\b{re.escape(phrase)}\b", text.lower())
     ]
     assert not violations, "\n".join(violations)
+
+
+def test_no_local_machine_paths_are_published():
+    violations = [
+        f"{path.relative_to(ROOT)}: {match.group(0)}"
+        for path, text in text_files()
+        if path != Path(__file__).resolve()
+        for match in LOCAL_PATH.finditer(text)
+    ]
+    assert not violations, "Local filesystem paths found:\n" + "\n".join(violations)
 
 
 def test_repository_ships_only_the_four_supported_plugins():

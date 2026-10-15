@@ -47,7 +47,7 @@ then passed the complete 12/12 matrix and is the review candidate.
 
 ## Live validation status
 
-On September 10, 2026, the restored private tunnel reached the DDAE MCP endpoint
+On September 10, 2026, the pilot network path reached the DDAE MCP endpoint
 and received the expected unauthenticated `401`. Protected-resource and issuer
 discovery, dynamic client registration, browser authorization, PKCE S256 code
 exchange, and MCP OAuth all succeeded without a client secret or manually
@@ -87,14 +87,14 @@ The package is ready to send for **initial OpenAI plugin review with explicit
 caveats**. It is not yet an unqualified final submission candidate. Before a
 reviewer must exercise the hosted app or before public submission:
 
-1. Replace the temporary private tunnel with the final review network path and
+1. Replace the temporary pilot network path with the final review network path and
    confirm OAuth refresh survives the initial token lifetime.
 2. Capture a fresh, raw, pagination-aware `tools/list` using the authenticated
    least-privilege review identity.
 3. Correct every raw-contract gap, including accurate safety annotations,
    per-tool OAuth security metadata, and required query inputs, then rescan.
 4. Provide a stable, publicly reachable HTTPS endpoint and a production-like
-   synthetic review account that does not depend on a private network tunnel.
+   synthetic review account that does not depend on pilot-only network access.
 5. Add ChatGPT transcripts before unified public submission; their deferral
    applies only to this initial Codex-first review.
 6. Confirm publisher/domain verification and public website, support, privacy,

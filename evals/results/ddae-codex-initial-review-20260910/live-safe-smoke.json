@@ -57,7 +57,7 @@
   },
   "limitations": [
     "Catalog metadata was observed through Codex deferred discovery, not retained as a raw pagination-aware MCP tools/list response.",
-    "The temporary private tunnel is not the final reviewer-accessible network path.",
+    "The temporary pilot network path is not the final reviewer-accessible network path.",
     "OAuth refresh beyond the initial token lifetime was not validated in this session."
   ]
 }

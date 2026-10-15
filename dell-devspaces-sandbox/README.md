@@ -43,7 +43,7 @@ codex plugin add dell-devspaces-sandbox@dell-harness-plugin
 
 The manifest launches `python`; ensure that interpreter has runtime dependencies before restarting Codex. Install `requirements.txt` for both backends, or `mcp==1.30.0` for the default connector backend. Installation does not provision the external connector or credentials.
 
-If an already approved PowerShell 7 installation is preferred, set `$env:DEVSPACES_POWERSHELL = 'C:\path\to\pwsh.exe'` before running the launcher. This selects a host without changing its execution policy. The launcher defaults to Windows PowerShell. If that host rejects script execution, the `.cmd` wrapper keeps the error visible; use an administrator-approved execution method rather than bypassing policy. Synthetic helper tests can select the same host with `DEVSPACES_TEST_POWERSHELL`; no real authentication is used by those tests.
+If an already approved PowerShell 7 installation is preferred, set `$env:DEVSPACES_POWERSHELL = 'C:\path\to\pwsh.exe'` before running the launcher. This selects a host without changing its execution policy. The launcher defaults to Windows PowerShell. If that host rejects script execution, the `.cmd` wrapper keeps the error visible; use an administrator-approved execution method rather than bypassing policy. Synthetic helper tests can select the same host with `DEVSPACES_TEST_POWERSHELL` set to its absolute path; no real authentication is used by those tests.
 
 ## Operations
 

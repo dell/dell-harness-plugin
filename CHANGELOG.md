@@ -7,6 +7,15 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Security
 
+- Closed the residual release-review items: removed pilot network-access
+  instructions (SOCKS proxy, host overrides, private-tunnel wording) and pilot
+  Keycloak values from the DDAE/DDSE docs and evaluation records, dropped
+  private-helper names from `.gitignore`, and made the DOE test suite hermetic
+  (real Dataloop requests are blocked). Validation evidence no longer records
+  local filesystem paths. The Dataloop launcher now executes the resolved
+  command and rejects a group- or world-writable parent directory. The
+  release-hygiene test also guards against these regressions.
+
 - Remediated the 2026-10-08 static-analysis scan (3 critical, 8 medium, 4 low).
   The Codex evaluation runners send prompts on stdin (`codex exec -`) instead
   of argv, validate case IDs, prompts and invocations, confine output

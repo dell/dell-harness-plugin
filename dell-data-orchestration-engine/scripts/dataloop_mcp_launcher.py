@@ -94,8 +94,9 @@ def profiles_from(value: str | None) -> list[str]:
 def trusted_executable(requested: str) -> str:
     """Validate a configured MCP command before it is executed.
 
-    Only an absolute path is accepted, so the command cannot be redirected through PATH, and
-    on POSIX the resolved file must not be writable by group or others.
+    Only an absolute path is accepted, so the command cannot be redirected through PATH. On
+    POSIX neither the resolved file nor its directory may be writable by group or others. The
+    resolved path is what gets executed, so a symlink cannot be swapped after the check.
     """
     path = Path(requested).expanduser()
     if not path.is_absolute():
@@ -106,11 +107,14 @@ def trusted_executable(requested: str) -> str:
     resolved = path.resolve()
     if not resolved.is_file() or not os.access(resolved, os.X_OK):
         raise ConfigurationError(f"Configured MCP command is not an executable file: {requested}")
-    if os.name == "posix" and stat.S_IMODE(resolved.stat().st_mode) & 0o022:
-        raise ConfigurationError(
-            f"Configured MCP command must not be group- or world-writable: {resolved}"
-        )
-    return str(path)
+    if os.name == "posix":
+        for target in (resolved, resolved.parent):
+            if stat.S_IMODE(target.stat().st_mode) & 0o022:
+                raise ConfigurationError(
+                    f"Configured MCP command and its directory must not be group- or "
+                    f"world-writable: {target}"
+                )
+    return str(resolved)
 
 
 def build_command(environ: dict[str, str]) -> list[str]:

@@ -17,19 +17,31 @@ POWERSHELL_NAMES = {'powershell.exe', 'pwsh.exe', 'pwsh'}
 URL_SECRET = secrets.token_urlsafe(12)
 
 
-def trusted_powershell(candidate):
-    """Resolve a PowerShell host, accepting only an existing powershell/pwsh executable."""
+def trusted_powershell(candidate, override=False):
+    """Resolve a PowerShell host, accepting only an existing powershell/pwsh executable.
+
+    An override from DEVSPACES_TEST_POWERSHELL must be an absolute path, so it is never
+    resolved through PATH; only the built-in default name is looked up there.
+    """
     if not candidate:
         return None
-    resolved = shutil.which(candidate)
-    if not resolved:
-        return None  # Not installed: the module-level skip applies.
+    if override:
+        path = Path(candidate)
+        if not path.is_absolute() or not path.is_file():
+            raise RuntimeError('DEVSPACES_TEST_POWERSHELL must be an absolute path to an existing executable')
+        resolved = str(path)
+    else:
+        resolved = shutil.which(candidate)
+        if not resolved:
+            return None  # Not installed: the module-level skip applies.
     if Path(resolved).name.lower() not in POWERSHELL_NAMES:
         raise RuntimeError('DEVSPACES_TEST_POWERSHELL must name a powershell.exe or pwsh executable')
     return os.path.abspath(resolved)
 
 
-POWERSHELL = trusted_powershell(os.getenv('DEVSPACES_TEST_POWERSHELL') or 'powershell.exe') if os.name == 'nt' else None
+_OVERRIDE = os.getenv('DEVSPACES_TEST_POWERSHELL')
+POWERSHELL = (trusted_powershell(_OVERRIDE, override=True) if _OVERRIDE
+              else trusted_powershell('powershell.exe')) if os.name == 'nt' else None
 COMPILER_HOST = trusted_powershell('powershell.exe') if os.name == 'nt' else None
 pytestmark = pytest.mark.skipif(os.name != 'nt' or not POWERSHELL, reason='Windows PowerShell required')
 

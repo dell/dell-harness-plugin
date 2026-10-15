@@ -36,7 +36,7 @@ def mode_of(path: Path) -> int:
 
 
 def test_slugify_lowercases_and_replaces_unsafe_characters():
-    assert slugify("CTO Lab") == "cto-lab"
+    assert slugify("Private Lab") == "private-lab"
     assert slugify("  cloud  ") == "cloud"
     assert slugify("a/b:c") == "a-b-c"
 
@@ -182,14 +182,14 @@ def test_list_aliases_is_empty_for_a_base_that_does_not_exist_yet(tmp_path):
 
 def test_list_aliases_reports_every_provisioned_alias(tmp_path):
     provision("cloud", "https://gate.dataloop.ai/api/v1", base=tmp_path)
-    provision("ctolab", "https://ctolab-gate.example.net/api/v1", base=tmp_path)
+    provision("privatelab", "https://privatelab-gate.example.net/api/v1", base=tmp_path)
 
     rows = list_aliases(tmp_path)
 
-    assert [alias for alias, _, _ in rows] == ["cloud", "ctolab"]
+    assert [alias for alias, _, _ in rows] == ["cloud", "privatelab"]
     assert dict((alias, gate_url) for alias, _, gate_url in rows) == {
         "cloud": "https://gate.dataloop.ai/api/v1",
-        "ctolab": "https://ctolab-gate.example.net/api/v1",
+        "privatelab": "https://privatelab-gate.example.net/api/v1",
     }
 
 

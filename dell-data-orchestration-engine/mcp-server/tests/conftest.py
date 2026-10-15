@@ -48,6 +48,22 @@ def _no_real_credentials(monkeypatch: pytest.MonkeyPatch, tmp_path_factory: pyte
     monkeypatch.setenv("DATALOOP_PATH", str(tmp_path_factory.mktemp("dataloop-state")))
 
 
+@pytest.fixture(autouse=True)
+def _no_platform_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Fail fast on any real dtlpy HTTP call.
+
+    dtlpy binds its state directory at import, so a developer's own ~/.dataloop login and
+    gate can otherwise leak into an offline test that reaches `dl.*` directly.
+    """
+    import dtlpy as dl
+
+    def refuse(*args: Any, **kwargs: Any) -> Any:
+        raise RuntimeError("offline test suite: real DOE platform requests are blocked")
+
+    for method in ("gen_request", "gen_async_request", "send_session"):
+        monkeypatch.setattr(type(dl.client_api), method, refuse)
+
+
 class FakeRepo:
     """Records calls and returns canned entities."""
 

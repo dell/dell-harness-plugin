@@ -100,8 +100,8 @@ the three safety hints. Because that catalog view was not a raw,
 pagination-aware `tools/list` capture, run the contract-capture command below
 before attributing the discrepancy to the upstream server or submitting it.
 
-With the private-network tunnel active and the Codex-managed OAuth session
-enrolled, capture and grade a fresh sanitized contract from the
+From a machine that can reach the DDAE endpoint, with the Codex-managed OAuth
+session enrolled, capture and grade a fresh sanitized contract from the
 marketplace repository root:
 
 ~~~bash
@@ -130,7 +130,7 @@ See [the review record](../evals/results/ddae-codex-initial-review-20260910/REVI
 and [machine-readable summary](../evals/results/ddae-codex-initial-review-20260910/attempt-6/summary.json).
 The approved live smoke is recorded in
 [live-safe-smoke.json](../evals/results/ddae-codex-initial-review-20260910/live-safe-smoke.json).
-Local fixture and private-tunnel smoke evidence do not replace a raw contract
+Local fixture and pilot smoke evidence do not replace a raw contract
 scan and reviewer-network test against the final hosted MCP endpoint.
 
 ## OAuth guides

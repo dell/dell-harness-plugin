@@ -110,15 +110,24 @@ def main():
         os.environ['DEVSPACES_TEST_PLUGIN_ROOT'] = str(relocated)
         os.environ['DEVSPACES_TEST_EVIDENCE_DIR'] = str(out)
         try:
-            code = pytest.main([str(ROOT / 'tests'), '-q', '-p', 'no:cacheprovider', f'--junitxml={out / "pytest.xml"}'])
+            code = pytest.main([str(ROOT / 'tests'), '-q', '-p', 'no:cacheprovider',
+                                f'--rootdir={ROOT.parent}', f'--junitxml={out / "pytest.xml"}'])
         finally:
             for key, value in previous.items():
                 if value is None: os.environ.pop(key, None)
                 else: os.environ[key] = value
     report = ET.parse(out / 'pytest.xml')
     suite = report.getroot().find('testsuite')
+    # Published evidence must not reveal the machine or checkout path that produced it.
+    local_prefix = str(ROOT.parent) + os.sep
     for element in report.iter():
         element.attrib.pop('hostname', None)
+        for key, value in element.attrib.items():
+            element.attrib[key] = value.replace(local_prefix, '')
+        for field in ('text', 'tail'):
+            value = getattr(element, field)
+            if value:
+                setattr(element, field, value.replace(local_prefix, ''))
     report.write(out / 'pytest.xml', encoding='utf-8', xml_declaration=True)
     sources = sorted(set(files + list((ROOT / 'tests').rglob('*.py')) + [Path(__file__).resolve(), ROOT / 'requirements-dev.txt']))
     result = {

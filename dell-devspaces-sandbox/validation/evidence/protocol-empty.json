@@ -14,7 +14,7 @@
         "workspace_count": 0,
         "reason": null
       },
-      "latency_ms": 9.33
+      "latency_ms": 10.02
     },
     {
       "tool": "list_devspaces",
@@ -26,7 +26,7 @@
         "total": 0,
         "next_offset": null
       },
-      "latency_ms": 17.58
+      "latency_ms": 18.02
     }
   ]
 }

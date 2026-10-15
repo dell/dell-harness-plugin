@@ -55,7 +55,7 @@ MARKER_MODE = 0o600
 
 
 def slugify(alias: str) -> str:
-    """A filesystem- and directory-name-safe form of an alias, e.g. 'CTO Lab' -> 'cto-lab'."""
+    """A filesystem- and directory-name-safe form of an alias, e.g. 'Private Lab' -> 'private-lab'."""
     slug = _UNSAFE.sub("-", alias.strip().lower()).strip("-")
     if not slug:
         raise ValueError(f"{alias!r} has no usable characters for a directory name.")
@@ -137,7 +137,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("alias", nargs="?", help="Short name for the deployment, e.g. 'cloud', 'ctolab'.")
+    parser.add_argument("alias", nargs="?", help="Short name for the deployment, e.g. 'cloud', 'privatelab'.")
     parser.add_argument("--gate-url", help="DATALOOP_GATE_URL this alias is for. Recorded on first use.")
     parser.add_argument(
         "--base", default=str(DEFAULT_BASE), help=f"Parent directory. Default: {DEFAULT_BASE}"

@@ -256,3 +256,28 @@ def test_launcher_rejects_a_world_writable_command(tmp_path):
     command = launcher.build_command({"DATALOOP_MCP_COMMAND": str(executable)})
     assert command[0] == str(executable)
     assert command[1:] == ["--profile", "plugin-v1"]
+
+
+def test_launcher_rejects_a_world_writable_directory_and_runs_the_resolved_target(tmp_path):
+    if os.name != "posix":
+        return
+    launcher = load_launcher()
+    shared = tmp_path / "shared"
+    shared.mkdir()
+    executable = shared / "doe-mcp"
+    executable.write_text("#!/bin/sh\n", encoding="utf-8")
+    executable.chmod(0o755)
+    shared.chmod(0o777)
+    try:
+        launcher.build_command({"DATALOOP_MCP_COMMAND": str(executable)})
+    except launcher.ConfigurationError as exc:
+        assert "directory" in str(exc)
+    else:
+        raise AssertionError("an executable in a world-writable directory must be rejected")
+
+    shared.chmod(0o755)
+    link = tmp_path / "doe-mcp-link"
+    link.symlink_to(executable)
+    command = launcher.build_command({"DATALOOP_MCP_COMMAND": str(link)})
+    # The checked file is the one executed, so the link cannot be retargeted afterwards.
+    assert command[0] == str(executable.resolve())

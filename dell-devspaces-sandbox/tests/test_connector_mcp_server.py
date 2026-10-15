@@ -5,12 +5,15 @@ import asyncio
 import importlib.util
 import io
 import json
+import secrets
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
+# Generated per run: no credential-shaped literal in source, and redaction checks cannot pass by luck.
+SENTINEL = secrets.token_urlsafe(12)
 PATH = Path(__file__).parents[1] / 'scripts' / 'connector_mcp_server.py'
 SPEC = importlib.util.spec_from_file_location('connector_mcp_server', PATH)
 SERVER = importlib.util.module_from_spec(SPEC)
@@ -44,7 +47,7 @@ def row(phase='Running', **changes):
 
 
 def test_list_redacts_extra_fields_and_checks_cluster(adapter, monkeypatch):
-    monkeypatch.setattr(adapter, 'run', lambda args: json.dumps([row(token='secret')]))
+    monkeypatch.setattr(adapter, 'run', lambda args: json.dumps([row(token=SENTINEL)]))
     assert 'token' not in adapter.list()[0]
     data = row()
     data['clusterId'] = 'other.example'
@@ -130,11 +133,11 @@ def test_tls_and_process_error_redaction(adapter, monkeypatch):
         assert 'NODE_TLS_REJECT_UNAUTHORIZED' not in kwargs['env']
         assert kwargs['env']['NODE_EXTRA_CA_CERTS'] == 'approved.pem'
         assert kwargs['stdin'] == subprocess.DEVNULL
-        return subprocess.CompletedProcess(args, 1, 'secret', 'secret')
+        return subprocess.CompletedProcess(args, 1, SENTINEL, SENTINEL)
     monkeypatch.setattr(SERVER.subprocess, 'run', run)
     with pytest.raises(RuntimeError) as exc:
         adapter.run(['--list'])
-    assert 'secret' not in str(exc.value)
+    assert SENTINEL not in str(exc.value)
 
 
 def test_connect_reuses_owned_process_and_disconnects(adapter, monkeypatch):
@@ -207,7 +210,7 @@ def test_mcp_tool_schemas_load():
 
 @pytest.mark.parametrize('field,value', [('started', 'false'), ('name', None),
                                        ('devworkspaceId', ''), ('phase', 1),
-                                       ('displayName', {'token': 'secret'})])
+                                       ('displayName', {'token': SENTINEL})])
 def test_malformed_workspace_fields_rejected(adapter, monkeypatch, field, value):
     data = row()
     data[field] = value
@@ -236,11 +239,11 @@ def test_start_running_is_noop(adapter, monkeypatch):
 def test_subprocess_timeout_does_not_leak_output(adapter, monkeypatch):
     monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
     def run(*args, **kwargs):
-        raise subprocess.TimeoutExpired('connector', 30, output='secret')
+        raise subprocess.TimeoutExpired('connector', 30, output=SENTINEL)
     monkeypatch.setattr(SERVER.subprocess, 'run', run)
     with pytest.raises(RuntimeError) as exc:
         adapter.run(['--stop', 'devbox'])
-    assert 'secret' not in str(exc.value)
+    assert SENTINEL not in str(exc.value)
     assert 'recheck status' in str(exc.value)
 
 
@@ -279,8 +282,8 @@ def test_explicit_tls_retry_scoped_to_child_environment(monkeypatch):
 def test_certificate_error_category_is_sanitized(adapter, monkeypatch):
     monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
     monkeypatch.setattr(SERVER.subprocess, 'run', lambda *args, **kwargs:
-                        subprocess.CompletedProcess([], 1, '', 'unable to verify the first certificate; token=secret'))
+                        subprocess.CompletedProcess([], 1, '', f'unable to verify the first certificate; token={SENTINEL}'))
     with pytest.raises(RuntimeError) as exc:
         adapter.run(['--list'])
     assert 'certificate verification failed' in str(exc.value)
-    assert 'secret' not in str(exc.value)
+    assert SENTINEL not in str(exc.value)

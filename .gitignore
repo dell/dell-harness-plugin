@@ -5,11 +5,6 @@ credentials.env
 .env
 .env.*
 
-# Local-only private-network testing helpers
-MCP_PRIVATE_NETWORK_TESTING.md
-scripts/fixed_socks_connect_proxy.py
-tests/plugins/test_fixed_socks_connect_proxy.py
-
 # Python
 __pycache__/
 *.py[cod]

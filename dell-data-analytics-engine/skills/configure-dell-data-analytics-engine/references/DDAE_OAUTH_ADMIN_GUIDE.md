@@ -61,7 +61,7 @@ plugin needs to preconfigure it because the authorization server generates it.
 | OAuth resource | Normally `https://<ddae-host>`; use the metadata value | DDAE and identity administrators |
 | Issuer | `https://<identity-host>/auth/realms/<realm>` | Identity administrator |
 | OIDC metadata | `<issuer>/.well-known/openid-configuration` | Identity administrator |
-| Required DDAE audience | Product/deployment-specific; the validated pilot used `dv-sep-starburst-ui` | DDAE administrator |
+| Required DDAE audience | `<ddae-audience>`: product- and deployment-specific, defined by the installed DDAE security configuration | DDAE administrator |
 | Allowed login scopes | `openid` plus `offline_access` when refresh is enabled | Identity administrator |
 
 Use trusted certificates and hostname verification. Do not use `curl -k` in a
@@ -145,8 +145,8 @@ Required behavior:
   validated Codex invocation explicitly requested `openid` and added
   `offline_access` for refresh-token support.
 - The Trusted Hosts registration policy accepts requests from approved Codex
-  runtimes. In the pilot, `host-sending-registration-request-must-match=false`
-  was required because the default policy rejected the registration source.
+  runtimes. If the default policy rejects the registration source, the
+  host-matching check may need to be relaxed for the Codex runtimes.
   Disabling that check broadly increases DCR exposure; in production, restrict
   the registration endpoint to approved networks and apply rate limits,
   monitoring, and client-lifecycle controls, or use a supported trusted-host
@@ -182,9 +182,9 @@ new DCR client:
   the access token.
 - Scope assignment: default for new dynamically registered clients.
 
-The validated pilot required the audience `dv-sep-starburst-ui`. Confirm that
-value against the installed DDAE version and security configuration instead of
-assuming it for every deployment.
+Use the audience value (`<ddae-audience>`) that the installed DDAE version and
+security configuration require; confirm it with the DDAE administrator rather
+than reusing a value from another deployment.
 
 Test with a newly registered client after changing the default scope. Success
 with an older client that received a one-off mapper does not prove the default

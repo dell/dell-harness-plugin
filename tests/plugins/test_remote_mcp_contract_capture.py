@@ -4,12 +4,15 @@
 import importlib.util
 import json
 import os
+import secrets
 import stat
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
+# Generated per run so no credential-shaped literal lives in source.
+TOKEN = secrets.token_urlsafe(16)
 SCRIPT = ROOT / "scripts" / "capture_remote_mcp_contract.py"
 
 
@@ -25,15 +28,15 @@ def test_credentials_are_environment_only_and_schemes_are_enforced():
     module = load_module()
     assert module.required_environment(
         "ddae",
-        {"DDAE_MCP_URL": "https://example.test/mcp", "DDAE_OAUTH_TOKEN": "secret"},
-    ) == ("https://example.test/mcp", "Bearer secret")
+        {"DDAE_MCP_URL": "https://example.test/mcp", "DDAE_OAUTH_TOKEN": TOKEN},
+    ) == ("https://example.test/mcp", f"Bearer {TOKEN}")
     assert module.required_environment(
         "ddse",
         {
             "DDSE_MCP_URL": "https://example.test/mcp",
-            "DDSE_MCP_AUTHORIZATION": "ApiKey secret",
+            "DDSE_MCP_AUTHORIZATION": f"ApiKey {TOKEN}",
         },
-    ) == ("https://example.test/mcp", "ApiKey secret")
+    ) == ("https://example.test/mcp", f"ApiKey {TOKEN}")
 
     with pytest.raises(module.AuditError, match="must start"):
         module.required_environment(
@@ -56,7 +59,7 @@ def test_snapshot_writer_is_private_and_contains_no_credential(tmp_path):
     module.write_snapshot(path, snapshot)
 
     assert json.loads(path.read_text(encoding="utf-8")) == snapshot
-    assert "secret" not in path.read_text(encoding="utf-8")
+    assert TOKEN not in path.read_text(encoding="utf-8")
     if os.name == "posix":
         assert stat.S_IMODE(path.stat().st_mode) == 0o600
 

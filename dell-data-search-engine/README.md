@@ -103,9 +103,9 @@ Every response contained one text content item and no `structuredContent`, which
 independently confirms the upstream structured-output gap. Raw tool content was
 neither printed nor retained.
 
-With the private-network tunnel active and the API-key authorization exported
-only in the process environment, capture and grade a fresh sanitized contract
-from the marketplace repository root:
+From a machine that can reach the DDSE endpoint, with the API-key authorization
+exported only in the process environment, capture and grade a fresh sanitized
+contract from the marketplace repository root:
 
 ~~~bash
 python scripts/capture_remote_mcp_contract.py \
@@ -114,17 +114,13 @@ python scripts/aidp_eval.py contract \
   dell-data-search-engine /tmp/ddse-tools.json --review-ready
 ~~~
 
-After contract capture, run the non-sensitive execution smoke separately. The
-example uses the pilot's temporary network path; replace the proxy, resolution,
-and CA values for the review environment:
+After contract capture, run the non-sensitive execution smoke separately. Pass
+`--ca-bundle` only when the deployment uses a private certificate authority:
 
 ~~~bash
 python scripts/run_ddse_safe_smoke.py \
   /tmp/ddse-safe-smoke.json \
-  --proxy socks5://127.0.0.1:1080 \
-  --resolve <kibana-host>=<service-ip> \
-  --ca-bundle <customer-ca-bundle> \
-  --legacy-ca-compat
+  --ca-bundle <customer-ca-bundle>
 ~~~
 
 The smoke report is mode `0600` on POSIX and contains only response shape,
