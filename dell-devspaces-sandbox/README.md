@@ -45,9 +45,9 @@ Run the Python launcher with the configured interpreter (the agent performs this
 
 It opens a native Windows console and lets the CLI use the machine browser. Add `--foreground --pause` to use an existing local terminal. It skips login when CLI access to the cluster is already verified, and verifies access after auth; an empty list is inconclusive. Use `--check` for read-only CLI validation without starting login. Never run interactive foreground auth through a tool that captures the terminal stream. The Python helper does not depend on MCP or change PowerShell execution policy. On non-Windows systems use `--foreground` in a local terminal. The launcher reports only process launch, never authenticated status from a PID.
 
-Optional PowerShell entry point:
-
 If SSO has completed in the machine browser and the terminal remains at `Please enter the Developer Workspace URI:`, you may press **Enter once** with no URI to let the attempt finish. An empty entry can cancel the attempt on some versions; the agent must recheck CLI access afterward before reporting success. See the [prompt guidance](skills/manage-devspaces-sandbox/references/troubleshooting.md#developer-workspace-uri-prompt-after-browser-sso). Never share a credential-bearing URI in chat.
+
+Optional PowerShell entry point:
 
 ```powershell
 & 'C:\path\to\plugin\scripts\authenticate_devspaces.ps1' -ConnectorPath 'C:\Tools\Devspaces\connector.exe' -ClusterUrl 'https://devspaces.example.com' -PythonPath 'C:\Python312\python.exe' -PauseOnCompletion
