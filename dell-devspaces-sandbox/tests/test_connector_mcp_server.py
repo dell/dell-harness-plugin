@@ -339,3 +339,71 @@ def test_failed_certificate_retry_stops_after_two_attempts(adapter, monkeypatch)
 def test_tls_retry_can_be_disabled_by_configuration(monkeypatch):
     monkeypatch.setenv('DEVSPACES_AUTO_TLS_RETRY', 'false')
     assert not SERVER.Connector().auto_tls_retry
+
+
+def test_empty_inventory_differential_tls_probe_recovers_session(adapter, monkeypatch):
+    calls = []
+    def run(args):
+        calls.append(adapter.insecure_tls)
+        return json.dumps([row()] if adapter.insecure_tls else [])
+    monkeypatch.setattr(adapter, 'run', run)
+    assert adapter.list()[0]['name'] == 'devbox'
+    assert calls == [False, True] and adapter.insecure_tls
+
+
+def test_auth_progress_transfers_tls_without_terminal_confirmation(adapter, monkeypatch, tmp_path):
+    class Process:
+        pid = 123
+        def poll(self): return None
+    status_file = tmp_path / 'status.json'
+    status_file.write_text(json.dumps({'cluster_url': adapter.cluster, 'state': 'verified',
+                                     'cluster_verified': True, 'tls_verification_enabled': False,
+                                     'terminal': SENTINEL}))
+    adapter.auth_job = (Process(), status_file)
+    result = adapter.authentication_progress()
+    assert result['state'] == 'verified' and adapter.insecure_tls
+    assert SENTINEL not in json.dumps(result)
+
+
+def test_begin_auth_avoids_duplicate_native_windows(adapter, monkeypatch, tmp_path):
+    class Process:
+        pid = 123
+        def poll(self): return None
+    adapter.auth_job = (Process(), tmp_path / 'status.json')
+    monkeypatch.setattr(SERVER.subprocess, 'Popen', lambda *args, **kwargs: pytest.fail('duplicate window'))
+    assert adapter.begin_authentication()['pid'] == 123
+
+
+def test_dead_auth_helper_is_reported_without_user_terminal_readback(adapter, tmp_path):
+    class Process:
+        pid = 123
+        def poll(self): return 1
+    adapter.auth_job = (Process(), tmp_path / 'status.json')
+    assert adapter.authentication_progress()['state'] == 'failed'
+
+
+def test_begin_auth_launches_native_helper_with_private_status(adapter, monkeypatch, tmp_path):
+    if SERVER.os.name != 'nt':
+        pytest.skip('Windows native console')
+    monkeypatch.setattr(adapter, 'list', lambda: [])
+    monkeypatch.setattr(adapter, 'executable', lambda: 'connector.exe')
+    monkeypatch.setattr(SERVER.tempfile, 'mkdtemp', lambda **kwargs: str(tmp_path))
+    calls = []
+    class Process:
+        pid = 123
+        def poll(self): return None
+    def popen(command, **kwargs):
+        calls.append((command, kwargs))
+        return Process()
+    monkeypatch.setattr(SERVER.subprocess, 'Popen', popen)
+    result = adapter.begin_authentication()
+    assert result['state'] == 'launched'
+    command, options = calls[0]
+    assert '--status-file' in command and '--foreground' in command
+    assert options['creationflags'] == subprocess.CREATE_NEW_CONSOLE
+    assert not any(key in options for key in ('stdin', 'stdout', 'stderr'))
+    (tmp_path / 'status.json').write_text(json.dumps({'cluster_url': adapter.cluster,
+                                                    'state': 'verified', 'cluster_verified': True,
+                                                    'tls_verification_enabled': False}))
+    assert adapter.authentication_progress()['cluster_verified']
+    assert adapter.insecure_tls

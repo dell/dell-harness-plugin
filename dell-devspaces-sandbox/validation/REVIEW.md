@@ -1,6 +1,20 @@
 # Dev Spaces plugin pre-push review
 
-## 0.3.0 update: native authentication
+## 0.4.0 update: runtime and setup orchestration
+
+The candidate adds reusable isolated runtime preparation, a retained MCP client,
+two native-authentication launch/progress tools (14 tools total), a whitelisted
+status channel, and differential recovery for silent-empty CLI inventories.
+Prior 0.2/0.3 observations are historical; current generated evidence labels
+offline tests separately from live read-only and interactive acceptance.
+
+Cold-start runtime creation and reuse, new-tool output schemas, native helper
+status privacy, duplicate-window prevention, session TLS continuity, and
+silent-empty recovery are explicit checks. Fresh installed-chat SSO and SSH
+remain separate acceptance; no lifecycle mutation or host-key relaxation is
+authorized by this update. Runtime preparation uses verified package TLS.
+
+## Historical 0.3.0 update: native authentication
 
 The current candidate adds a standard-library Python native-terminal authentication
 helper, PowerShell/batch wrappers, CLI-only status guidance, and bounded automatic

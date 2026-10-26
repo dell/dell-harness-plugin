@@ -33,7 +33,7 @@ async def session_run(scenario):
             assert init.serverInfo.name == 'Dell Redhat Devspaces AI Factory Skill'
             tools = (await session.list_tools()).tools
             schemas = {tool.name: tool.outputSchema for tool in tools}
-            assert len(tools) == 12
+            assert len(tools) == 14
             for tool in tools:
                 assert tool.description and tool.inputSchema and tool.outputSchema
                 jsonschema.Draft202012Validator.check_schema(tool.inputSchema)
@@ -69,6 +69,8 @@ async def session_run(scenario):
                 assert (await call('get_devspace_status', dict(namespace='review-team', name='alpha')))['phase'] == 'Stopped'
             else:
                 await call('get_runtime_configuration')
+                assert (await call('get_devspaces_authentication_progress'))['state'] == 'not_started'
+                assert (await call('begin_devspaces_authentication'))['state'] == 'verified'
                 assert (await call('get_devspaces_authentication_instructions'))['interactive_required']
                 assert (await call('get_authentication_status'))['cluster_verified']
                 first = await call('list_devspaces', {'limit': 1})

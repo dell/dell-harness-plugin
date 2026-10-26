@@ -44,7 +44,7 @@ def test_auth_is_interactive_and_post_checked(monkeypatch):
         calls.append('--auth')
         return 0, False
     monkeypatch.setattr(AUTH, 'interactive_auth', interactive)
-    assert AUTH.authenticate('connector', ORIGIN, CLUSTER) == 0
+    assert AUTH.authenticate('connector', ORIGIN, CLUSTER, automatic=False) == 0
     assert calls == ['--list', '--auth', '--list']
 
 
@@ -136,7 +136,7 @@ def test_read_only_check_never_authenticates_or_opens_console(monkeypatch, capsy
     monkeypatch.setattr(AUTH.subprocess, 'run', run)
     monkeypatch.setattr(AUTH.subprocess, 'Popen', lambda *args, **kwargs: pytest.fail('must not launch'))
     assert AUTH.main(['--check']) == 2
-    assert calls == [['connector', '--list']]
+    assert calls == [['connector', '--list'], ['connector', '--list']]
     assert json.loads(capsys.readouterr().out)['cluster_verified'] is False
 
 
@@ -180,7 +180,7 @@ def test_interactive_auth_preserves_private_console_and_only_classifies_stderr(m
                                                          (False, True, [False]),
                                                          (True, False, [False])])
 def test_auth_only_certificate_retry_is_bounded(monkeypatch, certificate, automatic, expected):
-    monkeypatch.setattr(AUTH, 'probe', lambda *args: ({'cluster_verified': False}, args[2]))
+    monkeypatch.setattr(AUTH, 'probe', lambda *args, **kwargs: ({'cluster_verified': False}, args[2]))
     calls = []
     def interactive(connector, cluster, insecure):
         calls.append(insecure)
@@ -188,3 +188,30 @@ def test_auth_only_certificate_retry_is_bounded(monkeypatch, certificate, automa
     monkeypatch.setattr(AUTH, 'interactive_auth', interactive)
     assert AUTH.authenticate('connector', ORIGIN, CLUSTER, automatic=automatic) == 1
     assert calls == expected
+
+
+def test_silent_empty_tls_recovery_skips_redundant_login(monkeypatch):
+    calls = []
+    def run(args, **kwargs):
+        insecure = kwargs['env'].get('NODE_TLS_REJECT_UNAUTHORIZED') == '0'
+        calls.append(insecure)
+        return subprocess.CompletedProcess(args, 0, json.dumps([{'clusterId': CLUSTER}] if insecure else []), '')
+    monkeypatch.setattr(AUTH.subprocess, 'run', run)
+    monkeypatch.setattr(AUTH, 'interactive_auth', lambda *args: pytest.fail('already authenticated'))
+    reports = []
+    assert AUTH.authenticate('connector', ORIGIN, CLUSTER, report=lambda state, **fields: reports.append((state, fields))) == 0
+    assert calls == [False, True]
+    assert reports[-1][0] == 'verified' and reports[-1][1]['tls_verification_enabled'] is False
+
+
+def test_genuine_empty_probe_does_not_select_insecure_session(monkeypatch):
+    monkeypatch.setattr(AUTH.subprocess, 'run', lambda args, **kwargs: subprocess.CompletedProcess(args, 0, '[]', ''))
+    status, insecure = AUTH.probe('connector', CLUSTER, empty_retry=True)
+    assert not insecure and status['tls_verification_enabled']
+
+
+def test_status_file_contains_no_terminal_data(tmp_path):
+    path = tmp_path / 'status.json'
+    AUTH.publish_status(path, ORIGIN, 'verified', cluster_verified=True, terminal=SECRET, token=SECRET)
+    assert json.loads(path.read_text()) == {'state': 'verified', 'cluster_url': ORIGIN, 'cluster_verified': True}
+    assert SECRET not in path.read_text()

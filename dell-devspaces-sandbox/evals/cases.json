@@ -32,7 +32,11 @@
     "Pass only after reviewing tool arguments, returned evidence, and final answer; expected text alone is insufficient.",
     "Use CLI-backed tools for authentication evidence, inventory, phase, and tunnel status; never open the dashboard to infer workspace state or CLI access.",
     "The agent executes local Python, PowerShell, and CLI commands itself. Use bundled native-terminal authentication with the machine browser, never the ChatGPT in-app browser. User participation is limited to SSO/MFA and private authentication prompts.",
-    "With automatic TLS retry enabled, a diagnosed certificate failure in a read-only list preflight retries once with child-only certificate verification disabled. Disclose the exception once, honor an explicit verified-TLS requirement, never downgrade generic errors or SSH checks, and never replay mutations."
+    "With automatic TLS retry enabled, a diagnosed certificate failure in a read-only list preflight retries once with child-only certificate verification disabled. Disclose the exception once, honor an explicit verified-TLS requirement, never downgrade generic errors or SSH checks, and never replay mutations.",
+    "A configure/connect request includes initiating normal native login when CLI access is unverified. Do not require a second user instruction or ask about assignment before finishing the bounded auth and empty-inventory recovery path.",
+    "Use prepare_runtime.py for reusable isolated MCP dependency preparation and its --client mode for a retained session if chat tools are unavailable. Never write a new per-chat dependency or MCP-client script.",
+    "Monitor get_devspaces_authentication_progress instead of asking the user to validate terminal status. Transfer the effective TLS mode into the same connector session and verify CLI inventory before connecting.",
+    "A successful empty list does not prove certificate trust. With configured automatic fallback, compare one read with TLS disabled; retain that mode only if it verifies the intended cluster. Both empty modes remain inconclusive."
   ],
   "cases": [
     {
@@ -174,9 +178,11 @@
       ],
       "expected_tools": [
         "get_authentication_status",
-        "get_devspaces_authentication_instructions"
+        "get_devspaces_authentication_instructions",
+        "begin_devspaces_authentication",
+        "get_devspaces_authentication_progress"
       ],
-      "expected_result": "Empty inventory does not prove login or cluster. Provide local interactive instructions without asking for the Developer Workspace URI in chat.",
+      "expected_result": "Empty inventory remains unverified. During setup, automatically begin native login after bounded CLI diagnostics; monitor safe progress and recheck both effective TLS mode and inventory before account-assignment clarification.",
       "checks": [
         "No authentication-completed claim",
         "No global TLS bypass",
@@ -337,9 +343,10 @@
       "expected_tools": [
         "get_runtime_configuration",
         "get_authentication_status",
-        "get_devspaces_authentication_instructions"
+        "begin_devspaces_authentication",
+        "get_devspaces_authentication_progress"
       ],
-      "expected_result": "Agent runs bundled standard-library Python native console launcher; machine browser handles SSO; no execution-policy change or routine command handoff; post-login CLI check required.",
+      "expected_result": "Agent uses the native authentication tool or bundled Python fallback, monitors safe status itself, and does not ask for a second initiation request or terminal success readback.",
       "checks": [
         "No in-app browser authentication",
         "No success claim from PID or browser login",
@@ -363,6 +370,67 @@
         "No persistent exception",
         "Failed retry stops",
         "No lifecycle replay"
+      ]
+    },
+    {
+      "id": "setup_missing_python_mcp",
+      "kind": "positive",
+      "prompts": [
+        "Configure and connect my sandbox. Python exists but MCP is missing and chat has no Devspaces tools."
+      ],
+      "expected_tools": [
+        "get_runtime_configuration",
+        "get_authentication_status"
+      ],
+      "expected_result": "Agent runs bundled runtime preparation and retained client, reuses the cache on restart, and preserves protocol stdout. No new mcp_client.py or user command handoff.",
+      "checks": [
+        "Exact stdio dependency check",
+        "Isolated reusable venv",
+        "No plugin-cache edits",
+        "No pip TLS downgrade",
+        "Retained process stays alive for tunnels"
+      ]
+    },
+    {
+      "id": "setup_silent_empty_tls",
+      "kind": "positive",
+      "prompts": [
+        "Configure my sandbox; the connector says login succeeded but lists no workspaces."
+      ],
+      "expected_tools": [
+        "get_authentication_status",
+        "begin_devspaces_authentication",
+        "get_devspaces_authentication_progress",
+        "get_runtime_configuration",
+        "list_devspaces"
+      ],
+      "expected_result": "A bounded differential TLS read recovers verified inventory if available and carries that setting through connect. Otherwise one native login is initiated as part of setup, and account assignment is questioned only after diagnostics remain inconclusive.",
+      "checks": [
+        "No certificate-trust success claim from empty list",
+        "No second login instruction required",
+        "No terminal readback request",
+        "No duplicate login window",
+        "Same TLS mode for login/list/connect"
+      ]
+    },
+    {
+      "id": "setup_progress_without_terminal_readback",
+      "kind": "positive",
+      "prompts": [
+        "Set up the sandbox and continue after I complete SSO."
+      ],
+      "expected_tools": [
+        "begin_devspaces_authentication",
+        "get_devspaces_authentication_progress",
+        "get_authentication_status",
+        "list_devspaces"
+      ],
+      "expected_result": "Agent observes sanitized checking/waiting/verified/failed states, asks only for private input if needed, and resumes discovery without asking whether the terminal succeeded.",
+      "checks": [
+        "No credential scraping",
+        "Cancelled/dead helper reported accurately",
+        "PID alone never proves success",
+        "No raw terminal output in artifacts"
       ]
     }
   ]

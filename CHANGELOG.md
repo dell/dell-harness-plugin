@@ -39,6 +39,15 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- `dell-devspaces-sandbox` 0.4.0: reusable isolated Python/MCP bootstrap and a
+  bundled retained client replace per-chat dependency/client generation. New
+  `begin_devspaces_authentication` and `get_devspaces_authentication_progress`
+  tools initiate login during requested setup and report safe completion without
+  terminal readback. Effective TLS mode carries into workspace/tunnel checks.
+  With automatic retry enabled, an inconclusive empty inventory gets one
+  differential TLS read; retain the exception only when it verifies the cluster.
+  Setup completes bounded login diagnostics before account-assignment questions.
+
 - `dell-devspaces-sandbox` 0.3.0: agent-operated native CLI authentication uses
   the machine browser, with bundled Python/PowerShell/batch helpers and CLI-only
   workspace validation. The batch launcher now accepts `--connector` and

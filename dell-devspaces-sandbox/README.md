@@ -2,7 +2,7 @@
 
 The default local MCP backend wraps the Devspaces CLI connector. It supports authentication guidance, list/status, start, stop, restart, managed SSH connect/disconnect, and separately gated deletion.
 
-Version 0.3.0 adds repeatable native authentication and bounded automatic certificate retry. Plugin ID/folder `dell-devspaces-sandbox` and skill invocation `$manage-devspaces-sandbox` stay stable for existing installations.
+Version 0.4.0 prepares its Python runtime automatically and exposes native authentication launch/progress tools for uninterrupted setup. Plugin ID/folder `dell-devspaces-sandbox` and skill invocation `$manage-devspaces-sandbox` stay stable for existing installations.
 
 ## Setup
 
@@ -26,7 +26,7 @@ $env:DEVSPACES_ENABLE_WRITES = 'true'
 
 Use a trusted CA when available. On a diagnosed certificate failure, `DEVSPACES_AUTO_TLS_RETRY=true` (default) retries read-only `--list` once with certificate verification disabled for this connector session. This can permit interception; a sanitized warning and runtime `tls_verification_enabled=false` expose the exception. Set `DEVSPACES_AUTO_TLS_RETRY=false` when verified TLS is required. The native authentication helper also retries an auth-specific certificate failure once when the list preflight was inconclusive. The exception never changes persistent settings, and workspace mutations are never automatically replayed. An already selected session exception can be carried with `DEVSPACES_ALLOW_INSECURE_TLS=true`; ambient `NODE_TLS_REJECT_UNAUTHORIZED` is ignored. See [troubleshooting](skills/manage-devspaces-sandbox/references/troubleshooting.md) for scope and stopping conditions.
 
-The agent runs local commands and diagnostics itself. User participation is limited to SSO/MFA, credentials, and private terminal input. Authentication uses the machine's default browser through the native CLI; workspace status and validation always use the CLI, not dashboard browsing. Browser sign-in alone never proves CLI access.
+A configure/connect request includes beginning native login when CLI access is unverified; no second user request is needed. The agent monitors structured authentication progress itself, then checks CLI access. It does not ask the user to validate terminal text. An empty inventory gets a bounded differential TLS probe when automatic retry is enabled; retain the exception only if it verifies the intended cluster. If both modes remain empty, restore the prior mode and finish native authentication before account-assignment clarification. The agent runs local commands and diagnostics itself. User participation is limited to SSO/MFA, credentials, and private terminal input. Authentication uses the machine's default browser through the native CLI; workspace status and validation always use the CLI, not dashboard browsing. Browser sign-in alone never proves CLI access.
 
 Bundled helpers are part of the plugin:
 
@@ -35,6 +35,8 @@ Bundled helpers are part of the plugin:
 | `scripts/authenticate_devspaces.py` | Standard-library-only native console launcher, CLI preflight, scoped TLS retry, interactive auth, post-login verification; `--check` never starts login |
 | `scripts/authenticate_devspaces.ps1` | Repeatable PowerShell wrapper around the same Python workflow |
 | `scripts/launch-auth.cmd` | Explorer/native-terminal launcher that calls Python directly, including when `.ps1` execution is blocked |
+| `scripts/prepare_runtime.py` | Reusable isolated Python/MCP runtime preparation and server launcher |
+| `scripts/mcp_session.py` | Retained MCP client fallback, eliminating generated per-chat clients |
 | `scripts/connector_mcp_server.py --check` | Read-only runtime and workspace diagnosis; requires the MCP dependencies |
 
 Run the Python launcher with the configured interpreter (the agent performs this, using actual configured paths):
@@ -62,14 +64,14 @@ codex plugin marketplace add https://github.com/dell/dell-harness-plugin.git
 codex plugin add dell-devspaces-sandbox@dell-harness-plugin
 ```
 
-The manifest launches `python`; ensure that interpreter has runtime dependencies before restarting Codex. Install `requirements.txt` for both backends, or `mcp==1.30.0` for the default connector backend. Installation does not provision the external connector or credentials.
+The manifest launches `python` with `scripts/prepare_runtime.py`. The bootstrap verifies MCP stdio imports and the pinned MCP version, reuses a working interpreter, or prepares a reusable isolated venv outside the plugin cache. `DEVSPACES_RUNTIME_DIR` can select the cache parent. Package installation uses normal verified TLS and writes logs only to stderr, preserving MCP stdout. If the `python` command is unavailable, resolve an installed interpreter and configure its absolute path. Run `prepare_runtime.py --prepare-only` for installation diagnostics or before restarting a client with a short server-startup timeout. Install `requirements.txt` for both backends, or `mcp==1.30.0` for the default connector backend. Installation does not provision the external connector or credentials.
 
 
 ## Operations
 
 | Capability | Utility behavior |
 | --- | --- |
-| Authenticate | Interactive `--auth <clusterURL>`; instructions returned by MCP |
+| Authenticate | `begin_devspaces_authentication` launches native SSO; `get_devspaces_authentication_progress` reports sanitized completion and transfers effective TLS state |
 | List / status | Parse `--list` JSON; distinguish phase from desired started state |
 | Start / stop | `--start <name>` / `--stop <name>`, then bounded verification |
 | Restart | Stop, verify Stopped, start, verify Running; no native restart flag |
@@ -78,7 +80,7 @@ The manifest launches `python`; ensure that interpreter has runtime dependencies
 | Delete | `--delete <name>`, both gates and exact name required; verify absence afterward |
 | Create / dashboard / URL handler | Utility features outside the supported v0.2 plugin tool surface |
 
-The adapter verifies clusterId, namespace, unique name, and the caller's expected workspace ID before remote actions. `list_devspaces` returns a page with `workspaces`, `total`, and `next_offset` (default 25, maximum 100). Mutations require `expected_workspace_id` from `devworkspaceId`. The instructions-only auth tool is `get_devspaces_authentication_instructions`. These are v0.2 API changes from the earlier draft. No personal workspace or localhost port is hard-coded. Names duplicated across namespaces are rejected because the utility accepts only a name. Stop/restart interrupt jobs; restarting requires reconnecting SSH.
+The adapter verifies clusterId, namespace, unique name, and the caller's expected workspace ID before remote actions. `list_devspaces` returns a page with `workspaces`, `total`, and `next_offset` (default 25, maximum 100). Mutations require `expected_workspace_id` from `devworkspaceId`. The instructions-only fallback tool remains `get_devspaces_authentication_instructions`; the two new launch/progress tools handle setup directly. These are v0.2 API changes from the earlier draft. No personal workspace or localhost port is hard-coded. Names duplicated across namespaces are rejected because the utility accepts only a name. Stop/restart interrupt jobs; restarting requires reconnecting SSH.
 
 Connections live with the MCP process. Graceful shutdown closes its tunnels; an abrupt process kill may require local cleanup. Ready means setup was reported and the process remains alive, not that Codex authenticated over SSH. For setup, execute the MCP connect workflow backed by an actual `--connect` invocation, then dispatch `codex://settings/connections/ssh/add?name=<encoded-alias>&enabled=true` for the observed alias. An existing SSH probe alone does not replace this setup step. The enabled flag is the requested default for this workflow; verify its effect in the app separately from URL dispatch. Preserve strict pinned host-key checks and existing tunnels until the fresh tunnel is verified. Manually launched connectors remain outside this server's control.
 
@@ -103,3 +105,5 @@ Install `requirements-dev.txt` for offline validation. The validator checks pack
 ## Scope and support
 
 This is a local Codex plugin that runs on the user's workstation and talks to a Dev Spaces cluster that the user's organization operates. It is not a hosted connector, and ChatGPT web/mobile compatibility is out of scope. The Devspaces CLI connector is a separate executable that this repository does not distribute. Report issues through this repository's [issue tracker](https://github.com/dell/dell-harness-plugin/issues) and security vulnerabilities through [SECURITY.md](../SECURITY.md).
+
+Detailed [setup scenarios and recovery](skills/manage-devspaces-sandbox/references/setup-scenarios.md) cover runtime, login, TLS, private prompts, duplicate windows, empty inventory, tunnels, and SSH trust.

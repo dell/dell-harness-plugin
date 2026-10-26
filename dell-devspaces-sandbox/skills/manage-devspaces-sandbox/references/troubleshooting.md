@@ -2,7 +2,7 @@
 
 ## Native authentication
 
-The agent runs `scripts/authenticate_devspaces.py --connector <absolute-executable> --cluster <HTTPS-origin>` using its resolved Python interpreter. On Windows it creates a native console; the CLI opens the machine's default browser for SSO. Never authenticate through ChatGPT Desktop's in-app browser. Browser sign-in and CLI access are distinct: always verify using `get_authentication_status` and `list_devspaces` after interactive authentication.
+Prefer `begin_devspaces_authentication` and `get_devspaces_authentication_progress`. During requested setup an unverified session triggers native login without a second user instruction. Read progress and recheck CLI access yourself; do not ask the user to confirm terminal success. The agent can also run `scripts/authenticate_devspaces.py --connector <absolute-executable> --cluster <HTTPS-origin>` using its resolved Python interpreter. On Windows it creates a native console; the CLI opens the machine's default browser for SSO. Never authenticate through ChatGPT Desktop's in-app browser. Browser sign-in and CLI access are distinct: always verify using `get_authentication_status` and `list_devspaces` after interactive authentication.
 
 The helper needs only Python's standard library. It checks `--list` first, skips login for a verified cluster, inherits the terminal for `--auth`, and checks `--list` afterward. Empty inventory is inconclusive and returns a distinct unverified result after login. Credentials and Developer Workspace URIs are entered privately, never as command arguments or captured output. The launcher reports `state=launched`, not successful authentication.
 
@@ -35,3 +35,19 @@ Run the read-only check before any authentication. If it verifies access, skip l
 - **Tunnel pending/exited:** check `get_connection_status` for up to 30 seconds. Ready means setup was reported and the owned process is alive; run a separate strict SSH probe.
 - **Unknown SSH host key:** keep strict checking. Establish trust from an independently verified key; TLS exceptions never authorize accepting an unverified SSH key.
 - **Not managed:** other manually launched tunnels may exist. Disconnect only this server's owned tunnel; keep the owning MCP process alive while connected.
+
+
+## Silent empty inventory and Python recovery
+
+An empty `--list` is not evidence that certificate trust passed. With automatic
+TLS retry enabled, one differential read with verification disabled can reveal
+workspaces hidden by the connector's silent-empty behavior. Keep that mode only
+when it verifies the configured cluster; otherwise restore the prior mode.
+Authentication progress transfers its effective TLS mode into the owning MCP
+session, preventing login/list/tunnel processes from accidentally mixing modes.
+
+Use the bundled bootstrap and retained client instead of writing new runtime or
+MCP-client scripts in each chat. The bootstrap checks real stdio imports, installs
+only the default connector's pinned MCP dependency into an isolated reusable
+venv when needed, and keeps protocol stdout clean. It never weakens pip TLS or
+installs into the plugin cache. See [setup scenarios](setup-scenarios.md).

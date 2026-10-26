@@ -41,7 +41,7 @@ def check_package(root):
     config = json.loads((root / manifest['mcpServers']).read_text(encoding='utf-8'))
     server = config['mcpServers']['dell_devspaces']
     assert server['command'] == 'python'
-    assert server['args'] == ['${PLUGIN_ROOT}/scripts/connector_mcp_server.py']
+    assert server['args'] == ['${PLUGIN_ROOT}/scripts/prepare_runtime.py']
     for path in (root / 'skills').rglob('SKILL.md'):
         text = path.read_text(encoding='utf-8')
         assert text.startswith('---\n'), 'Skill frontmatter must be BOM-free'
@@ -61,7 +61,8 @@ def runtime_files():
     singles = ['.codex-plugin/plugin.json', '.mcp.json', 'README.md', 'requirements.txt',
                'evals/cases.json', 'validation/REVIEW.md',
                'scripts/connector_mcp_server.py', 'scripts/devspaces_mcp_server.py',
-               'scripts/authenticate_devspaces.py', 'scripts/authenticate_devspaces.ps1', 'scripts/launch-auth.cmd']
+               'scripts/authenticate_devspaces.py', 'scripts/authenticate_devspaces.ps1', 'scripts/launch-auth.cmd',
+               'scripts/prepare_runtime.py', 'scripts/mcp_session.py']
     paths = [ROOT / name for name in singles]
     for directory in ('skills', 'assets', 'config'):
         paths.extend(p for p in (ROOT / directory).rglob('*') if p.is_file() and '__pycache__' not in p.parts)

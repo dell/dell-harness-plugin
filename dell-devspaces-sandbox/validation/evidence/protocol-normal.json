@@ -22,7 +22,39 @@
         ],
         "scope": "Authenticated connector account; optional namespace filter"
       },
-      "latency_ms": 32.0
+      "latency_ms": 31.0
+    },
+    {
+      "tool": "get_devspaces_authentication_progress",
+      "arguments": {},
+      "is_error": false,
+      "error_text": [],
+      "structured_result": {
+        "state": "not_started",
+        "pid": null,
+        "cluster_url": "https://devspaces.example.com",
+        "list_accessible": null,
+        "cluster_verified": null,
+        "workspace_count": null,
+        "tls_verification_enabled": null
+      },
+      "latency_ms": 16.0
+    },
+    {
+      "tool": "begin_devspaces_authentication",
+      "arguments": {},
+      "is_error": false,
+      "error_text": [],
+      "structured_result": {
+        "state": "verified",
+        "pid": null,
+        "cluster_url": "https://devspaces.example.com",
+        "list_accessible": true,
+        "cluster_verified": true,
+        "workspace_count": 2,
+        "tls_verification_enabled": true
+      },
+      "latency_ms": 16.0
     },
     {
       "tool": "get_devspaces_authentication_instructions",
@@ -39,7 +71,7 @@
         "instructions": "The agent must run bundled scripts/authenticate_devspaces.py with --connector and --cluster in a native terminal. It uses the machine's browser, not the ChatGPT in-app browser. Let the user complete SSO/private URI prompts locally, then call get_authentication_status; browser login alone does not verify CLI access.",
         "environment": {}
       },
-      "latency_ms": 15.0
+      "latency_ms": 31.0
     },
     {
       "tool": "get_authentication_status",
@@ -77,7 +109,7 @@
         "total": 2,
         "next_offset": 1
       },
-      "latency_ms": 32.0
+      "latency_ms": 47.0
     },
     {
       "tool": "list_devspaces",
@@ -144,7 +176,7 @@
         "Error executing tool start_devspace: 1 validation error for start_devspaceArguments\nname\n  String should match pattern '^[a-zA-Z0-9][a-zA-Z0-9._-]*$' [type=string_pattern_mismatch, input_value='--delete', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.14/v/string_pattern_mismatch"
       ],
       "structured_result": null,
-      "latency_ms": 0.0
+      "latency_ms": 16.0
     },
     {
       "tool": "start_devspace",
@@ -172,7 +204,7 @@
         "Error executing tool start_devspace: Namespace is outside DEVSPACES_ALLOWED_NAMESPACES"
       ],
       "structured_result": null,
-      "latency_ms": 15.0
+      "latency_ms": 0.0
     },
     {
       "tool": "start_devspace",
@@ -193,7 +225,7 @@
         "displayName": "alpha",
         "creationTimestamp": "2026-09-30T12:00:00Z"
       },
-      "latency_ms": 0.0
+      "latency_ms": 31.0
     },
     {
       "tool": "restart_devspace",
@@ -214,7 +246,7 @@
         "displayName": "alpha",
         "creationTimestamp": "2026-09-30T12:00:00Z"
       },
-      "latency_ms": 32.0
+      "latency_ms": 15.0
     },
     {
       "tool": "connect_devspace",
@@ -233,7 +265,7 @@
         "exit_code": null,
         "ssh_alias": "alpha"
       },
-      "latency_ms": 15.0
+      "latency_ms": 32.0
     },
     {
       "tool": "get_connection_status",
@@ -251,7 +283,7 @@
         "exit_code": null,
         "ssh_alias": "alpha"
       },
-      "latency_ms": 32.0
+      "latency_ms": 15.0
     },
     {
       "tool": "get_devspace_status",
@@ -279,7 +311,7 @@
           "ssh_alias": "alpha"
         }
       },
-      "latency_ms": 31.0
+      "latency_ms": 32.0
     },
     {
       "tool": "disconnect_devspace",
@@ -297,7 +329,7 @@
         "exit_code": null,
         "ssh_alias": null
       },
-      "latency_ms": 15.0
+      "latency_ms": 31.0
     },
     {
       "tool": "stop_devspace",
@@ -318,7 +350,7 @@
         "displayName": "alpha",
         "creationTimestamp": "2026-09-30T12:00:00Z"
       },
-      "latency_ms": 16.0
+      "latency_ms": 15.0
     },
     {
       "tool": "delete_devspace",
@@ -364,7 +396,7 @@
         "total": 0,
         "next_offset": null
       },
-      "latency_ms": 31.0
+      "latency_ms": 47.0
     }
   ]
 }

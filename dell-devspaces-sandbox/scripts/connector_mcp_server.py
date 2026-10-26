@@ -7,10 +7,12 @@ import argparse
 import atexit
 import json
 import os
+from pathlib import Path
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from urllib.parse import urlparse
@@ -85,6 +87,16 @@ class AuthStatus(TypedDict):
     reason: NotRequired[str | None]
 
 
+class AuthenticationProgress(TypedDict):
+    state: str
+    pid: NotRequired[int | None]
+    cluster_url: str
+    list_accessible: NotRequired[bool | None]
+    cluster_verified: NotRequired[bool | None]
+    workspace_count: NotRequired[int | None]
+    tls_verification_enabled: NotRequired[bool | None]
+
+
 class DeleteResult(TypedDict):
     deletion_requested: bool
     name: str
@@ -115,6 +127,8 @@ class Connector:
         self.deletion = enabled("DEVSPACES_ENABLE_DELETE")
         self.insecure_tls = enabled("DEVSPACES_ALLOW_INSECURE_TLS")
         self.auto_tls_retry = os.getenv("DEVSPACES_AUTO_TLS_RETRY", "true").lower() in {"1", "true", "yes"}
+        self.empty_tls_checked = False
+        self.auth_job = None
         self.connections = {}
         self.lock = threading.RLock()
 
@@ -164,7 +178,7 @@ class Connector:
             raise RuntimeError("Set DEVSPACES_CLUSTER_URL to your Dev Spaces HTTPS origin before using the connector")
         return self.cluster
 
-    def list(self, filtered=True):
+    def list(self, filtered=True, _diagnostic=False):
         self.require_cluster()
         try:
             rows = json.loads(self.run(["--list"]))
@@ -172,6 +186,21 @@ class Connector:
             raise RuntimeError("Connector --list did not return a JSON array") from None
         if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
             raise RuntimeError("Connector --list returned an invalid workspace list")
+        # The inspected CLI can silently return [] when verified TLS cannot reach
+        # inventory. One differential read can recover access without another login.
+        if not rows and self.auto_tls_retry and not self.insecure_tls and not self.empty_tls_checked and not _diagnostic:
+            self.empty_tls_checked = True
+            print('Devspaces: empty inventory is inconclusive; checking once with certificate verification disabled. This can permit interception.', file=sys.stderr)
+            self.insecure_tls = True
+            recovered = False
+            try:
+                candidate = self.list(filtered=False, _diagnostic=True)
+                if candidate:
+                    rows = candidate
+                    recovered = True
+            finally:
+                if not recovered:
+                    self.insecure_tls = False
         for row in rows:
             if (any(not isinstance(row.get(key), str) or not row[key] or len(row[key]) > 253
                     for key in ('name', 'namespace', 'clusterId', 'devworkspaceId', 'phase'))
@@ -298,6 +327,67 @@ class Connector:
         for namespace, name in list(self.connections):
             self.disconnect(name, namespace)
 
+    def authentication_progress(self):
+        if not self.auth_job:
+            return {'state': 'not_started', 'cluster_url': self.require_cluster()}
+        process, status_file = self.auth_job
+        result = {'state': 'launched', 'pid': process.pid, 'cluster_url': self.cluster}
+        if status_file.exists():
+            try:
+                data = json.loads(status_file.read_text(encoding='utf-8'))
+                if data.get('cluster_url') not in ('', self.cluster):
+                    raise RuntimeError('Authentication status belongs to a different cluster')
+                states = {'checking_access', 'waiting_for_sso', 'verified', 'unverified', 'failed', 'cancelled'}
+                if data.get('state') not in states:
+                    raise ValueError('Invalid authentication state')
+                result['state'] = data['state']
+                for key in ('list_accessible', 'cluster_verified', 'tls_verification_enabled'):
+                    if type(data.get(key)) is bool:
+                        result[key] = data[key]
+                if type(data.get('workspace_count')) is int and data['workspace_count'] >= 0:
+                    result['workspace_count'] = data['workspace_count']
+                if data.get('tls_verification_enabled') is False and (self.auto_tls_retry or self.insecure_tls):
+                    self.insecure_tls = True
+            except (OSError, ValueError):
+                result['state'] = 'status_unavailable'
+        if process.poll() is not None and result['state'] in {'launched', 'waiting_for_sso', 'checking_access', 'status_unavailable'}:
+            result['state'] = 'failed'
+        return result
+
+    def begin_authentication(self):
+        with self.lock:
+            self.require_cluster()
+            progress = self.authentication_progress()
+            if self.auth_job and self.auth_job[0].poll() is None:
+                # A completion pause can leave the native console alive. Do not
+                # create duplicate prompts, even if the prior result is unverified.
+                return progress
+            try:
+                rows = self.list()
+            except RuntimeError as exc:
+                if 'Connector --list failed' not in str(exc) and 'session cluster does not match' not in str(exc):
+                    raise
+                rows = []
+            if rows:
+                return {'state': 'verified', 'cluster_url': self.cluster,
+                        'list_accessible': True, 'cluster_verified': True, 'workspace_count': len(rows),
+                        'tls_verification_enabled': not self.insecure_tls}
+            directory = Path(tempfile.mkdtemp(prefix='devspaces-auth-'))
+            status_file = directory / 'status.json'
+            command = [sys.executable, str(Path(__file__).with_name('authenticate_devspaces.py')),
+                       '--foreground', '--pause', '--connector', self.executable(),
+                       '--cluster', self.cluster, '--status-file', str(status_file)]
+            if self.insecure_tls:
+                command.append('--allow-insecure-tls')
+            if not self.auto_tls_retry:
+                command.append('--no-auto-tls-retry')
+            if os.name != 'nt':
+                raise RuntimeError('Native auth launcher requires Windows; use a controllable local terminal with the bundled helper on this platform')
+            process = subprocess.Popen(command, creationflags=subprocess.CREATE_NEW_CONSOLE,
+                                       env=self.environment())
+            self.auth_job = (process, status_file)
+            return self.authentication_progress()
+
 
 connector = Connector()
 atexit.register(connector.close)
@@ -332,10 +422,24 @@ def get_devspaces_authentication_instructions() -> AuthInstructions:
 def get_authentication_status() -> AuthStatus:
     """Verify that listing works; empty lists cannot prove the selected cluster."""
     try:
+        if connector.auth_job:
+            connector.authentication_progress()
         rows = connector.list()
         return {"list_accessible": True, "cluster_verified": bool(rows), "workspace_count": len(rows)}
     except RuntimeError as exc:
         return {"list_accessible": False, "cluster_verified": False, "reason": str(exc)}
+
+
+@mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True))
+def begin_devspaces_authentication() -> AuthenticationProgress:
+    """Initiate native machine-browser SSO for requested setup without a second user request. Reuse verified access, avoid duplicate consoles, and report sanitized progress separately from credentials."""
+    return connector.begin_authentication()
+
+
+@mcp.tool(annotations=READ)
+def get_devspaces_authentication_progress() -> AuthenticationProgress:
+    """Read safe native-login completion evidence without inspecting terminal credentials. Carry effective TLS state into this MCP session, then recheck CLI authentication/inventory."""
+    return connector.authentication_progress()
 
 
 @mcp.tool(annotations=READ)
