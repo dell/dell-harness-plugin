@@ -39,6 +39,15 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- `dell-devspaces-sandbox` 0.3.0: agent-operated native CLI authentication uses
+  the machine browser, with bundled Python/PowerShell/batch helpers and CLI-only
+  workspace validation. The batch launcher now accepts `--connector` and
+  `--cluster`; PowerShell wrapper argument names remain available. Certificate
+  failures in read-only list checks retry once per connector session with
+  verification disabled by default; set `DEVSPACES_AUTO_TLS_RETRY=false` to
+  require verified TLS. Runtime adds `automatic_tls_retry` and reports the
+  effective TLS state. Existing tool names and inputs are unchanged.
+
 - Licensed the repository under Apache-2.0. Plugin manifests now declare
   `"license": "Apache-2.0"`, and every source file carries an SPDX copyright
   header.

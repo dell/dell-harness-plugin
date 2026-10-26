@@ -2,7 +2,7 @@
 
 The default local MCP backend wraps the Devspaces CLI connector. It supports authentication guidance, list/status, start, stop, restart, managed SSH connect/disconnect, and separately gated deletion.
 
-Version 0.2.0 changes the display name. Plugin ID/folder `dell-devspaces-sandbox` and skill invocation `$manage-devspaces-sandbox` stay stable for existing installations.
+Version 0.3.0 adds repeatable native authentication and bounded automatic certificate retry. Plugin ID/folder `dell-devspaces-sandbox` and skill invocation `$manage-devspaces-sandbox` stay stable for existing installations.
 
 ## Setup
 
@@ -24,15 +24,36 @@ $env:DEVSPACES_ENABLE_WRITES = 'true'
 # $env:DEVSPACES_ENABLE_DELETE = 'true'
 ```
 
-Use the CA file your organization approves for the cluster; omit NODE_EXTRA_CA_CERTS if the connector already trusts the server. The MCP backend ignores inherited NODE_TLS_REJECT_UNAUTHORIZED by default. An explicitly authorized certificate-failure retry can launch the plugin with DEVSPACES_ALLOW_INSECURE_TLS=true, which sets NODE_TLS_REJECT_UNAUTHORIZED=0 only on its connector children. Runtime reports tls_verification_enabled=false. This disables certificate verification and can permit interception; do not persist it in user/machine settings. See the skill troubleshooting reference for scoped authentication and restoration commands. The exception lasts for a connector tunnel's lifetime; restore normal trust on the next planned reconnect.
+Use a trusted CA when available. On a diagnosed certificate failure, `DEVSPACES_AUTO_TLS_RETRY=true` (default) retries read-only `--list` once with certificate verification disabled for this connector session. This can permit interception; a sanitized warning and runtime `tls_verification_enabled=false` expose the exception. Set `DEVSPACES_AUTO_TLS_RETRY=false` when verified TLS is required. The native authentication helper also retries an auth-specific certificate failure once when the list preflight was inconclusive. The exception never changes persistent settings, and workspace mutations are never automatically replayed. An already selected session exception can be carried with `DEVSPACES_ALLOW_INSECURE_TLS=true`; ambient `NODE_TLS_REJECT_UNAUTHORIZED` is ignored. See [troubleshooting](skills/manage-devspaces-sandbox/references/troubleshooting.md) for scope and stopping conditions.
 
-After the existing-session check shows authentication is needed, authenticate privately using the bundled Windows launcher (replace both example paths and the cluster origin):
+The agent runs local commands and diagnostics itself. User participation is limited to SSO/MFA, credentials, and private terminal input. Authentication uses the machine's default browser through the native CLI; workspace status and validation always use the CLI, not dashboard browsing. Browser sign-in alone never proves CLI access.
+
+Bundled helpers are part of the plugin:
+
+| Helper | Purpose |
+| --- | --- |
+| `scripts/authenticate_devspaces.py` | Standard-library-only native console launcher, CLI preflight, scoped TLS retry, interactive auth, post-login verification; `--check` never starts login |
+| `scripts/authenticate_devspaces.ps1` | Repeatable PowerShell wrapper around the same Python workflow |
+| `scripts/launch-auth.cmd` | Explorer/native-terminal launcher that calls Python directly, including when `.ps1` execution is blocked |
+| `scripts/connector_mcp_server.py --check` | Read-only runtime and workspace diagnosis; requires the MCP dependencies |
+
+Run the Python launcher with the configured interpreter (the agent performs this, using actual configured paths):
 
 ```powershell
-& 'C:\path\to\plugin\scripts\launch-auth.cmd' -ConnectorPath 'C:\Tools\Devspaces\connector.exe' -ClusterUrl 'https://your-cluster.example'
+& 'C:\Python312\python.exe' 'C:\path\to\plugin\scripts\authenticate_devspaces.py' --connector 'C:\Tools\Devspaces\connector.exe' --cluster 'https://devspaces.example.com'
 ```
 
-You can also open `scripts/launch-auth.cmd` from Explorer and supply the executable path and cluster origin at its local prompts. The launcher uses `-NoProfile -File` and an explicit completion pause; it does not require `-NoExit`, a PowerShell profile, or execution-policy changes. Complete the Developer Workspace URI prompt in the terminal, not chat. Return to Codex to verify authentication and list workspaces; neither process launch nor zero exit proves login. The MCP authentication tool returns instructions because this flow requires interactive input; it does not claim automatic browser SSO. If a programmatic launch has no visible window, stop only the owned auth helper and open the launcher manually, preserving existing tunnels. Add `-AllowInsecureTls` only for an explicitly authorized certificate-error retry.
+It opens a native Windows console and lets the CLI use the machine browser. Add `--foreground --pause` to use an existing local terminal. It skips login when CLI access to the cluster is already verified, and verifies access after auth; an empty list is inconclusive. Use `--check` for read-only CLI validation without starting login. Never run interactive foreground auth through a tool that captures the terminal stream. The Python helper does not depend on MCP or change PowerShell execution policy. On non-Windows systems use `--foreground` in a local terminal. The launcher reports only process launch, never authenticated status from a PID.
+
+If SSO has completed in the machine browser and the terminal remains at `Please enter the Developer Workspace URI:`, you may press **Enter once** with no URI to let the attempt finish. An empty entry can cancel the attempt on some versions; the agent must recheck CLI access afterward before reporting success. See the [prompt guidance](skills/manage-devspaces-sandbox/references/troubleshooting.md#developer-workspace-uri-prompt-after-browser-sso). Never share a credential-bearing URI in chat.
+
+Optional PowerShell entry point:
+
+```powershell
+& 'C:\path\to\plugin\scripts\authenticate_devspaces.ps1' -ConnectorPath 'C:\Tools\Devspaces\connector.exe' -ClusterUrl 'https://devspaces.example.com' -PythonPath 'C:\Python312\python.exe' -PauseOnCompletion
+```
+
+When `.ps1` files are blocked, invoke Python directly or run `launch-auth.cmd --connector <path> --cluster <origin>`; batch arguments now use Python-style switches. Set `DEVSPACES_PYTHON_COMMAND` for the batch launcher's interpreter, or use the Python launcher's explicit interpreter. Never paste batch source into PowerShell or change execution policy to make a helper run. Complete private authentication prompts only in the terminal. The agent checks actual native-window state and CLI access before reporting success.
 
 Install from this marketplace using the existing plugin ID:
 
@@ -43,7 +64,6 @@ codex plugin add dell-devspaces-sandbox@dell-harness-plugin
 
 The manifest launches `python`; ensure that interpreter has runtime dependencies before restarting Codex. Install `requirements.txt` for both backends, or `mcp==1.30.0` for the default connector backend. Installation does not provision the external connector or credentials.
 
-If an already approved PowerShell 7 installation is preferred, set `$env:DEVSPACES_POWERSHELL = 'C:\path\to\pwsh.exe'` before running the launcher. This selects a host without changing its execution policy. The launcher defaults to Windows PowerShell. If that host rejects script execution, the `.cmd` wrapper keeps the error visible; use an administrator-approved execution method rather than bypassing policy. Synthetic helper tests can select the same host with `DEVSPACES_TEST_POWERSHELL` set to its absolute path; no real authentication is used by those tests.
 
 ## Operations
 

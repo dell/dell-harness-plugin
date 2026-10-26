@@ -1,5 +1,24 @@
 # Dev Spaces plugin pre-push review
 
+## 0.3.0 update: native authentication
+
+The current candidate adds a standard-library Python native-terminal authentication
+helper, PowerShell/batch wrappers, CLI-only status guidance, and bounded automatic
+certificate retries. The 0.2.0 observations below remain historical evidence and
+do not establish acceptance of the new candidate. Run `scripts/validate_plugin.py`
+to generate current synthetic protocol, helper, and relocated-package evidence.
+No live lifecycle mutation or new SSH trust decision is part of this update.
+
+The default TLS behavior changed: a diagnosed certificate failure in CLI list or
+interactive auth can trigger one child-scoped retry without verification. This
+permits interception; `DEVSPACES_AUTO_TLS_RETRY=false` disables automatic fallback.
+Runtime reports the effective state. Mutations are never replayed. Acceptance
+must distinguish process launch, visible native terminal, machine-browser SSO,
+verified CLI cluster access, tunnel readiness, and strict SSH verification.
+
+## Historical 0.2.0 review
+
+
 Review date: 2026-09-30. Candidate version: 0.2.0. Scope: Git repository distribution as a local Codex plugin.
 
 ## Decision

@@ -10,6 +10,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import threading
 import time
 from urllib.parse import urlparse
@@ -64,6 +65,7 @@ class Runtime(TypedDict):
     writes_enabled: bool
     delete_enabled: bool
     tls_verification_enabled: bool
+    automatic_tls_retry: bool
     allowed_namespaces: list[str]
     scope: str
 
@@ -112,6 +114,7 @@ class Connector:
         self.writes = enabled("DEVSPACES_ENABLE_WRITES")
         self.deletion = enabled("DEVSPACES_ENABLE_DELETE")
         self.insecure_tls = enabled("DEVSPACES_ALLOW_INSECURE_TLS")
+        self.auto_tls_retry = os.getenv("DEVSPACES_AUTO_TLS_RETRY", "true").lower() in {"1", "true", "yes"}
         self.connections = {}
         self.lock = threading.RLock()
 
@@ -132,7 +135,7 @@ class Connector:
     def options(self):
         return {"env": self.environment(), "creationflags": subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0}
 
-    def run(self, args, timeout=30):
+    def run(self, args, timeout=30, _retried=False):
         try:
             result = subprocess.run([self.executable(), *args], stdin=subprocess.DEVNULL,
                                     capture_output=True, text=True, encoding="utf-8", errors="replace",
@@ -147,7 +150,12 @@ class Connector:
                     'unable to verify the first certificate', 'unable to get local issuer certificate',
                     'self signed certificate', 'self-signed certificate',
                     'unable_to_verify_leaf_signature', 'unable_to_get_issuer_cert_locally')):
-                raise RuntimeError("Connector certificate verification failed; configure a trusted CA or use an explicitly authorized, process-scoped TLS retry")
+                # Only replay a read. Lifecycle commands and tunnel launches are never replayed.
+                if self.auto_tls_retry and not self.insecure_tls and not _retried and args == ["--list"]:
+                    self.insecure_tls = True
+                    print("Devspaces certificate verification failed; retrying once with verification disabled for this connector session. This can permit interception.", file=sys.stderr)
+                    return self.run(args, timeout, _retried=True)
+                raise RuntimeError("Connector certificate verification failed; configure a trusted CA or inspect the bounded, process-scoped TLS retry")
             raise RuntimeError(f"Connector {args[0]} failed (exit {result.returncode}); check local authentication, CA trust, and connectivity")
         return result.stdout
 
@@ -306,6 +314,7 @@ def get_runtime_configuration() -> Runtime:
     return {"backend": "cli-connector", "command": connector.executable(), "cluster_url": connector.cluster,
             "version": connector.run(["--version"]).strip(), "writes_enabled": connector.writes,
             "tls_verification_enabled": not connector.insecure_tls,
+            "automatic_tls_retry": connector.auto_tls_retry,
             "delete_enabled": connector.deletion, "allowed_namespaces": list(connector.namespaces),
             "scope": "Authenticated connector account; optional namespace filter"}
 
@@ -316,7 +325,7 @@ def get_devspaces_authentication_instructions() -> AuthInstructions:
     return {"executable": connector.executable(), "arguments": ["--auth", connector.require_cluster()],
             "environment": {"NODE_TLS_REJECT_UNAUTHORIZED": "0"} if connector.insecure_tls else {},
             "interactive_required": True,
-            "instructions": "Run in a local terminal and complete browser/Developer Workspace URI prompts there. Do not paste the URI into chat. Then call get_authentication_status."}
+            "instructions": "The agent must run bundled scripts/authenticate_devspaces.py with --connector and --cluster in a native terminal. It uses the machine's browser, not the ChatGPT in-app browser. Let the user complete SSO/private URI prompts locally, then call get_authentication_status; browser login alone does not verify CLI access."}
 
 
 @mcp.tool(annotations=READ)
@@ -409,7 +418,8 @@ def main():
     parser.add_argument("--check", action="store_true", help="Read-only connector version and workspace list")
     args = parser.parse_args()
     if args.check:
-        print(json.dumps({"runtime": get_runtime_configuration(), "workspaces": list_devspaces()}, indent=2))
+        workspaces = list_devspaces()
+        print(json.dumps({"runtime": get_runtime_configuration(), "workspaces": workspaces}, indent=2))
     else:
         mcp.run(transport="stdio")
 

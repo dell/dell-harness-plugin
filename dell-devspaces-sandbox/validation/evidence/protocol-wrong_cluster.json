@@ -11,7 +11,7 @@
         "Error executing tool list_devspaces: Connector session cluster does not match DEVSPACES_CLUSTER_URL; authenticate to the intended cluster"
       ],
       "structured_result": null,
-      "latency_ms": 1.51
+      "latency_ms": 0.0
     },
     {
       "tool": "start_devspace",
@@ -25,7 +25,7 @@
         "Error executing tool start_devspace: Connector session cluster does not match DEVSPACES_CLUSTER_URL; authenticate to the intended cluster"
       ],
       "structured_result": null,
-      "latency_ms": 1.17
+      "latency_ms": 0.0
     }
   ]
 }

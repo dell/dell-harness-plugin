@@ -280,6 +280,7 @@ def test_explicit_tls_retry_scoped_to_child_environment(monkeypatch):
 
 
 def test_certificate_error_category_is_sanitized(adapter, monkeypatch):
+    adapter.auto_tls_retry = False
     monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
     monkeypatch.setattr(SERVER.subprocess, 'run', lambda *args, **kwargs:
                         subprocess.CompletedProcess([], 1, '', f'unable to verify the first certificate; token={SENTINEL}'))
@@ -287,3 +288,54 @@ def test_certificate_error_category_is_sanitized(adapter, monkeypatch):
         adapter.run(['--list'])
     assert 'certificate verification failed' in str(exc.value)
     assert SENTINEL not in str(exc.value)
+
+
+def test_certificate_retry_is_bounded_and_child_scoped(adapter, monkeypatch, capsys):
+    monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
+    monkeypatch.setenv('NODE_TLS_REJECT_UNAUTHORIZED', '1')
+    calls = []
+    def run(args, **kwargs):
+        calls.append(kwargs['env'].get('NODE_TLS_REJECT_UNAUTHORIZED'))
+        if len(calls) == 1:
+            return subprocess.CompletedProcess(args, 1, '', 'unable to verify the first certificate ' + SENTINEL)
+        return subprocess.CompletedProcess(args, 0, '[]', '')
+    monkeypatch.setattr(SERVER.subprocess, 'run', run)
+    assert adapter.run(['--list']) == '[]'
+    assert calls == [None, '0']
+    assert adapter.insecure_tls
+    assert SERVER.os.environ['NODE_TLS_REJECT_UNAUTHORIZED'] == '1'
+    assert SENTINEL not in capsys.readouterr().err
+    adapter.run(['--list'])
+    assert calls == [None, '0', '0']
+
+
+@pytest.mark.parametrize('args', [['--start', 'devbox'], ['--stop', 'devbox'], ['--delete', 'devbox']])
+def test_certificate_error_never_replays_a_mutation(adapter, monkeypatch, args):
+    calls = []
+    monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
+    def run(command, **kwargs):
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 1, '', 'unable to verify the first certificate')
+    monkeypatch.setattr(SERVER.subprocess, 'run', run)
+    with pytest.raises(RuntimeError, match='certificate'):
+        adapter.run(args)
+    assert len(calls) == 1
+    assert not adapter.insecure_tls
+
+
+def test_failed_certificate_retry_stops_after_two_attempts(adapter, monkeypatch):
+    calls = []
+    monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
+    def run(command, **kwargs):
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 1, SENTINEL, 'self signed certificate ' + SENTINEL)
+    monkeypatch.setattr(SERVER.subprocess, 'run', run)
+    with pytest.raises(RuntimeError) as exc:
+        adapter.run(['--list'])
+    assert len(calls) == 2
+    assert SENTINEL not in str(exc.value)
+
+
+def test_tls_retry_can_be_disabled_by_configuration(monkeypatch):
+    monkeypatch.setenv('DEVSPACES_AUTO_TLS_RETRY', 'false')
+    assert not SERVER.Connector().auto_tls_retry

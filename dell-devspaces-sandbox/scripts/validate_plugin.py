@@ -61,7 +61,7 @@ def runtime_files():
     singles = ['.codex-plugin/plugin.json', '.mcp.json', 'README.md', 'requirements.txt',
                'evals/cases.json', 'validation/REVIEW.md',
                'scripts/connector_mcp_server.py', 'scripts/devspaces_mcp_server.py',
-               'scripts/authenticate_devspaces.ps1', 'scripts/launch-auth.cmd']
+               'scripts/authenticate_devspaces.py', 'scripts/authenticate_devspaces.ps1', 'scripts/launch-auth.cmd']
     paths = [ROOT / name for name in singles]
     for directory in ('skills', 'assets', 'config'):
         paths.extend(p for p in (ROOT / directory).rglob('*') if p.is_file() and '__pycache__' not in p.parts)

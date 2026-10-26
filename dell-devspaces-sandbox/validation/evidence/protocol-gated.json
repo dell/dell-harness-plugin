@@ -15,7 +15,7 @@
         "Error executing tool start_devspace: Set DEVSPACES_ENABLE_WRITES=true to enable lifecycle operations"
       ],
       "structured_result": null,
-      "latency_ms": 1.33
+      "latency_ms": 0.0
     },
     {
       "tool": "delete_devspace",
@@ -30,7 +30,7 @@
         "Error executing tool delete_devspace: Deletion requires DEVSPACES_ENABLE_WRITES=true and DEVSPACES_ENABLE_DELETE=true"
       ],
       "structured_result": null,
-      "latency_ms": 0.95
+      "latency_ms": 16.0
     },
     {
       "tool": "get_devspace_status",
@@ -55,7 +55,7 @@
           "state": "not_managed"
         }
       },
-      "latency_ms": 23.57
+      "latency_ms": 31.0
     }
   ]
 }

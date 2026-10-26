@@ -16,12 +16,13 @@
         "writes_enabled": true,
         "delete_enabled": true,
         "tls_verification_enabled": true,
+        "automatic_tls_retry": true,
         "allowed_namespaces": [
           "review-team"
         ],
         "scope": "Authenticated connector account; optional namespace filter"
       },
-      "latency_ms": 12.17
+      "latency_ms": 32.0
     },
     {
       "tool": "get_devspaces_authentication_instructions",
@@ -35,10 +36,10 @@
           "https://devspaces.example.com"
         ],
         "interactive_required": true,
-        "instructions": "Run in a local terminal and complete browser/Developer Workspace URI prompts there. Do not paste the URI into chat. Then call get_authentication_status.",
+        "instructions": "The agent must run bundled scripts/authenticate_devspaces.py with --connector and --cluster in a native terminal. It uses the machine's browser, not the ChatGPT in-app browser. Let the user complete SSO/private URI prompts locally, then call get_authentication_status; browser login alone does not verify CLI access.",
         "environment": {}
       },
-      "latency_ms": 8.4
+      "latency_ms": 15.0
     },
     {
       "tool": "get_authentication_status",
@@ -51,7 +52,7 @@
         "workspace_count": 2,
         "reason": null
       },
-      "latency_ms": 9.15
+      "latency_ms": 0.0
     },
     {
       "tool": "list_devspaces",
@@ -76,7 +77,7 @@
         "total": 2,
         "next_offset": 1
       },
-      "latency_ms": 18.43
+      "latency_ms": 32.0
     },
     {
       "tool": "list_devspaces",
@@ -102,7 +103,7 @@
         "total": 2,
         "next_offset": null
       },
-      "latency_ms": 17.78
+      "latency_ms": 31.0
     },
     {
       "tool": "list_devspaces",
@@ -114,7 +115,7 @@
         "Error executing tool list_devspaces: 1 validation error for list_devspacesArguments\nlimit\n  Input should be greater than or equal to 1 [type=greater_than_equal, input_value=0, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.14/v/greater_than_equal"
       ],
       "structured_result": null,
-      "latency_ms": 1.1
+      "latency_ms": 0.0
     },
     {
       "tool": "start_devspace",
@@ -129,7 +130,7 @@
         "Error executing tool start_devspace: 1 validation error for start_devspaceArguments\ntimeout\n  Input should be less than or equal to 300 [type=less_than_equal, input_value=301, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.14/v/less_than_equal"
       ],
       "structured_result": null,
-      "latency_ms": 0.92
+      "latency_ms": 0.0
     },
     {
       "tool": "start_devspace",
@@ -143,7 +144,7 @@
         "Error executing tool start_devspace: 1 validation error for start_devspaceArguments\nname\n  String should match pattern '^[a-zA-Z0-9][a-zA-Z0-9._-]*$' [type=string_pattern_mismatch, input_value='--delete', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.14/v/string_pattern_mismatch"
       ],
       "structured_result": null,
-      "latency_ms": 0.88
+      "latency_ms": 0.0
     },
     {
       "tool": "start_devspace",
@@ -157,7 +158,7 @@
         "Error executing tool start_devspace: Workspace identity changed; refresh status before requesting the action again"
       ],
       "structured_result": null,
-      "latency_ms": 1.06
+      "latency_ms": 0.0
     },
     {
       "tool": "start_devspace",
@@ -171,7 +172,7 @@
         "Error executing tool start_devspace: Namespace is outside DEVSPACES_ALLOWED_NAMESPACES"
       ],
       "structured_result": null,
-      "latency_ms": 0.86
+      "latency_ms": 15.0
     },
     {
       "tool": "start_devspace",
@@ -192,7 +193,7 @@
         "displayName": "alpha",
         "creationTimestamp": "2026-09-30T12:00:00Z"
       },
-      "latency_ms": 12.11
+      "latency_ms": 0.0
     },
     {
       "tool": "restart_devspace",
@@ -213,7 +214,7 @@
         "displayName": "alpha",
         "creationTimestamp": "2026-09-30T12:00:00Z"
       },
-      "latency_ms": 12.05
+      "latency_ms": 32.0
     },
     {
       "tool": "connect_devspace",
@@ -232,7 +233,7 @@
         "exit_code": null,
         "ssh_alias": "alpha"
       },
-      "latency_ms": 12.57
+      "latency_ms": 15.0
     },
     {
       "tool": "get_connection_status",
@@ -250,7 +251,7 @@
         "exit_code": null,
         "ssh_alias": "alpha"
       },
-      "latency_ms": 12.0
+      "latency_ms": 32.0
     },
     {
       "tool": "get_devspace_status",
@@ -278,7 +279,7 @@
           "ssh_alias": "alpha"
         }
       },
-      "latency_ms": 23.1
+      "latency_ms": 31.0
     },
     {
       "tool": "disconnect_devspace",
@@ -296,7 +297,7 @@
         "exit_code": null,
         "ssh_alias": null
       },
-      "latency_ms": 12.0
+      "latency_ms": 15.0
     },
     {
       "tool": "stop_devspace",
@@ -317,7 +318,7 @@
         "displayName": "alpha",
         "creationTimestamp": "2026-09-30T12:00:00Z"
       },
-      "latency_ms": 11.99
+      "latency_ms": 16.0
     },
     {
       "tool": "delete_devspace",
@@ -332,7 +333,7 @@
         "Error executing tool delete_devspace: confirm_name must exactly match the workspace name"
       ],
       "structured_result": null,
-      "latency_ms": 1.09
+      "latency_ms": 0.0
     },
     {
       "tool": "delete_devspace",
@@ -349,7 +350,7 @@
         "name": "alpha",
         "namespace": "review-team"
       },
-      "latency_ms": 4.73
+      "latency_ms": 0.0
     },
     {
       "tool": "list_devspaces",
@@ -363,7 +364,7 @@
         "total": 0,
         "next_offset": null
       },
-      "latency_ms": 17.43
+      "latency_ms": 31.0
     }
   ]
 }
