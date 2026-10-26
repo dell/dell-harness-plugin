@@ -47,6 +47,8 @@ It opens a native Windows console and lets the CLI use the machine browser. Add 
 
 Optional PowerShell entry point:
 
+If SSO has completed in the machine browser and the terminal remains at `Please enter the Developer Workspace URI:`, you may press **Enter once** with no URI to let the attempt finish. An empty entry can cancel the attempt on some versions; the agent must recheck CLI access afterward before reporting success. See the [prompt guidance](skills/manage-devspaces-sandbox/references/troubleshooting.md#developer-workspace-uri-prompt-after-browser-sso). Never share a credential-bearing URI in chat.
+
 ```powershell
 & 'C:\path\to\plugin\scripts\authenticate_devspaces.ps1' -ConnectorPath 'C:\Tools\Devspaces\connector.exe' -ClusterUrl 'https://devspaces.example.com' -PythonPath 'C:\Python312\python.exe' -PauseOnCompletion
 ```

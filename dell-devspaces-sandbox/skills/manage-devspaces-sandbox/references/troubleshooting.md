@@ -12,6 +12,12 @@ If the launched console is absent, inspect only the owned process and check CLI 
 
 ## Certificate retry
 
+### Developer Workspace URI prompt after browser SSO
+
+If the machine browser has completed SSO but the native terminal is still waiting at `Please enter the Developer Workspace URI:`, the user may press **Enter once** with the field empty to let this connector attempt finish without supplying a URI. This is a completion attempt, not proof that the prompt is optional or that authentication succeeded; connector versions can differ and an empty entry may cancel the attempt. Do not loop blank submissions or fabricate a URI. If a URI is actually required, enter it privately in the native terminal.
+
+After Enter, the agent must immediately recheck CLI authentication and workspace inventory using the session's effective TLS setting. Proceed only when the intended cluster and workspace access are verified. An empty list, zero exit status, or completed browser SSO alone is insufficient. Do not hard-code automatic newline injection into the authentication helper.
+
 Prefer `NODE_EXTRA_CA_CERTS` with an approved CA PEM. The default `DEVSPACES_AUTO_TLS_RETRY=true` automatically retries a failed CLI `--list` once only when stderr identifies a certificate-verification error. The retry disables verification for connector children in that same cluster session and prints a sanitized warning. This can permit interception of authentication traffic. Runtime reports `automatic_tls_retry` and the effective `tls_verification_enabled`; re-read runtime after preflight because the retry can change the effective state.
 
 Set `DEVSPACES_AUTO_TLS_RETRY=false` or use `--no-auto-tls-retry` on the authentication helper when verified TLS is required. An explicit `DEVSPACES_ALLOW_INSECURE_TLS=true` or helper `--allow-insecure-tls` carries an already selected session exception. Ambient `NODE_TLS_REJECT_UNAUTHORIZED=0` is ignored. No user/machine environment, plugin manifest, SSH policy, or certificate store is changed. A connector tunnel retains its launch environment for its lifetime. Reconfigure trusted TLS on the next planned reconnect; do not tear down active tunnels unexpectedly.
