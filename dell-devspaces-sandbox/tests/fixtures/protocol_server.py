@@ -9,9 +9,13 @@ import io
 import json
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 plugin_root = Path(os.getenv('DEVSPACES_TEST_PLUGIN_ROOT', str(Path(__file__).parents[2])))
+ssh_temporary = tempfile.TemporaryDirectory(prefix='devspaces-synthetic-ssh-')
+os.environ['DEVSPACES_SSH_CONFIG'] = str(Path(ssh_temporary.name) / 'config')
+Path(os.environ['DEVSPACES_SSH_CONFIG']).write_text('')
 sys.path.insert(0, str(plugin_root / 'scripts'))
 import connector_mcp_server as server
 

@@ -47,6 +47,9 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/).
   With automatic retry enabled, an inconclusive empty inventory gets one
   differential TLS read; retain the exception only when it verifies the cluster.
   Setup completes bounded login diagnostics before account-assignment questions.
+  Independent end-to-end testing added automatic preservation of pinned SSH trust
+  before connector-owned Includes, no-newline readiness detection, safe retained-
+  client error categories, startup status, and duplicate-request protection.
 
 - `dell-devspaces-sandbox` 0.3.0: agent-operated native CLI authentication uses
   the machine browser, with bundled Python/PowerShell/batch helpers and CLI-only

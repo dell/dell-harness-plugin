@@ -22,7 +22,7 @@
         ],
         "scope": "Authenticated connector account; optional namespace filter"
       },
-      "latency_ms": 31.0
+      "latency_ms": 16.0
     },
     {
       "tool": "get_devspaces_authentication_progress",
@@ -38,7 +38,7 @@
         "workspace_count": null,
         "tls_verification_enabled": null
       },
-      "latency_ms": 16.0
+      "latency_ms": 15.0
     },
     {
       "tool": "begin_devspaces_authentication",
@@ -54,7 +54,7 @@
         "workspace_count": 2,
         "tls_verification_enabled": true
       },
-      "latency_ms": 16.0
+      "latency_ms": 32.0
     },
     {
       "tool": "get_devspaces_authentication_instructions",
@@ -71,7 +71,7 @@
         "instructions": "The agent must run bundled scripts/authenticate_devspaces.py with --connector and --cluster in a native terminal. It uses the machine's browser, not the ChatGPT in-app browser. Let the user complete SSO/private URI prompts locally, then call get_authentication_status; browser login alone does not verify CLI access.",
         "environment": {}
       },
-      "latency_ms": 31.0
+      "latency_ms": 15.0
     },
     {
       "tool": "get_authentication_status",
@@ -84,7 +84,7 @@
         "workspace_count": 2,
         "reason": null
       },
-      "latency_ms": 0.0
+      "latency_ms": 16.0
     },
     {
       "tool": "list_devspaces",
@@ -109,7 +109,7 @@
         "total": 2,
         "next_offset": 1
       },
-      "latency_ms": 47.0
+      "latency_ms": 16.0
     },
     {
       "tool": "list_devspaces",
@@ -176,7 +176,7 @@
         "Error executing tool start_devspace: 1 validation error for start_devspaceArguments\nname\n  String should match pattern '^[a-zA-Z0-9][a-zA-Z0-9._-]*$' [type=string_pattern_mismatch, input_value='--delete', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.14/v/string_pattern_mismatch"
       ],
       "structured_result": null,
-      "latency_ms": 16.0
+      "latency_ms": 0.0
     },
     {
       "tool": "start_devspace",
@@ -190,7 +190,7 @@
         "Error executing tool start_devspace: Workspace identity changed; refresh status before requesting the action again"
       ],
       "structured_result": null,
-      "latency_ms": 0.0
+      "latency_ms": 15.0
     },
     {
       "tool": "start_devspace",
@@ -225,7 +225,7 @@
         "displayName": "alpha",
         "creationTimestamp": "2026-09-30T12:00:00Z"
       },
-      "latency_ms": 31.0
+      "latency_ms": 16.0
     },
     {
       "tool": "restart_devspace",
@@ -246,7 +246,7 @@
         "displayName": "alpha",
         "creationTimestamp": "2026-09-30T12:00:00Z"
       },
-      "latency_ms": 15.0
+      "latency_ms": 16.0
     },
     {
       "tool": "connect_devspace",
@@ -263,9 +263,10 @@
         "state": "ready",
         "pid": 999,
         "exit_code": null,
-        "ssh_alias": "alpha"
+        "ssh_alias": "alpha",
+        "reason": null
       },
-      "latency_ms": 32.0
+      "latency_ms": 31.0
     },
     {
       "tool": "get_connection_status",
@@ -281,9 +282,10 @@
         "state": "ready",
         "pid": 999,
         "exit_code": null,
-        "ssh_alias": "alpha"
+        "ssh_alias": "alpha",
+        "reason": null
       },
-      "latency_ms": 15.0
+      "latency_ms": 16.0
     },
     {
       "tool": "get_devspace_status",
@@ -308,10 +310,11 @@
           "state": "ready",
           "pid": 999,
           "exit_code": null,
-          "ssh_alias": "alpha"
+          "ssh_alias": "alpha",
+          "reason": null
         }
       },
-      "latency_ms": 32.0
+      "latency_ms": 31.0
     },
     {
       "tool": "disconnect_devspace",
@@ -327,7 +330,8 @@
         "state": "not_managed",
         "pid": null,
         "exit_code": null,
-        "ssh_alias": null
+        "ssh_alias": null,
+        "reason": null
       },
       "latency_ms": 31.0
     },
@@ -350,7 +354,7 @@
         "displayName": "alpha",
         "creationTimestamp": "2026-09-30T12:00:00Z"
       },
-      "latency_ms": 15.0
+      "latency_ms": 16.0
     },
     {
       "tool": "delete_devspace",
@@ -382,7 +386,7 @@
         "name": "alpha",
         "namespace": "review-team"
       },
-      "latency_ms": 0.0
+      "latency_ms": 15.0
     },
     {
       "tool": "list_devspaces",
@@ -396,7 +400,7 @@
         "total": 0,
         "next_offset": null
       },
-      "latency_ms": 47.0
+      "latency_ms": 16.0
     }
   ]
 }

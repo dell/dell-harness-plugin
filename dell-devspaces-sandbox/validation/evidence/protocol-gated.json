@@ -30,7 +30,7 @@
         "Error executing tool delete_devspace: Deletion requires DEVSPACES_ENABLE_WRITES=true and DEVSPACES_ENABLE_DELETE=true"
       ],
       "structured_result": null,
-      "latency_ms": 16.0
+      "latency_ms": 0.0
     },
     {
       "tool": "get_devspace_status",

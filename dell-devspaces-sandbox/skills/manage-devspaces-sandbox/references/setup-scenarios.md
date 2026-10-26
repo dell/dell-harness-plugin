@@ -21,7 +21,8 @@ Configure/connect requests include initiating normal native login as needed. Run
 | URI prompt after SSO | User may press Enter once to finish the attempt; do not fabricate a URI | Follow-up CLI evidence, not the blank entry |
 | Workspace already Running | Skip start, establish the requested tunnel | Separate Running and tunnel-ready states |
 | Workspace stopped | Ask for the exact startup authorization unless already given | Observed Running after approved start |
-| Connector rewrites SSH config insecurely | Preserve/restore existing verified pinned-key settings; keep strict checking | Real strict SSH probe; never accept an unknown key automatically |
+| Connector rewrites SSH config insecurely | The connector backend adds a trust-only guard before Includes and preserves existing pins while retaining the new endpoint; readiness is withheld if repair fails | Real strict SSH probe; never accept an unknown or changed key automatically |
+| CLI prints readiness without a newline | The connector backend recognizes the bounded marker stream without waiting for a newline | Ready only after trust protection succeeds and the process stays alive |
 | Tunnel ready, Codex registration pending | Dispatch observed alias and inspect supported app state | Registration/connection are separate from URI dispatch |
 
 ## Retained client when chat tools are unavailable
@@ -32,7 +33,7 @@ Use the configured cluster/connector environment and run:
 python <plugin>/scripts/prepare_runtime.py --client --session-dir <new-private-work-directory>
 ```
 
-The agent substitutes actual absolute paths and executes it. The session directory must be new, preventing reuse of stale responses. Wait for `status.json` with `state=ready`. Atomically write `request-1.json` with `{"tool":"get_runtime_configuration","arguments":{}}`, then read `response-1.json`. IDs contain hexadecimal characters/hyphens only; use a new ID for each request. The response contains `is_error` and the plugin's sanitized structured `result`. Call `begin_devspaces_authentication`, then `get_devspaces_authentication_progress` through this same retained client; the effective TLS mode stays with its connector and tunnels. Never place credentials or raw auth output in request/response files.
+The agent substitutes actual absolute paths and executes it. The session directory must be new, preventing reuse of stale responses. Wait for `status.json` with `state=ready`; `failed` indicates initialization/transport failure, and `busy` names the active tool without its arguments. Atomically write `request-1.json` with `{"tool":"get_runtime_configuration","arguments":{}}`, then read `response-1.json`. IDs contain hexadecimal characters/hyphens only; use a new ID for each request. Duplicate IDs are rejected without replaying a tool. The response contains `is_error` and the plugin's sanitized structured `result`; failures add an allowlisted `error` category instead of raw text. For `timeout_recheck_state`, inspect workspace/tunnel state before another mutation. Call `begin_devspaces_authentication`, then `get_devspaces_authentication_progress` through this same retained client; the effective TLS mode stays with its connector and tunnels. Never place credentials or raw auth output in request/response files.
 
 The client keeps running until an authorized `{"tool":"close"}` request or process shutdown. Closing it closes its owned tunnels; do not use a one-shot process for a connection that must remain alive. Use explicit local process ownership for cleanup. Do not overwrite the installed plugin manifest with per-user paths or weaken package-download TLS.
 

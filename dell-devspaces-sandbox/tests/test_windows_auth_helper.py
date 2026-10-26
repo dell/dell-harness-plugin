@@ -3,11 +3,14 @@
 
 """Exercise the Windows launcher with a synthetic executable; never real auth."""
 import os
+import json
 from pathlib import Path
 import secrets
 import shutil
 import subprocess
 import sys
+import signal
+import time
 
 import pytest
 
@@ -56,13 +59,18 @@ def connector_stub(tmp_path_factory):
 class Stub {
   static int Main(string[] args) {
     if (args.Length > 0 && args[0] == "--list") {
-      Console.WriteLine("[]");
+      var state = Environment.GetEnvironmentVariable("DEVSPACES_TEST_STATE");
+      Console.WriteLine(!String.IsNullOrEmpty(state) && System.IO.File.Exists(state)
+        ? "[{\\"clusterId\\":\\"example.test\\"}]" : "[]");
       return 0;
     }
     Console.WriteLine("ARGS=" + String.Join("|", args));
     var tls = Environment.GetEnvironmentVariable("NODE_TLS_REJECT_UNAUTHORIZED");
     Console.WriteLine("TLS=" + (String.IsNullOrEmpty(tls) ? "verified" : tls));
-    return Environment.GetEnvironmentVariable("DEVSPACES_TEST_FAIL") == "1" ? 7 : 0;
+    if (Environment.GetEnvironmentVariable("DEVSPACES_TEST_FAIL") == "1") return 7;
+    var completed = Environment.GetEnvironmentVariable("DEVSPACES_TEST_STATE");
+    if (!String.IsNullOrEmpty(completed)) System.IO.File.WriteAllText(completed, "completed");
+    return 0;
   }
 }''', encoding='utf-8')
     quote = lambda p: "'" + str(p).replace("'", "''") + "'"
@@ -131,3 +139,31 @@ def test_batch_launcher_runs_without_powershell_script_execution(connector_stub)
     assert result.returncode == 2
     assert 'ARGS=--auth|https://example.test' in result.stdout
     assert 'does not confirm login' in result.stdout
+
+
+def test_native_console_auth_publishes_verified_status_without_readback(connector_stub, tmp_path):
+    status = tmp_path / 'status.json'
+    result = subprocess.run([sys.executable, str(HELPER), '--connector', str(connector_stub),
+                             '--cluster', 'https://example.test', '--status-file', str(status)],
+                            capture_output=True, text=True, timeout=15,
+                            env={**os.environ, 'DEVSPACES_TEST_STATE': str(tmp_path / 'completed')})
+    assert result.returncode == 0
+    launched = json.loads(result.stdout)
+    pid = launched['pid']
+    try:
+        deadline = time.monotonic() + 15
+        while time.monotonic() < deadline:
+            if status.exists():
+                evidence = json.loads(status.read_text())
+                if evidence['state'] in {'verified', 'failed', 'unverified'}:
+                    break
+            time.sleep(0.1)
+        assert evidence['state'] == 'verified'
+        assert evidence['cluster_verified'] is True and evidence['workspace_count'] == 1
+        assert 'ARGS=' not in status.read_text() and 'Please enter' not in status.read_text()
+    finally:
+        # Only the synthetic native helper created by this test is terminated.
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            pass
