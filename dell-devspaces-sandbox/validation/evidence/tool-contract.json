@@ -38,6 +38,10 @@
           "title": "Tls Verification Enabled",
           "type": "boolean"
         },
+        "automatic_tls_retry": {
+          "title": "Automatic Tls Retry",
+          "type": "boolean"
+        },
         "allowed_namespaces": {
           "items": {
             "type": "string"
@@ -58,6 +62,7 @@
         "writes_enabled",
         "delete_enabled",
         "tls_verification_enabled",
+        "automatic_tls_retry",
         "allowed_namespaces",
         "scope"
       ],

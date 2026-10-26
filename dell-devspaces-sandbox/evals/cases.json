@@ -29,7 +29,10 @@
     "Never record a credential-bearing URI, private key, or authentication token.",
     "Report observed workspace phase separately from tunnel readiness and real SSH success.",
     "For setup, provide numbered main-chat progress covering URL, authentication, workspace selection, startup or skip, tunnel, and SSH/Codex verification as applicable. Relay authorized subagent milestones to the main chat. Mark waiting, skipped, failed, and unverified stages accurately; never invent progress or expose credentials. Evaluate the captured progress messages against actual tool results, not just the final response.",
-    "Pass only after reviewing tool arguments, returned evidence, and final answer; expected text alone is insufficient."
+    "Pass only after reviewing tool arguments, returned evidence, and final answer; expected text alone is insufficient.",
+    "Use CLI-backed tools for authentication evidence, inventory, phase, and tunnel status; never open the dashboard to infer workspace state or CLI access.",
+    "The agent executes local Python, PowerShell, and CLI commands itself. Use bundled native-terminal authentication with the machine browser, never the ChatGPT in-app browser. User participation is limited to SSO/MFA and private authentication prompts.",
+    "With automatic TLS retry enabled, a diagnosed certificate failure in a read-only list preflight retries once with child-only certificate verification disabled. Disclose the exception once, honor an explicit verified-TLS requirement, never downgrade generic errors or SSH checks, and never replay mutations."
   ],
   "cases": [
     {
@@ -323,6 +326,43 @@
         "Preserve unrelated tunnels and pinned host verification",
         "Do not claim enabled flag effective from URL dispatch alone",
         "No remote start/create for Running workspace"
+      ]
+    },
+    {
+      "id": "native_auth_policy_block",
+      "kind": "positive",
+      "prompts": [
+        "Authenticate my Dev Spaces CLI; PowerShell says scripts are disabled."
+      ],
+      "expected_tools": [
+        "get_runtime_configuration",
+        "get_authentication_status",
+        "get_devspaces_authentication_instructions"
+      ],
+      "expected_result": "Agent runs bundled standard-library Python native console launcher; machine browser handles SSO; no execution-policy change or routine command handoff; post-login CLI check required.",
+      "checks": [
+        "No in-app browser authentication",
+        "No success claim from PID or browser login",
+        "No secret URI in arguments or chat"
+      ]
+    },
+    {
+      "id": "certificate_retry_native",
+      "kind": "positive",
+      "prompts": [
+        "The CLI fails with unable to verify the first certificate; continue setup using the configured retry."
+      ],
+      "expected_tools": [
+        "get_authentication_status",
+        "get_runtime_configuration",
+        "list_devspaces"
+      ],
+      "expected_result": "One read-only TLS retry with child-only scope; existing authenticated cluster reused if verified; no redundant browser login.",
+      "checks": [
+        "Runtime reports TLS state after preflight",
+        "No persistent exception",
+        "Failed retry stops",
+        "No lifecycle replay"
       ]
     }
   ]

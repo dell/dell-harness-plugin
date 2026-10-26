@@ -1,6 +1,6 @@
 {
   "name": "dell-devspaces-sandbox",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Connect to and manage Dell Red Hat Dev Spaces using the Devspaces CLI connector.",
   "author": {
     "name": "Dell Technologies",

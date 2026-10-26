@@ -7,10 +7,11 @@ from pathlib import Path
 import secrets
 import shutil
 import subprocess
+import sys
 
 import pytest
 
-HELPER = Path(__file__).parents[1] / 'scripts' / 'authenticate_devspaces.ps1'
+HELPER = Path(__file__).parents[1] / 'scripts' / 'authenticate_devspaces.py'
 POWERSHELL_NAMES = {'powershell.exe', 'pwsh.exe', 'pwsh'}
 # Generated per run so no credential-shaped literal lives in source, and a leak check cannot
 # pass by coincidence.
@@ -54,6 +55,10 @@ def connector_stub(tmp_path_factory):
     source.write_text('''using System;
 class Stub {
   static int Main(string[] args) {
+    if (args.Length > 0 && args[0] == "--list") {
+      Console.WriteLine("[]");
+      return 0;
+    }
     Console.WriteLine("ARGS=" + String.Join("|", args));
     var tls = Environment.GetEnvironmentVariable("NODE_TLS_REJECT_UNAUTHORIZED");
     Console.WriteLine("TLS=" + (String.IsNullOrEmpty(tls) ? "verified" : tls));
@@ -70,15 +75,15 @@ class Stub {
 
 
 def run_helper(executable, origin='https://example.test', extra=(), env=None):
-    return subprocess.run([POWERSHELL, '-NoProfile', '-File', str(HELPER),
-        '-ConnectorPath', str(executable), '-ClusterUrl', origin, '-PauseOnCompletion', *extra],
+    return subprocess.run([sys.executable, str(HELPER), '--foreground', '--pause',
+        '--connector', str(executable), '--cluster', origin, *extra],
         input='\n', capture_output=True, text=True, timeout=20,
         env={**os.environ, 'NODE_TLS_REJECT_UNAUTHORIZED': '0', **(env or {})})
 
 
 def test_success_requires_verification_and_ignores_ambient_tls(connector_stub):
     result = run_helper(connector_stub)
-    assert result.returncode == 0
+    assert result.returncode == 2
     assert 'ARGS=--auth|https://example.test' in result.stdout
     assert 'TLS=verified' in result.stdout
     assert 'does not confirm login' in result.stdout
@@ -93,10 +98,10 @@ def test_failure_stays_visible_and_returns_nonzero(connector_stub):
 
 
 def test_explicit_tls_opt_in(connector_stub):
-    result = run_helper(connector_stub, extra=['-AllowInsecureTls'])
-    assert result.returncode == 0
+    result = run_helper(connector_stub, extra=['--allow-insecure-tls'])
+    assert result.returncode == 2
     assert 'TLS=0' in result.stdout
-    assert 'Explicit TLS exception' in result.stdout
+    assert 'does not confirm login' in result.stdout
 
 
 @pytest.mark.parametrize('origin', ['http://example.test', f'https://user:{URL_SECRET}@example.test',
@@ -113,5 +118,16 @@ def test_invalid_origin_never_invokes_connector(connector_stub, origin):
 def test_missing_executable_stays_visible(tmp_path):
     result = run_helper(tmp_path / 'missing.exe')
     assert result.returncode != 0
-    assert 'approved connector executable' in result.stdout
+    assert 'connector path' in result.stdout
     assert 'Press Enter to close' in result.stdout
+
+
+def test_batch_launcher_runs_without_powershell_script_execution(connector_stub):
+    launcher = HELPER.with_name('launch-auth.cmd')
+    result = subprocess.run(['cmd.exe', '/c', str(launcher), '--connector', str(connector_stub),
+                             '--cluster', 'https://example.test'],
+                            input='\n\n', capture_output=True, text=True, timeout=30,
+                            env={**os.environ, 'DEVSPACES_PYTHON_COMMAND': sys.executable})
+    assert result.returncode == 2
+    assert 'ARGS=--auth|https://example.test' in result.stdout
+    assert 'does not confirm login' in result.stdout
