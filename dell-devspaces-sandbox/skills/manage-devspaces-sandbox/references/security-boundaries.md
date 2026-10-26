@@ -11,3 +11,17 @@ Authenticate in a native local terminal using the machine's default browser, nev
 The server ignores ambient NODE_TLS_REJECT_UNAUTHORIZED. Prefer NODE_EXTRA_CA_CERTS with an approved CA. DEVSPACES_AUTO_TLS_RETRY defaults to true: a diagnosed certificate failure during read-only --list triggers one child-process retry with verification disabled. The exception remains only in that cluster's connector session and its children, is warned about once, and is exposed in runtime state. It can permit interception. Set DEVSPACES_AUTO_TLS_RETRY=false when verified TLS is required; explicit user or cluster requirements take precedence. DEVSPACES_ALLOW_INSECURE_TLS=true carries an existing session exception. Never persist TLS exceptions, apply them to unrelated errors/clusters, weaken SSH verification, or automatically replay mutations. The native auth helper uses the same read-only preflight, keeps private input/output on the native terminal, forwards stderr there without logging while classifying certificate errors, and verifies CLI access afterward. A certificate failure during authentication can trigger one auth retry, including when the preceding list silently returned empty. Never replay a lifecycle/delete action or capture the native authentication terminal through a tool. Do not redistribute connector executables or credentials.
 
 Avoid external auth commands during operations: preflight checks cannot make the connector's external credential state transactional. This MCP process serializes its mutations and stops if workspace identity changes during a transition.
+
+
+During explicitly requested setup, native login initiation is already within
+scope. The new begin/progress tools expose only whitelisted safe status, not
+terminal output. A private per-job status file binds progress to the selected
+cluster and carries its effective TLS setting. With automatic TLS retry enabled,
+an inconclusive empty inventory permits one differential read; retain an
+exception only if it verifies the intended cluster. This is a diagnostic, not
+proof of a certificate failure. Both empty modes remain inconclusive.
+
+The runtime bootstrap installs pinned MCP into a reusable isolated venv and
+uses verified package transport; connector TLS exceptions never weaken pip or
+SSH trust. The retained client uses a new agent-controlled private directory
+for requests/responses and never stores credential prompts or raw exceptions.

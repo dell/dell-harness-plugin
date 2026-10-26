@@ -202,6 +202,202 @@
     "execution": null
   },
   {
+    "name": "begin_devspaces_authentication",
+    "title": null,
+    "description": "Initiate native machine-browser SSO for requested setup without a second user request. Reuse verified access, avoid duplicate consoles, and report sanitized progress separately from credentials.",
+    "inputSchema": {
+      "properties": {},
+      "title": "begin_devspaces_authenticationArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "properties": {
+        "state": {
+          "title": "State",
+          "type": "string"
+        },
+        "pid": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pid"
+        },
+        "cluster_url": {
+          "title": "Cluster Url",
+          "type": "string"
+        },
+        "list_accessible": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "List Accessible"
+        },
+        "cluster_verified": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cluster Verified"
+        },
+        "workspace_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Workspace Count"
+        },
+        "tls_verification_enabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tls Verification Enabled"
+        }
+      },
+      "required": [
+        "state",
+        "cluster_url"
+      ],
+      "title": "AuthenticationProgress",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "get_devspaces_authentication_progress",
+    "title": null,
+    "description": "Read safe native-login completion evidence without inspecting terminal credentials. Carry effective TLS state into this MCP session, then recheck CLI authentication/inventory.",
+    "inputSchema": {
+      "properties": {},
+      "title": "get_devspaces_authentication_progressArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "properties": {
+        "state": {
+          "title": "State",
+          "type": "string"
+        },
+        "pid": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pid"
+        },
+        "cluster_url": {
+          "title": "Cluster Url",
+          "type": "string"
+        },
+        "list_accessible": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "List Accessible"
+        },
+        "cluster_verified": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cluster Verified"
+        },
+        "workspace_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Workspace Count"
+        },
+        "tls_verification_enabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tls Verification Enabled"
+        }
+      },
+      "required": [
+        "state",
+        "cluster_url"
+      ],
+      "title": "AuthenticationProgress",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
     "name": "list_devspaces",
     "title": null,
     "description": "List a bounded workspace page with stable IDs and states. Filter by exact namespace/name; follow next_offset until null. Pages reflect live inventory, not a frozen snapshot.",
@@ -450,6 +646,17 @@
                 }
               ],
               "title": "Ssh Alias"
+            },
+            "reason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Reason"
             }
           },
           "required": [
@@ -987,6 +1194,18 @@
           ],
           "default": null,
           "title": "Ssh Alias"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
         }
       },
       "required": [
@@ -1093,6 +1312,18 @@
           ],
           "default": null,
           "title": "Ssh Alias"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
         }
       },
       "required": [
@@ -1199,6 +1430,18 @@
           ],
           "default": null,
           "title": "Ssh Alias"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
         }
       },
       "required": [

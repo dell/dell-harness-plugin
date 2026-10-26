@@ -1,6 +1,36 @@
 # Dev Spaces plugin pre-push review
 
-## 0.3.0 update: native authentication
+## 0.4.0 update: runtime and setup orchestration
+
+An independent Windows end-to-end pass exercised a clean runtime, concurrent
+runtime preparation, authentication reuse, silent-empty TLS recovery, inventory,
+and actual fresh tunnels. It found connector-owned SSH Includes disabling trust
+and a readiness marker without a trailing newline. The candidate now preserves
+strict pinned trust before Includes and recognizes readiness without a newline;
+repair failures or a missing SSH configuration prevent a ready result. Native
+authentication/status was separately exercised with a real synthetic executable
+in a new console, without terminal readback or real credential input.
+
+Live strict SSH rejected a changed host key on both new and old endpoints. No
+unverified key was accepted or replaced. This prevents claiming complete live
+SSH/Codex acceptance until independent key validation is available; tunnel-ready
+is explicitly separate. Fresh real SSO/MFA was not forced by revoking an existing
+session. Retained-client failures now expose safe categories, and duplicate
+request IDs cannot automatically replay a tool invocation.
+
+The candidate adds reusable isolated runtime preparation, a retained MCP client,
+two native-authentication launch/progress tools (14 tools total), a whitelisted
+status channel, and differential recovery for silent-empty CLI inventories.
+Prior 0.2/0.3 observations are historical; current generated evidence labels
+offline tests separately from live read-only and interactive acceptance.
+
+Cold-start runtime creation and reuse, new-tool output schemas, native helper
+status privacy, duplicate-window prevention, session TLS continuity, and
+silent-empty recovery are explicit checks. Fresh installed-chat SSO and SSH
+remain separate acceptance; no lifecycle mutation or host-key relaxation is
+authorized by this update. Runtime preparation uses verified package TLS.
+
+## Historical 0.3.0 update: native authentication
 
 The current candidate adds a standard-library Python native-terminal authentication
 helper, PowerShell/batch wrappers, CLI-only status guidance, and bounded automatic
