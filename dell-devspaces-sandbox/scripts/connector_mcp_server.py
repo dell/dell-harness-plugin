@@ -9,7 +9,6 @@ import json
 import os
 from pathlib import Path
 import re
-import shlex
 import shutil
 import subprocess
 import sys
@@ -109,81 +108,55 @@ def enabled(name):
     return os.getenv(name, "false").lower() in {"1", "true", "yes"}
 
 
-SSH_TRUST_KEYS = {'stricthostkeychecking', 'userknownhostsfile', 'globalknownhostsfile',
-                  'hostkeyalias', 'checkhostip', 'verifyhostkeydns'}
+def remove_legacy_ssh_trust(path, name):
+    """Remove only this alias's complete, unmodified plugin-owned guard blocks.
 
-
-def ssh_host_blocks(lines, name):
-    """Find explicit alias blocks; never rewrite wildcard or Match policy."""
-    matches = []
-    start = None
-    for index, line in enumerate([*lines, 'Host __end__\n']):
-        header = re.match(r'^\s*(Host|Match)\s+(.+)', line, re.IGNORECASE)
-        if not header:
-            continue
-        if start is not None:
-            matches.append((start, index))
-            start = None
-        if header[1].lower() == 'host' and shlex.split(header[2], comments=True) == [name]:
-            start = index
-    return matches
-
-
-def capture_ssh_trust(path, name):
-    lines = path.read_text(encoding='utf-8-sig').splitlines(keepends=True) if path.exists() else []
-    blocks = ssh_host_blocks(lines, name)
-    trust = []
-    seen = set()
-    for block in blocks:
-        for line in lines[block[0] + 1:block[1]]:
-            directive = re.match(r'^\s*([A-Za-z][A-Za-z0-9]*)\s*(?:=\s*)?(.*?)\s*$', line)
-            if directive and directive[1].lower() in SSH_TRUST_KEYS:
-                key, value = directive[1].lower(), directive[2]
-                if key in seen:
-                    continue
-                seen.add(key)
-                # Never preserve an earlier connector's disabled trust policy.
-                if key == 'stricthostkeychecking':
-                    continue
-                if key in {'userknownhostsfile', 'globalknownhostsfile'} and value.strip('"').lower() in {'nul', '/dev/null', 'none'}:
-                    continue
-                trust.append(line if line.endswith('\n') else line + '\n')
-    trust.insert(0, '    StrictHostKeyChecking yes\n')
-    if not any(re.match(r'^\s*userknownhostsfile(?:\s|=)', line, re.IGNORECASE) for line in trust):
-        trust.append('    UserKnownHostsFile "~/.ssh/known_hosts"\n')
-    return {'path': path, 'name': name, 'trust': trust}
-
-
-def restore_ssh_trust(snapshot):
-    path = snapshot['path']
+    The CLI owns SSH configuration. This migration never adds Host/Include
+    directives or changes user policy, generated endpoints, or known-host keys.
+    """
     if not path.exists():
-        raise RuntimeError('SSH configuration is not available for trust restoration')
+        return
     raw = path.read_bytes()
-    newline = '\r\n' if b'\r\n' in raw else '\n'
-    text = raw.decode('utf-8-sig').replace('\r\n', '\n').replace('\r', '\n')
-    begin = '# Dell Devspaces pinned trust: ' + snapshot['name'] + '\n'
-    end = '# End Dell Devspaces pinned trust: ' + snapshot['name'] + '\n'
-    if begin in text:
-        start = text.index(begin)
-        finish = text.find(end, start)
-        if finish < 0:
-            raise RuntimeError('Managed SSH trust guard is incomplete; inspect configuration before connecting')
-        text = text[:start] + text[finish + len(end):]
-    # OpenSSH uses the first obtained value. A trust-only prelude must precede
-    # the connector-owned Include, not merely its later generated Host stanza.
-    # Host * resets scope for the original global/Include configuration.
-    prelude = begin + 'Host ' + snapshot['name'] + '\n' + ''.join(snapshot['trust']) + 'Host *\n' + end
-    encoded = (prelude + text).replace('\n', newline).encode('utf-8-sig' if raw.startswith(b'\xef\xbb\xbf') else 'utf-8')
-    if encoded != raw:
-        # Preserve new tunnel HostName/Port and all unrelated stanzas. Replace
-        # atomically so SSH never reads a partially-written trust repair.
-        with tempfile.NamedTemporaryFile(dir=path.parent, prefix='.devspaces-ssh-', delete=False) as handle:
-            temporary = Path(handle.name)
-            handle.write(encoded)
-        try:
-            temporary.replace(path)
-        finally:
-            temporary.unlink(missing_ok=True)
+    lines = raw.decode('utf-8-sig').splitlines(keepends=True)
+    begin = '# Dell Devspaces pinned trust: ' + name
+    end = '# End Dell Devspaces pinned trust: ' + name
+    allowed = {'stricthostkeychecking', 'userknownhostsfile', 'globalknownhostsfile',
+               'hostkeyalias', 'checkhostip', 'verifyhostkeydns'}
+    kept = []
+    index = 0
+    while index < len(lines):
+        line = lines[index].rstrip('\r\n')
+        if line == end:
+            raise RuntimeError('Legacy SSH guard is incomplete; inspect the marked block before reconnecting')
+        if line != begin:
+            kept.append(lines[index])
+            index += 1
+            continue
+        finish = index + 1
+        while finish < len(lines) and lines[finish].rstrip('\r\n') != end:
+            finish += 1
+        body = [value.rstrip('\r\n') for value in lines[index + 1:finish]]
+        if (finish == len(lines) or len(body) < 2 or body[0] != 'Host ' + name
+                or body[-1] != 'Host *'):
+            raise RuntimeError('Legacy SSH guard is incomplete or modified; inspect the marked block before reconnecting')
+        for directive in body[1:-1]:
+            match = re.fullmatch(r'\s+([A-Za-z][A-Za-z0-9]*)(?:\s+|\s*=\s*).+', directive)
+            if not match or match[1].lower() not in allowed:
+                raise RuntimeError('Legacy SSH guard was modified; inspect the marked block before reconnecting')
+        index = finish + 1
+    encoded = ''.join(kept).encode('utf-8-sig' if raw.startswith(b'\xef\xbb\xbf') else 'utf-8')
+    if encoded == raw:
+        return
+    if path.is_symlink():
+        raise RuntimeError('Legacy SSH guard is in a symlink; inspect the marked block before reconnecting')
+    with tempfile.NamedTemporaryFile(dir=path.parent, prefix='.devspaces-ssh-', delete=False) as handle:
+        temporary = Path(handle.name)
+        handle.write(encoded)
+    try:
+        shutil.copymode(path, temporary)
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 class Connector:
@@ -352,20 +325,11 @@ class Connector:
             if not entry:
                 return {"state": "not_managed", "name": name, "namespace": namespace}
             code = entry["process"].poll()
-            if entry.get('trust'):
-                try:
-                    restore_ssh_trust(entry['trust'])
-                    entry['trust_error'] = False
-                    if entry.get('marker_seen'):
-                        entry['ready'] = True
-                except (OSError, RuntimeError):
-                    entry['trust_error'] = True
-                    entry['ready'] = False
             return {"name": name, "namespace": namespace,
                     "state": "exited" if code is not None else ("ready" if entry["ready"] else "connecting"),
                     "pid": entry["process"].pid, "exit_code": code,
                     "ssh_alias": name if code is None and entry["ready"] else None,
-                    "reason": 'SSH trust settings could not be restored; inspect configuration permissions' if entry.get('trust_error') else None}
+                    "reason": None}
 
     def connect(self, name, namespace, expected_identity=None):
         with self.lock:
@@ -379,15 +343,14 @@ class Connector:
                     return state
                 self.disconnect(name, namespace)
             try:
-                trust = capture_ssh_trust(self.ssh_config, name)
+                remove_legacy_ssh_trust(self.ssh_config, name)
                 process = subprocess.Popen([self.executable(), "--connect", name],
                                        stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                        stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace",
                                            **self.options())
             except OSError:
-                raise RuntimeError("Unable to launch the connector tunnel; verify executable permissions and platform compatibility") from None
-            entry = {"process": process, "ready": False, "workspace_id": row['devworkspaceId'],
-                     "trust": trust, "marker_seen": False}
+                raise RuntimeError("Unable to migrate legacy SSH configuration or launch the tunnel; check SSH config permissions and connector executable access") from None
+            entry = {"process": process, "ready": False, "workspace_id": row['devworkspaceId']}
             self.connections[(namespace, name)] = entry
 
             def consume():
@@ -399,21 +362,14 @@ class Connector:
                         if not character:
                             break
                         recent = (recent + character)[-64:]
-                        if not entry['marker_seen'] and "Connection setup completed!" in recent:
-                            entry['marker_seen'] = True
+                        if not entry['ready'] and "Connection setup completed!" in recent:
+                            entry['ready'] = True
                             self.connection_status(name, namespace)
                 finally:
                     self.connection_status(name, namespace)
                     process.stdout.close()
 
-            def protect_trust():
-                while process.poll() is None and not entry['ready']:
-                    self.connection_status(name, namespace)
-                    time.sleep(0.25)
-                self.connection_status(name, namespace)
-
             threading.Thread(target=consume, daemon=True).start()
-            threading.Thread(target=protect_trust, daemon=True).start()
             return self.connection_status(name, namespace)
 
     def disconnect(self, name, namespace):
@@ -426,8 +382,6 @@ class Connector:
                 except subprocess.TimeoutExpired:
                     entry["process"].kill()
                     entry["process"].wait(timeout=5)
-            if entry and entry.get('trust'):
-                self.connection_status(name, namespace)
             self.connections.pop((namespace, name), None)
             return {"state": "not_managed", "name": name, "namespace": namespace}
 

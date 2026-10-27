@@ -39,6 +39,13 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- `dell-devspaces-sandbox` 0.4.1: delegate SSH configuration and host-key policy
+  to the CLI instead of inserting strict-checking overrides. Reconnecting removes
+  only complete legacy plugin-owned guards for the selected alias, preserving
+  user policies and CLI Includes. CLI policies that disable host-key checking
+  no longer require separate plugin key enrollment and do not verify server
+  identity. Tunnel readiness remains separate from SSH login and Codex status.
+
 - `dell-devspaces-sandbox` 0.4.0: reusable isolated Python/MCP bootstrap and a
   bundled retained client replace per-chat dependency/client generation. New
   `begin_devspaces_authentication` and `get_devspaces_authentication_progress`

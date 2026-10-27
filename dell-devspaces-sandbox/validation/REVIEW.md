@@ -1,5 +1,19 @@
 # Dev Spaces plugin pre-push review
 
+## 0.4.1 update: CLI-owned SSH configuration
+
+This update supersedes the 0.4.0 strict trust guard described below. The CLI now
+owns generated SSH policy and Includes. Migration removes only complete legacy
+plugin-owned blocks for the selected alias, preserving unmarked user settings.
+Modified or incomplete blocks fail without a partial write. Status/disconnect
+never rewrite SSH configuration. No-newline readiness detection is retained.
+
+Regression tests cover migration, byte-preserved BOM/CRLF content, duplicate
+guards, unrelated aliases and Includes, malformed blocks, and CLI-owned config
+through connect/status/disconnect. A successful login with host-key checking
+disabled is not evidence of verified server identity. Historical live results
+below are not acceptance evidence for this change.
+
 ## 0.4.0 update: runtime and setup orchestration
 
 An independent Windows end-to-end pass exercised a clean runtime, concurrent

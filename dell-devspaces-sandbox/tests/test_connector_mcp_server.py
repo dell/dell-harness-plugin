@@ -412,61 +412,76 @@ def test_begin_auth_launches_native_helper_with_private_status(adapter, monkeypa
     assert adapter.insecure_tls
 
 
-def test_trust_guard_precedes_include_and_keeps_new_endpoint(tmp_path):
+def legacy_guard(name='devbox'):
+    return ('# Dell Devspaces pinned trust: ' + name + '\nHost ' + name + '\n'
+            '    StrictHostKeyChecking yes\n'
+            '    UserKnownHostsFile "~/.ssh/known_hosts"\n'
+            'Host *\n# End Dell Devspaces pinned trust: ' + name + '\n')
+
+
+@pytest.mark.parametrize('newline,bom', [(b'\n', b''), (b'\r\n', b''), (b'\r\n', b'\xef\xbb\xbf')])
+def test_migration_preserves_includes_user_policy_and_other_aliases(tmp_path, newline, bom):
     path = tmp_path / 'config'
-    original = ('Include generated.conf\nHost devbox\n'
-                '  HostKeyAlias stable-devbox\n'
-                '  UserKnownHostsFile "C:/Trusted Keys/known_hosts"\n'
-                '  GlobalKnownHostsFile "C:/Trusted Keys/global_hosts"\n'
-                '  StrictHostKeyChecking yes\n  CheckHostIP no\n  VerifyHostKeyDNS no\n'
-                'Host other\n  StrictHostKeyChecking ask\n')
-    path.write_text(original)
-    snapshot = SERVER.capture_ssh_trust(path, 'devbox')
-    generated = 'Include generated.conf\nHost devbox\n  HostName 127.0.0.1\n  Port 45678\n  StrictHostKeyChecking no\n  UserKnownHostsFile nul\nHost other\n  StrictHostKeyChecking ask\n'
-    path.write_text(generated)
-    SERVER.restore_ssh_trust(snapshot)
-    repaired = path.read_text()
-    assert repaired.index('StrictHostKeyChecking yes') < repaired.index('Include generated.conf')
-    assert 'HostKeyAlias stable-devbox' in repaired
-    assert 'UserKnownHostsFile "C:/Trusted Keys/known_hosts"' in repaired
-    assert 'GlobalKnownHostsFile "C:/Trusted Keys/global_hosts"' in repaired
-    assert 'Host *\n# End Dell Devspaces pinned trust' in repaired
-    assert repaired.endswith(generated)
-    assert 'Port 45678' in repaired
-    SERVER.restore_ssh_trust(snapshot)
-    assert path.read_text() == repaired
+    original = ('# User settings\nHost devbox\n  StrictHostKeyChecking ask\n'
+                'Include devspaces.conf\nInclude devspaces.conf\n'
+                + legacy_guard('other') + 'Host other\n  Port 2222\n')
+    remaining = bom + original.encode().replace(b'\n', newline)
+    path.write_bytes(bom + legacy_guard().encode().replace(b'\n', newline) + remaining[len(bom):])
+    SERVER.remove_legacy_ssh_trust(path, 'devbox')
+    assert path.read_bytes() == remaining
+    SERVER.remove_legacy_ssh_trust(path, 'devbox')
+    assert path.read_bytes() == remaining
 
 
-def test_multiple_exact_alias_stanzas_preserve_first_trust_value(tmp_path):
+def test_migration_removes_repeated_owned_blocks(tmp_path):
     path = tmp_path / 'config'
-    path.write_text('Host devbox\n  HostKeyAlias first-pin\nHost other\n  HostKeyAlias other-pin\nHost devbox\n  HostKeyAlias later-pin\n  UserKnownHostsFile "C:/Trusted Keys/known_hosts"\n')
-    snapshot = SERVER.capture_ssh_trust(path, 'devbox')
-    SERVER.restore_ssh_trust(snapshot)
-    prelude = path.read_text().split('# End Dell Devspaces pinned trust: devbox')[0]
-    assert 'first-pin' in prelude and 'later-pin' not in prelude and 'other-pin' not in prelude
-    assert 'UserKnownHostsFile "C:/Trusted Keys/known_hosts"' in prelude
+    path.write_text(legacy_guard() + legacy_guard() + 'Include devspaces.conf\n')
+    SERVER.remove_legacy_ssh_trust(path, 'devbox')
+    assert path.read_text() == 'Include devspaces.conf\n'
 
 
-def test_unpinned_alias_never_inherits_disabled_host_key_checks(tmp_path):
+@pytest.mark.parametrize('content', ['', 'Host devbox\n StrictHostKeyChecking yes\n',
+                                    'Include devspaces.conf\n' + legacy_guard('other')])
+def test_no_guard_never_rewrites_config(tmp_path, monkeypatch, content):
     path = tmp_path / 'config'
-    path.write_text('Include generated.conf\n')
-    snapshot = SERVER.capture_ssh_trust(path, 'new-workspace')
-    SERVER.restore_ssh_trust(snapshot)
-    result = path.read_text()
-    assert result.startswith('# Dell Devspaces pinned trust: new-workspace\nHost new-workspace\n    StrictHostKeyChecking yes\n')
-    assert 'UserKnownHostsFile "~/.ssh/known_hosts"' in result
+    path.write_text(content)
+    monkeypatch.setattr(SERVER.tempfile, 'NamedTemporaryFile', lambda **kw: pytest.fail('unexpected rewrite'))
+    SERVER.remove_legacy_ssh_trust(path, 'devbox')
+    assert path.read_text() == content
+    SERVER.remove_legacy_ssh_trust(tmp_path / 'missing', 'devbox')
+    assert not (tmp_path / 'missing').exists()
 
 
-def test_tunnel_without_newline_waits_for_trust_repair(adapter, monkeypatch):
+@pytest.mark.parametrize('content', [
+    legacy_guard().replace('# End Dell Devspaces pinned trust: devbox\n', ''),
+    '# End Dell Devspaces pinned trust: devbox\n',
+    legacy_guard().replace('Host *\n', 'Host other\n'),
+    legacy_guard().replace('    StrictHostKeyChecking yes\n', '    ProxyCommand user-command\n'),
+    legacy_guard() + '# Dell Devspaces pinned trust: devbox\n',
+])
+def test_migration_refuses_incomplete_or_modified_blocks_without_partial_write(tmp_path, content):
+    path = tmp_path / 'config'
+    path.write_text(content)
+    original = path.read_bytes()
+    with pytest.raises(RuntimeError, match='Legacy SSH guard'):
+        SERVER.remove_legacy_ssh_trust(path, 'devbox')
+    assert path.read_bytes() == original
+
+
+def test_connect_migrates_before_cli_and_status_never_rewrites_config(adapter, monkeypatch):
     monkeypatch.setattr(adapter, 'workspace', lambda *args: row())
     monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
-    adapter.ssh_config.write_text('Host devbox\n  HostKeyAlias stable-devbox\n  UserKnownHostsFile pinned_hosts\n')
+    adapter.ssh_config.write_text(legacy_guard() + 'Include devspaces.conf\n')
+    generated = 'Include devspaces.conf\nHost devbox\n Port 45678\n StrictHostKeyChecking no\n UserKnownHostsFile nul\n'
     class Process:
         pid = 123
         stdout = io.StringIO('Connection setup completed!')
         def poll(self): return None
+        def terminate(self): pass
+        def wait(self, timeout): pass
     def popen(*args, **kwargs):
-        adapter.ssh_config.write_text('Include generated.conf\nHost devbox\n Port 45678\n StrictHostKeyChecking no\n UserKnownHostsFile nul\n')
+        assert adapter.ssh_config.read_text() == 'Include devspaces.conf\n'
+        adapter.ssh_config.write_text(generated)
         return Process()
     monkeypatch.setattr(SERVER.subprocess, 'Popen', popen)
     targets = []
@@ -474,30 +489,18 @@ def test_tunnel_without_newline_waits_for_trust_repair(adapter, monkeypatch):
         def __init__(self, target, daemon): self.target = target
         def start(self): targets.append(self.target)
     monkeypatch.setattr(SERVER.threading, 'Thread', Thread)
-    result = adapter.connect('devbox', 'team')
-    assert result['state'] == 'connecting'
-    targets[0]()  # Consume a complete marker without a trailing newline.
+    assert adapter.connect('devbox', 'team')['state'] == 'connecting'
+    assert len(targets) == 1
+    targets[0]()  # Readiness marker without a newline still works.
+    monkeypatch.setattr(SERVER, 'remove_legacy_ssh_trust', lambda *args: pytest.fail('unexpected migration'))
     assert adapter.connection_status('devbox', 'team')['state'] == 'ready'
-    assert adapter.ssh_config.read_text().startswith('# Dell Devspaces pinned trust: devbox')
-    monkeypatch.setattr(SERVER, 'restore_ssh_trust', lambda snapshot: (_ for _ in ()).throw(OSError('denied')))
-    result = adapter.connection_status('devbox', 'team')
-    assert result['state'] == 'connecting' and result['ssh_alias'] is None
-    assert 'trust settings' in result['reason']
+    adapter.disconnect('devbox', 'team')
+    assert adapter.ssh_config.read_text() == generated
 
 
-def test_crlf_trust_guard_is_idempotent_after_connector_rewrite(tmp_path):
-    path = tmp_path / 'config'
-    path.write_bytes(b'Host devbox\r\n  HostKeyAlias stable\r\n')
-    snapshot = SERVER.capture_ssh_trust(path, 'devbox')
-    SERVER.restore_ssh_trust(snapshot)
-    first = path.read_bytes()
-    assert b'\r\n' in first
-    SERVER.restore_ssh_trust(snapshot)
-    assert path.read_bytes() == first
-    assert first.count(b'# Dell Devspaces pinned trust:') == 1
-
-
-def test_missing_ssh_config_does_not_count_as_restored(tmp_path):
-    snapshot = SERVER.capture_ssh_trust(tmp_path / 'missing', 'devbox')
-    with pytest.raises(RuntimeError, match='not available'):
-        SERVER.restore_ssh_trust(snapshot)
+def test_migration_failure_prevents_connector_launch(adapter, monkeypatch):
+    monkeypatch.setattr(adapter, 'workspace', lambda *args: row())
+    monkeypatch.setattr(SERVER.subprocess, 'Popen', lambda *args, **kw: pytest.fail('must migrate before launch'))
+    adapter.ssh_config.write_text('# Dell Devspaces pinned trust: devbox\n')
+    with pytest.raises(RuntimeError, match='Legacy SSH guard'):
+        adapter.connect('devbox', 'team')

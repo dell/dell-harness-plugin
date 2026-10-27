@@ -32,8 +32,9 @@ Run the read-only check before any authentication. If it verifies access, skip l
 - **Wrong cluster:** preserve existing tunnels; configure the requested origin in a separate session and authenticate natively when needed.
 - **Writes blocked:** start/stop/restart require `DEVSPACES_ENABLE_WRITES`; deletion also requires `DEVSPACES_ENABLE_DELETE`. Do not silently enable gates.
 - **Timeout:** inspect workspace phase and identity before retrying an uncertain mutation. Do not replay start/stop/delete automatically.
-- **Tunnel pending/exited:** check `get_connection_status` for up to 30 seconds. Ready means setup was reported and the owned process is alive; run a separate strict SSH probe.
-- **Unknown SSH host key:** keep strict checking. Establish trust from an independently verified key; TLS exceptions never authorize accepting an unverified SSH key.
+- **Tunnel pending/exited:** check `get_connection_status` for up to 30 seconds. Ready means setup was reported and the owned process is alive; run a separate SSH login check using the effective CLI/user policy.
+- **Unknown SSH host key:** reconnect with the updated backend to remove a complete legacy plugin-owned guard for that alias. The CLI owns generated host-key settings; do not edit Includes or add another override. If user or organization policy still requires strict checking, use its approved enrollment process. TLS exceptions do not establish SSH identity.
+- **Connection refused after workspace restart:** a Running workspace does not recreate a local tunnel. Recheck identity and invoke `connect_devspace`; use its refreshed alias/port rather than a stale localhost port.
 - **Not managed:** other manually launched tunnels may exist. Disconnect only this server's owned tunnel; keep the owning MCP process alive while connected.
 
 
