@@ -21,7 +21,7 @@ Configure/connect requests include initiating normal native login as needed. Run
 | URI prompt after SSO | User may press Enter once to finish the attempt; do not fabricate a URI | Follow-up CLI evidence, not the blank entry |
 | Workspace already Running | Skip start, establish the requested tunnel | Separate Running and tunnel-ready states |
 | Workspace stopped | Ask for the exact startup authorization unless already given | Observed Running after approved start |
-| Connector rewrites SSH config insecurely | The connector backend adds a trust-only guard before Includes and preserves existing pins while retaining the new endpoint; readiness is withheld if repair fails | Real strict SSH probe; never accept an unknown or changed key automatically |
+| CLI manages SSH configuration | Leave `devspaces.conf`, Includes, and host-key policy to the CLI; remove only complete legacy plugin-owned guards for the selected alias | SSH login checked separately; report whether server identity was verified |
 | CLI prints readiness without a newline | The connector backend recognizes the bounded marker stream without waiting for a newline | Ready only after trust protection succeeds and the process stays alive |
 | Tunnel ready, Codex registration pending | Dispatch observed alias and inspect supported app state | Registration/connection are separate from URI dispatch |
 

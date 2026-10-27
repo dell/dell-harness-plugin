@@ -67,6 +67,25 @@ codex plugin add dell-devspaces-sandbox@dell-harness-plugin
 The manifest launches `python` with `scripts/prepare_runtime.py`. The bootstrap verifies MCP stdio imports and the pinned MCP version, reuses a working interpreter, or prepares a reusable isolated venv outside the plugin cache. `DEVSPACES_RUNTIME_DIR` can select the cache parent. Package installation uses normal verified TLS and writes logs only to stderr, preserving MCP stdout. If the `python` command is unavailable, resolve an installed interpreter and configure its absolute path. Run `prepare_runtime.py --prepare-only` for installation diagnostics or before restarting a client with a short server-startup timeout. Install `requirements.txt` for both backends, or `mcp==1.30.0` for the default connector backend. Installation does not provision the external connector or credentials.
 
 
+## SSH configuration ownership (0.4.1)
+
+The CLI owns `devspaces.conf`, its `Include` entries, and generated SSH settings.
+The plugin no longer inserts strict host-key overrides, adds Includes, or edits
+CLI-generated endpoints. On connection, it removes only complete legacy
+`Dell Devspaces pinned trust` blocks for the selected workspace from the main
+SSH config (or `DEVSPACES_SSH_CONFIG`). User-written policies, other workspace
+guards, and known-host keys remain unchanged. Modified or incomplete marked
+blocks require manual inspection; they are not deleted automatically.
+
+The inspected CLI writes `StrictHostKeyChecking no` and `UserKnownHostsFile nul`
+on Windows. Honoring that policy skips server identity verification. The plugin
+does not claim verified server identity from a successful SSH login under that
+policy. Organization-managed SSH policies still apply.
+
+Workspace Running, tunnel readiness, SSH login, and Codex connection are separate
+checks. If a workspace or tunnel exits, reconnect through `connect_devspace`;
+the CLI refreshes the local port. Keep the owning MCP session alive.
+
 ## Operations
 
 | Capability | Utility behavior |
@@ -82,7 +101,7 @@ The manifest launches `python` with `scripts/prepare_runtime.py`. The bootstrap 
 
 The adapter verifies clusterId, namespace, unique name, and the caller's expected workspace ID before remote actions. `list_devspaces` returns a page with `workspaces`, `total`, and `next_offset` (default 25, maximum 100). Mutations require `expected_workspace_id` from `devworkspaceId`. The instructions-only fallback tool remains `get_devspaces_authentication_instructions`; the two new launch/progress tools handle setup directly. These are v0.2 API changes from the earlier draft. No personal workspace or localhost port is hard-coded. Names duplicated across namespaces are rejected because the utility accepts only a name. Stop/restart interrupt jobs; restarting requires reconnecting SSH.
 
-Connections live with the MCP process. Graceful shutdown closes its tunnels; an abrupt process kill may require local cleanup. Ready means setup was reported and the process remains alive, not that Codex authenticated over SSH. For setup, execute the MCP connect workflow backed by an actual `--connect` invocation, then dispatch `codex://settings/connections/ssh/add?name=<encoded-alias>&enabled=true` for the observed alias. An existing SSH probe alone does not replace this setup step. The enabled flag is the requested default for this workflow; verify its effect in the app separately from URL dispatch. Preserve strict pinned host-key checks and existing tunnels until the fresh tunnel is verified. Manually launched connectors remain outside this server's control.
+Connections live with the MCP process. Graceful shutdown closes its tunnels; an abrupt process kill may require local cleanup. Ready means setup was reported and the process remains alive, not that Codex authenticated over SSH. For setup, execute the MCP connect workflow backed by an actual `--connect` invocation, then dispatch `codex://settings/connections/ssh/add?name=<encoded-alias>&enabled=true` for the observed alias. An existing SSH probe alone does not replace this setup step. The enabled flag is the requested default for this workflow; verify its effect in the app separately from URL dispatch. Leave SSH configuration and host-key policy to the CLI; preserve existing tunnels until the fresh tunnel is verified. Manually launched connectors remain outside this server's control.
 
 Lifecycle timeouts default to 120 seconds per transition, configurable from 1 to 300. A restart's stop timeout prevents start from being issued. Recheck state before retrying an uncertain mutation.
 

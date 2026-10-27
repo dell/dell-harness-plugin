@@ -326,7 +326,7 @@
         "connect_devspace",
         "get_connection_status"
       ],
-      "expected_result": "Execute actual connector --connect through a retained MCP session, verify readiness and strict SSH identity, then dispatch the observed alias add URL with enabled=true. Report actual Codex app state separately.",
+      "expected_result": "Execute actual connector --connect through a retained MCP session, verify readiness and SSH login under the effective CLI/user host-key policy, reporting server identity verification separately, then dispatch the observed alias add URL with enabled=true. Report actual Codex app state separately.",
       "checks": [
         "Existing alias/SSH success does not substitute for --connect",
         "Preserve unrelated tunnels and pinned host verification",
