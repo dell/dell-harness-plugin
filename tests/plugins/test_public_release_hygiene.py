@@ -90,7 +90,7 @@ def repository_files():
     return sorted(
         path for path in paths
         if path.is_file()
-        and not SKIPPED_DIRS.intersection(path.relative_to(ROOT).parts)
+        and not any(part in SKIPPED_DIRS or part.startswith(".venv") for part in path.relative_to(ROOT).parts)
         and path.suffix.lower() not in BINARY_SUFFIXES
     )
 

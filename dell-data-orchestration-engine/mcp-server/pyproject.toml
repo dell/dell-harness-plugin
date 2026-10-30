@@ -10,7 +10,7 @@ name = "dell-data-orchestration-engine-mcp"
 version = "0.4.0"
 description = "Bundled MCP server for Dell Data Orchestration Engine through the Dataloop SDK"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     # MCP 2.1 wraps ordinary tool exceptions in a generic execution error,
     # changing the server's tested error contract. Keep the validated 2.0 line

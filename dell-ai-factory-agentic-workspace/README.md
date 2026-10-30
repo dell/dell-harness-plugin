@@ -10,7 +10,7 @@ Version 0.5.0 renames the plugin ID and folder from `dell-devspaces-sandbox` to 
 
 The skill begins each new Dev Spaces workflow by asking for the user's credential-free HTTPS Dev Spaces browser URL, unless it was supplied in the initiating request. It derives the cluster origin, verifies that the plugin runtime is configured for that instance, and reuses existing authentication when valid. The example URL below is not a user-selection default. A connector-prompted Developer Workspace URI is separate and must be entered privately in the terminal.
 
-Provide Python 3.10+ with the dependencies in `requirements.txt` and a Devspaces CLI connector executable obtained through your organization. Python 3.12 on Windows is the tested runtime. The executable is not redistributed here. The inspected Windows build reports `0.1.0 (168c6b8)`; verify `--help` when upgrading. Direct dependencies are pinned; this is not a complete transitive lockfile.
+Provide Python 3.11+ with the dependencies in `requirements.txt` and a Devspaces CLI connector executable obtained through your organization. Python 3.12 on Windows is the tested runtime. The executable is not redistributed here. The inspected Windows build reports `0.1.0 (168c6b8)`; verify `--help` when upgrading. Direct dependencies are pinned; this is not a complete transitive lockfile.
 
 Set these variables in the environment that launches Codex. `DEVSPACES_CLUSTER_URL` is required and has no built-in default; until it is set, every remote tool fails closed without invoking the connector.
 

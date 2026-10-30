@@ -1,0 +1,4 @@
+# Repository-wide tests and the skill linter: python -m pip install -r requirements-dev.txt
+pytest==9.1.1
+PyYAML==6.0.3
+requests==2.34.2

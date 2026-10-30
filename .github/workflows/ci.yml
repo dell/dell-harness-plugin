@@ -16,41 +16,50 @@ concurrency:
 
 jobs:
   repository:
-    name: Skills, packaging, evals, release hygiene
+    name: Skills, packaging, evals, release hygiene (Python ${{ matrix.python }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - run: python -m pip install pytest pyyaml
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -r requirements-dev.txt
       - name: Lint skills
         run: python scripts/validate_skills.py
       - name: Repository-wide tests
         run: python -m pytest tests -q
 
   devspaces:
-    name: Dev Spaces plugin
+    name: Dell AI Factory Agentic Workspace plugin
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python }}
       - run: |
           python -m venv .venv-devspaces
-          .venv-devspaces/bin/pip install -r dell-devspaces-sandbox/requirements-dev.txt
-      - run: .venv-devspaces/bin/python -m pytest dell-devspaces-sandbox/tests -q
-      - run: .venv-devspaces/bin/python dell-devspaces-sandbox/scripts/validate_plugin.py
+          .venv-devspaces/bin/pip install -r dell-ai-factory-agentic-workspace/requirements-dev.txt
+      - run: .venv-devspaces/bin/python -m pytest dell-ai-factory-agentic-workspace/tests -q
+      - run: .venv-devspaces/bin/python dell-ai-factory-agentic-workspace/scripts/validate_plugin.py --output "$RUNNER_TEMP/evidence"
 
   data-orchestration:
     name: Data Orchestration Engine MCP server
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python }}
       - run: |
           python -m venv .venv-doe
           .venv-doe/bin/pip install -e "dell-data-orchestration-engine/mcp-server[dev]"
