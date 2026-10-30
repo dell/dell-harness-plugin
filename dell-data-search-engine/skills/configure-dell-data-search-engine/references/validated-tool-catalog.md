@@ -2,7 +2,7 @@
 
 Observed August 10, 2026 from `elastic-mcp-server 0.0.1` using MCP protocol
 2025-06-18. A refreshed audit on August 12 again returned one page and 25
-tools. An authenticated September 10 audit of the pilot deployment again returned `elastic-mcp-server 0.0.1`, MCP protocol 2025-06-18, one
+tools. An authenticated September 10 audit of the reference deployment again returned `elastic-mcp-server 0.0.1`, MCP protocol 2025-06-18, one
 page, and the same 25 tools. Prefer the customer's current `tools/list`; release,
 license, Kibana space, privileges, data, installed content, and model
 configuration can change it.
@@ -30,7 +30,7 @@ key-usage extension required by newer OpenSSL strict validation. Keep chain and
 hostname verification enabled; repair the CA chain before external review
 rather than depending on compatibility mode.
 
-Before OpenAI review, correct the native server metadata, rescan the endpoint,
+Before marketplace review, correct the native server metadata, rescan the endpoint,
 and validate structured results against declared output schemas. Either
 constrain the initial review surface or prove every advertised tool and product
 dependency with stable fixtures.
@@ -80,9 +80,9 @@ same Kibana space.
 
 | Tool | Purpose | Dependency or evidence |
 |---|---|---|
-| `platform_core_product_documentation` | Search installed Elastic product documentation. | Pilot reported documentation not installed; knowledge search can require installed search or embedding artifacts. |
-| `platform_core_integration_knowledge` | Retrieve knowledge from installed integrations. | Pilot could not resolve the Elastic model-content host; requires approved egress and artifacts. |
-| `security_security_labs_search` | Search installed Elastic Security Labs content. | Pilot reported content not installed; knowledge search can require search or embedding artifacts. |
+| `platform_core_product_documentation` | Search installed Elastic product documentation. | Reference deployment reported documentation not installed; knowledge search can require installed search or embedding artifacts. |
+| `platform_core_integration_knowledge` | Retrieve knowledge from installed integrations. | Reference deployment could not resolve the Elastic model-content host; requires approved egress and artifacts. |
+| `security_security_labs_search` | Search installed Elastic Security Labs content. | Reference deployment reported content not installed; knowledge search can require search or embedding artifacts. |
 | `security_alerts` | Search, filter, aggregate, and summarize Security alerts. | Requires Security data, space, licensing, and privileges; natural-language translation dependency needs release-specific validation. |
 
 `No Agent Builder chat model required` does not mean `no dependency`.

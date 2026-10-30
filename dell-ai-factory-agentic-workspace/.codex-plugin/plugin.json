@@ -34,9 +34,11 @@
       "Restart my Dev Spaces workspace and verify its status."
     ],
     "websiteURL": "https://github.com/dell/dell-harness-plugin/tree/main/dell-ai-factory-agentic-workspace",
+    "privacyPolicyURL": "https://www.dell.com/en-us/lp/legal/policies-privacy",
+    "termsOfServiceURL": "https://www.dell.com/en-us/lp/legal/site-terms-of-use",
     "brandColor": "#0672CE",
-    "composerIcon": "./assets/dell-technologies-wordmark.png",
-    "logo": "./assets/dell-technologies-wordmark.png"
+    "composerIcon": "./assets/dell-technologies-icon-square.png",
+    "logo": "./assets/dell-technologies-icon-square.png"
   },
   "mcpServers": "./.mcp.json",
   "repository": "https://github.com/dell/dell-harness-plugin",

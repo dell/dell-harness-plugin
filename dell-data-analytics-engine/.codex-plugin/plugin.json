@@ -6,7 +6,8 @@
     "name": "Dell Technologies",
     "url": "https://www.dell.com/"
   },
-  "homepage": "https://www.dell.com/support/product-details/en-us/product/dell-data-lakehouse/overview",
+  "repository": "https://github.com/dell/dell-harness-plugin",
+  "homepage": "https://www.dell.com/en-us/shop/artificial-intelligence/sc/ai-data-platform",
   "license": "Apache-2.0",
   "keywords": [
     "dell",
@@ -25,7 +26,7 @@
     "capabilities": [
       "Read"
     ],
-    "websiteURL": "https://www.dell.com/support/product-details/en-us/product/dell-data-lakehouse/overview",
+    "websiteURL": "https://www.dell.com/en-us/shop/artificial-intelligence/sc/ai-data-platform",
     "privacyPolicyURL": "https://www.dell.com/en-us/lp/legal/policies-privacy",
     "termsOfServiceURL": "https://www.dell.com/en-us/lp/legal/site-terms-of-use",
     "defaultPrompt": [
@@ -34,7 +35,7 @@
       "Run a bounded read-only analysis and explain the calculation."
     ],
     "brandColor": "#0672CE",
-    "composerIcon": "./assets/dell-technologies-wordmark.png",
-    "logo": "./assets/dell-technologies-wordmark.png"
+    "composerIcon": "./assets/dell-technologies-icon-square.png",
+    "logo": "./assets/dell-technologies-icon-square.png"
   }
 }

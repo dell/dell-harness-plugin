@@ -4,7 +4,7 @@ This is the pre-0.2.0 backend. To select it explicitly, change the MCP manifest 
 
 ## Legacy backend overview
 
-This pilot Codex plugin provides a narrow MCP interface for Eclipse Che and Red Hat OpenShift Dev Spaces. Workspace operations use the Kubernetes API and the DevWorkspace custom resource. A managed `oc` binary is used only to check and initiate corporate SSO with `oc login --web`.
+This backend provides a narrow MCP interface for Eclipse Che and Red Hat OpenShift Dev Spaces. Workspace operations use the Kubernetes API and the DevWorkspace custom resource. A managed `oc` binary is used only to check and initiate organization SSO with `oc login --web`.
 
 ## Security defaults
 
@@ -52,7 +52,7 @@ export DEVSPACES_ALLOWED_NAMESPACES=my-user-devspaces
 export DEVSPACES_DEFAULT_INSTANCE=example-devspaces
 ```
 
-Keep the write variables unset for read-only evaluation. Use an OpenShift OAuth-backed, non-admin kubeconfig for the production pilot.
+Keep the write variables unset for read-only evaluation. Use an OpenShift OAuth-backed, non-admin kubeconfig for production use.
 
 ## Install from this repository
 
@@ -63,7 +63,7 @@ codex plugin add dell-ai-factory-agentic-workspace@dell-harness-plugin
 
 The server requires the packages constrained in `requirements.txt`. The supported distribution should include these dependencies in the Codex runtime image.
 
-For a pilot workstation installation:
+For a workstation installation:
 
 ```powershell
 py -m pip install -r .\dell-ai-factory-agentic-workspace\requirements.txt

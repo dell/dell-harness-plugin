@@ -2,21 +2,42 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # requirements.toml — example Codex MCP server governance for the Dell Harness plugins.
-# Administrators can deploy it as /etc/codex/requirements.toml. Only MCP servers
-# listed here can be enabled; unlisted servers are blocked.
+# Administrators can deploy it as /etc/codex/requirements.toml.
+#
+# Plugin-bundled servers are constrained by the [plugins.<plugin>.mcp_servers]
+# entries below. Servers that users register in their own config.toml are only
+# restricted once a top-level [mcp_servers] allowlist exists; uncomment the DDAE
+# and DDSE entries (with your own URLs) to enforce one, because then every
+# unlisted user-registered server is disabled.
 #
 # Reference: https://developers.openai.com/codex/enterprise/managed-configuration
 
+# Allowed approval policies
+allowed_approval_policies = ["on-request", "unless-allow-listed"]
+
+# Allowed sandbox modes
+allowed_sandbox_modes = ["workspace-write", "read-only"]
+
+# Plugin-bundled stdio servers are keyed by plugin and server name. The
+# structured command form also matches the bundled launcher argument; the string
+# form (command = "python") would accept any arguments. Replace "python" with
+# the absolute interpreter path if your manifests use one.
+
 # Dell AI Factory Agentic Workspace (plugin-bundled stdio adapter)
-[mcp_servers.dell_devspaces]
-identity = { command = "python" }
+[plugins.dell-ai-factory-agentic-workspace.mcp_servers.dell_devspaces.identity]
+command = { executable = "python", args = [
+  { match = "regex", value = ".*[/\\\\]scripts[/\\\\](prepare_runtime|devspaces_mcp_server)\\.py" },
+] }
 
 # Dell Data Orchestration Engine (plugin-bundled stdio launcher)
-[mcp_servers.dell_dataloop]
-identity = { command = "python" }
+[plugins.dell-data-orchestration-engine.mcp_servers.dell_dataloop.identity]
+command = { executable = "python", args = [
+  { match = "regex", value = ".*[/\\\\]scripts[/\\\\]dataloop_mcp_launcher\\.py" },
+] }
 
 # Dell Data Analytics Engine and Dell Data Search Engine are customer-managed
-# remote endpoints. Uncomment and replace each URL with your own deployment.
+# remote endpoints that users add to their own config.toml (not plugin-bundled).
+# Uncomment and replace each URL with your own deployment.
 #
 # [mcp_servers.dell_data_analytics_engine]
 # identity = { url = "https://ddae.example.com/mcp" }
@@ -28,9 +49,3 @@ identity = { command = "python" }
 [features]
 hooks = true
 chronicle = false
-
-# Allowed approval policies
-allowed_approval_policies = ["on-request", "unless-allow-listed"]
-
-# Allowed sandbox modes
-allowed_sandbox_modes = ["workspace-write", "read-only"]

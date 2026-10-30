@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-"""`scripts/doe_state_dir.py`: one DATALOOP_PATH directory per DOE deployment, not one shared one.
+"""`../scripts/dataloop_state_dir.py`: one DATALOOP_PATH directory per DOE deployment, not one shared one.
 
 Pure filesystem logic and no dtlpy import, so this uses the same `sys.path` injection as
 `test_workflow_instrumentation.py` without needing `test_live_smoke.py`'s `importlib` dance.
@@ -14,9 +14,9 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
 
-from doe_state_dir import DIR_MODE, MARKER_MODE, list_aliases, provision, slugify, state_dir_for  # noqa: E402
+from dataloop_state_dir import DIR_MODE, MARKER_MODE, list_aliases, provision, slugify, state_dir_for  # noqa: E402
 
 
 @pytest.fixture

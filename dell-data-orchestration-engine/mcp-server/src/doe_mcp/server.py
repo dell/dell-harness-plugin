@@ -171,30 +171,6 @@ PLUGIN_V1_INSTRUCTIONS = """\
 Manage authorized DOE datasets, reviewed RAG pipelines, executions, PII findings, and marketplace
 models through the focused Dell plugin profile.
 
-Almost every tool is project-scoped; call `project_list` first for a `project_id` unless given one.
-Inspect datasets with `dataset_list`, `dataset_get`, `dataset_profile`, `item_list`,
-`annotation_labels`, and `annotation_list`.
-
-Build a RAG pipeline in order: `rag_pipeline_create` -> `rag_add_pdf_filter_node` ->
-`rag_add_pdf_to_text_node` -> `rag_add_text_to_chunks_node` -> `rag_add_embedding_node` ->
-`rag_add_output_node` -> `pipeline_connect_nodes` -> `pipeline_validate` -> `pipeline_install`.
-Use `pipeline_execute` for an approved bounded run, inspect it with `execution_list`, and use
-`execution_terminate` only for an exact approved execution ID. Query completed output with
-`rag_query`.
-
-Install a marketplace model as a sequence: `marketplace_search` -> `marketplace_get_dpk` ->
-`model_install` -> `model_create` -> `model_deploy`. Use the exact returned app, component, model,
-dataset, and subset IDs for later calls.
-
-Anything billable, persistent, long-running, or destructive needs a visible plan and current user
-approval. `pipeline_install`, `model_train`, and `model_deploy` enforce `confirm=true` or accepted
-elicitation. `model_create` enforces the same gate when configuration overrides are supplied.
-"""
-
-PLUGIN_V1_INSTRUCTIONS = """\
-Manage authorized DOE datasets, reviewed RAG pipelines, executions, PII findings, and marketplace
-models through the focused Dell plugin profile.
-
 Start with `project_list`. Inspect data through `dataset_list`, `dataset_get`,
 `dataset_profile`, `item_list`, and `item_get`; inspect labels and exact annotations through
 `annotation_labels`, `annotation_list`, and `annotation_get`.

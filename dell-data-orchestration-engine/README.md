@@ -10,17 +10,32 @@ elevate permissions, bypass Dataloop controls, or run pipeline code locally.
 
 ## Runtime prerequisites
 
-- Python 3.10 or later
-- the bundled server Python dependencies installed in the environment used by Codex
+- Python 3.11 or later with the standard `venv` module
+- package-index access on first start (or the bundled server dependencies
+  already installed in the interpreter that starts the plugin)
 - a Dataloop API key for a non-administrative user
 - a private `DATALOOP_PATH` directory for the SDK state
 
-From a repository checkout, install the bundled server and its constrained
-runtime dependencies:
+The launcher reuses the starting interpreter when it can already import the
+bundled server. Otherwise it prepares a reusable isolated virtual environment
+outside the plugin cache (under `%LOCALAPPDATA%` or `~/.cache`, in
+`Dell/Dataloop/runtimes`; override with `DATALOOP_RUNTIME_DIR`) and installs the
+dependencies declared in `mcp-server/pyproject.toml`. This keeps the `mcp` 2.0
+line separate from other plugins, such as Agentic Workspace, that pin a
+different `mcp` release in the same `python`. Installation output goes to
+stderr, so MCP stdout stays clean.
+
+The first preparation downloads and installs the server dependencies, which can
+take longer than an MCP client's startup timeout. Prepare it once before the
+first plugin start; this needs no Dataloop credentials and prints the selected
+interpreter:
 
 ```bash
-python -m pip install "./dell-data-orchestration-engine/mcp-server"
+python dell-data-orchestration-engine/scripts/dataloop_mcp_launcher.py --prepare-only
 ```
+
+Each change to the bundled dependencies creates a new runtime directory; old
+ones under `Dell/Dataloop/runtimes` can be deleted when no plugin is running.
 
 The launcher executes the source under `mcp-server/src`; it does not clone or
 run code from another repository. The currently validated dependency

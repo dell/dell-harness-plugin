@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # gitleaks configuration. Uses the default ruleset; the allowlist covers only
-# deliberately fake values that tests use to prove secrets are redacted.
+# deliberately fake values that tests use to prove secrets are redacted, and
+# generated validation evidence whose SHA-256 file hashes look like API keys.
 
 [extend]
 useDefault = true
@@ -13,4 +14,7 @@ regexTarget = "line"
 regexes = [
   '''customer-secret-value''',
   '''ApiKey <encoded-api-key>''',
+]
+paths = [
+  '''(^|/)validation/evidence/summary\.json$''',
 ]

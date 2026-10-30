@@ -5,17 +5,17 @@ protocol 2025-03-26. A refreshed, pagination-aware audit returned one page,
 exactly two tools, and no `nextCursor`. This is complete for the tested endpoint
 and OAuth identity, not for every DDAE release or configuration.
 
-The table combines the live pilot result with the broader tool surface in the
+The table combines the live reference-deployment result with the broader tool surface in the
 current Starburst Enterprise documentation. The live `tools/list` response is
 authoritative for a specific endpoint and identity.
 
-| Tool | Pilot status | Purpose | Enablement or prerequisite | Validation |
+| Tool | Reference deployment | Purpose | Enablement or prerequisite | Validation |
 |---|---|---|---|---|
 | `searchDataProducts` | Enabled and advertised | Search governed Data Products visible to the authenticated user. | Built in when Data Products are available; requires OAuth and Data Product authorization. | Authenticated no-match call returned HTTP 200 with `isError=false`. |
 | `queryReadOnly` | Enabled and advertised | Execute one synchronous read-only Trino SQL query. | Built in; subject to OAuth, data authorization, result-size, timeout, and resource controls. | `SELECT 1 AS validation_value LIMIT 1` completed successfully with one integer column, one row, structured content, and a query ID. |
-| `getDataProductDetails` | Documented, not advertised by pilot | Retrieve a Data Product's metadata, views, materialized views, and columns. | Built in when supported by the installed release and Data Products are available; requires authorization to the Data Product. | Not available in the tested identity's live catalog. |
-| `listParametrizedQueryTools` | Not enabled or not exposed by pilot | List administrator-defined parameterized query templates. | Administrator must set `mcp.parametrized-tools.enabled=true`, configure definition paths, add approved YAML definitions, and restart. | Not available in the tested identity's live catalog. |
-| `parametrizedQuery` | Not enabled or not exposed by pilot | Execute an approved parameterized query with server-side typing and validation. | Same administrator configuration and restart as `listParametrizedQueryTools`; the user also needs authorization to referenced data. | Not available in the tested identity's live catalog. |
+| `getDataProductDetails` | Documented, not advertised | Retrieve a Data Product's metadata, views, materialized views, and columns. | Built in when supported by the installed release and Data Products are available; requires authorization to the Data Product. | Not available in the tested identity's live catalog. |
+| `listParametrizedQueryTools` | Not enabled or not exposed | List administrator-defined parameterized query templates. | Administrator must set `mcp.parametrized-tools.enabled=true`, configure definition paths, add approved YAML definitions, and restart. | Not available in the tested identity's live catalog. |
+| `parametrizedQuery` | Not enabled or not exposed | Execute an approved parameterized query with server-side typing and validation. | Same administrator configuration and restart as `listParametrizedQueryTools`; the user also needs authorization to referenced data. | Not available in the tested identity's live catalog. |
 
 Parameterized-query definitions add governed business capabilities behind the
 optional parameterized tool interface. DDAE validates typed inputs, resolves
@@ -29,16 +29,16 @@ Products, coordinator configuration, definition files, and user authorization
 can affect the live catalog.
 
 No separate DDAE inference configuration is required for the two tools exposed
-by the pilot. Codex supplies conversational reasoning and can formulate SQL;
+by the reference deployment. Codex supplies conversational reasoning and can formulate SQL;
 DDAE executes governed operations.
 
-## OpenAI metadata audit — August 12, 2026
+## MCP metadata audit — August 12, 2026
 
 A refreshed live audit confirmed both tools expose input and output schemas,
 `readOnlyHint=true`, and `destructiveHint=false`. Both omit
 `openWorldHint` and per-tool OAuth `securitySchemes`. The
 `queryReadOnly` input schema exposes `query` but does not mark it required.
-Before OpenAI review, correct those server-owned metadata gaps and rescan the
+Before marketplace review, correct those server-owned metadata gaps and rescan the
 endpoint.
 
 Safe execution passed for both tools: a deliberately no-match Data Product
@@ -77,7 +77,7 @@ discovery exposed exactly `searchDataProducts` and `queryReadOnly` to Codex.
 The Codex-facing definitions contained output schemas but marked no input field
 as required for either tool and did not surface `readOnlyHint`,
 `destructiveHint`, or `openWorldHint`. This was not a retained raw,
-pagination-aware `tools/list` response, so it is an actionable submission gate
+pagination-aware `tools/list` response, so it is an actionable review gate
 requiring raw contract confirmation rather than conclusive proof that the
 upstream server removed metadata observed in August.
 

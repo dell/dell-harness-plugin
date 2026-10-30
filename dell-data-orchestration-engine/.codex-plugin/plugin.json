@@ -1,12 +1,13 @@
 {
   "name": "dell-data-orchestration-engine",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Use Dell Data Orchestration Engine (Dataloop) through a governed Python SDK MCP server.",
   "author": {
     "name": "Dell Technologies",
     "url": "https://www.dell.com/"
   },
-  "homepage": "https://www.dell.com/support/product-details/en-us/product/dell-data-lakehouse/overview",
+  "repository": "https://github.com/dell/dell-harness-plugin",
+  "homepage": "https://www.dell.com/en-us/shop/artificial-intelligence/sc/ai-data-platform",
   "license": "Apache-2.0",
   "keywords": [
     "dell",
@@ -27,7 +28,7 @@
       "Read",
       "Write"
     ],
-    "websiteURL": "https://www.dell.com/support/product-details/en-us/product/dell-data-lakehouse/overview",
+    "websiteURL": "https://www.dell.com/en-us/shop/artificial-intelligence/sc/ai-data-platform",
     "privacyPolicyURL": "https://www.dell.com/en-us/lp/legal/policies-privacy",
     "termsOfServiceURL": "https://www.dell.com/en-us/lp/legal/site-terms-of-use",
     "defaultPrompt": [
@@ -36,7 +37,7 @@
       "Review a dataset for PII without exposing values."
     ],
     "brandColor": "#0672CE",
-    "composerIcon": "./assets/dell-technologies-wordmark.png",
-    "logo": "./assets/dell-technologies-wordmark.png"
+    "composerIcon": "./assets/dell-technologies-icon-square.png",
+    "logo": "./assets/dell-technologies-icon-square.png"
   }
 }

@@ -26,8 +26,8 @@ def usable(python):
 
 
 def prepare():
-    if sys.version_info < (3, 10):
-        raise RuntimeError('Python 3.10 or newer is required.')
+    if sys.version_info < (3, 11):
+        raise RuntimeError('Python 3.11 or newer is required.')
     if usable(sys.executable):
         return Path(sys.executable)
     identity = hashlib.sha256((sys.executable + sys.version + REQUIREMENT).encode()).hexdigest()[:16]

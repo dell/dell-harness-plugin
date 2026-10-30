@@ -4,10 +4,13 @@
 import importlib.util
 import json
 import os
+import re
 import secrets
 import stat
 import subprocess
 import sys
+import tomllib
+import types
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -31,7 +34,7 @@ def load_launcher():
 def test_manifest_mcp_marketplace_and_governance_are_registered():
     manifest = load_json(PLUGIN / ".codex-plugin" / "plugin.json")
     assert manifest["name"] == "dell-data-orchestration-engine"
-    assert manifest["version"] == "0.4.0"
+    assert manifest["version"] == "0.5.0"
     assert manifest["skills"] == "./skills/"
     assert manifest["mcpServers"] == "./.mcp.json"
     assert manifest["homepage"].startswith("https://")
@@ -64,9 +67,13 @@ def test_manifest_mcp_marketplace_and_governance_are_registered():
         "authentication": "ON_INSTALL",
     }
 
-    requirements = (ROOT / "requirements.toml").read_text(encoding="utf-8")
-    assert "[mcp_servers.dell_dataloop]" in requirements
-    assert 'identity = { command = "python" }' in requirements
+    requirements = tomllib.loads((ROOT / "requirements.toml").read_text(encoding="utf-8"))
+    identity = requirements["plugins"]["dell-data-orchestration-engine"]["mcp_servers"]["dell_dataloop"]["identity"]
+    assert identity["command"]["executable"] == "python"
+    [rule] = identity["command"]["args"]
+    assert rule["match"] == "regex"
+    assert re.fullmatch(rule["value"], str(PLUGIN / "scripts" / "dataloop_mcp_launcher.py"))
+    assert not re.fullmatch(rule["value"], "/tmp/other.py")
 
 
 def test_six_outcome_skills_have_metadata_and_no_placeholders():
@@ -281,3 +288,156 @@ def test_launcher_rejects_a_world_writable_directory_and_runs_the_resolved_targe
     command = launcher.build_command({"DATALOOP_MCP_COMMAND": str(link)})
     # The checked file is the one executed, so the link cannot be retargeted afterwards.
     assert command[0] == str(executable.resolve())
+
+
+def test_runtime_reuses_launching_interpreter_when_server_imports(monkeypatch):
+    launcher = load_launcher()
+    monkeypatch.setattr(launcher, "server_importable", lambda python, environ: True)
+    assert launcher.runtime_python({}) == Path(sys.executable)
+
+
+def test_runtime_prepares_isolated_venv_with_bundled_requirements(tmp_path, monkeypatch):
+    launcher = load_launcher()
+    calls = []
+    prepared = {"done": False}
+
+    def importable(python, environ):
+        return prepared["done"] and str(python).startswith(str(tmp_path))
+
+    def run(command, **kwargs):
+        calls.append(command)
+        if "pip" in command:
+            prepared["done"] = True
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(launcher, "server_importable", importable)
+    monkeypatch.setattr(launcher.subprocess, "run", run)
+    python = launcher.runtime_python({"DATALOOP_RUNTIME_DIR": str(tmp_path)})
+    assert str(python).startswith(str(tmp_path))
+    assert calls[0][:3] == [sys.executable, "-m", "venv"]
+    assert any(arg.startswith("mcp>=2.0") for arg in calls[1])
+    assert not list(tmp_path.glob("*.lock"))
+
+
+def test_runtime_preparation_failure_is_a_configuration_error(tmp_path, monkeypatch):
+    launcher = load_launcher()
+    monkeypatch.setattr(launcher, "server_importable", lambda python, environ: False)
+
+    def run(command, **kwargs):
+        raise subprocess.CalledProcessError(1, command)
+
+    monkeypatch.setattr(launcher.subprocess, "run", run)
+    try:
+        launcher.runtime_python({"DATALOOP_RUNTIME_DIR": str(tmp_path)})
+    except launcher.ConfigurationError as exc:
+        assert "isolated runtime" in str(exc)
+    else:
+        raise AssertionError("failed preparation must be reported")
+    assert not list(tmp_path.glob("*.lock"))
+
+
+def test_windows_launch_keeps_waiting_parent(tmp_path, monkeypatch):
+    launcher = load_launcher()
+    monkeypatch.setenv("DATALOOP_CONFIG_FILE", str(tmp_path / "absent.json"))
+    monkeypatch.setenv("DATALOOP_API_KEY", secrets.token_urlsafe(8))
+    monkeypatch.setenv("DATALOOP_PATH", str(tmp_path / "state"))
+    monkeypatch.delenv("DATALOOP_MCP_COMMAND", raising=False)
+    monkeypatch.setattr(launcher, "runtime_python", lambda environ: Path(sys.executable))
+    calls = []
+    monkeypatch.setattr(launcher.subprocess, "call", lambda command, env: calls.append(command) or 7)
+    # Fake os only inside the launcher; patching os.name globally breaks pathlib.
+    def no_execve(*args):
+        raise AssertionError("execve on nt")
+
+    monkeypatch.setattr(launcher, "os", types.SimpleNamespace(**{**vars(os), "name": "nt", "execve": no_execve}))
+    assert launcher.main() == 7
+    assert calls[0][:3] == [sys.executable, "-m", "doe_mcp.server"]
+
+
+def load_configurer():
+    path = PLUGIN / "scripts" / "configure_dataloop.py"
+    spec = importlib.util.spec_from_file_location("configure_dataloop", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_configure_writes_key_user_only_from_creation(tmp_path, monkeypatch):
+    configurer = load_configurer()
+    api_key = secrets.token_urlsafe(16)
+    monkeypatch.setattr(configurer.getpass, "getpass", lambda prompt: api_key)
+    modes = []
+    real_replace = os.replace
+
+    def replace(source, target):
+        modes.append(stat.S_IMODE(os.stat(source).st_mode))
+        real_replace(source, target)
+
+    monkeypatch.setattr(configurer.os, "replace", replace)
+    config = tmp_path / "cfg" / "dataloop.json"
+    config.parent.mkdir()
+    config.write_text("{}", encoding="utf-8")
+    config.chmod(0o644)
+    args = configurer.argparse.Namespace(
+        state_path=str(tmp_path / "state"), no_verify_ssl=False, gate_url=None,
+        profiles=None, command=None,
+    )
+    assert configurer.configure(config, args) == 0
+    if os.name == "posix":
+        assert modes == [0o600]
+        assert stat.S_IMODE(config.stat().st_mode) == 0o600
+    assert json.loads(config.read_text(encoding="utf-8"))["api_key"] == api_key
+    assert [p.name for p in config.parent.iterdir()] == ["dataloop.json"]
+
+
+def test_configure_rejects_all_mixed_with_other_profiles(tmp_path):
+    completed = subprocess.run(
+        [sys.executable, str(PLUGIN / "scripts" / "configure_dataloop.py"),
+         "--config", str(tmp_path / "c.json"), "--profiles", "all", "rag"],
+        capture_output=True, text=True, stdin=subprocess.DEVNULL,
+    )
+    assert completed.returncode == 2
+    assert "cannot be combined" in completed.stderr
+    assert not (tmp_path / "c.json").exists()
+
+
+def test_command_override_never_prepares_a_runtime(tmp_path, monkeypatch):
+    launcher = load_launcher()
+    executable = tmp_path / "doe-mcp"
+    executable.write_text("#!/bin/sh\n", encoding="utf-8")
+    executable.chmod(0o755)
+    monkeypatch.setenv("DATALOOP_CONFIG_FILE", str(tmp_path / "absent.json"))
+    monkeypatch.setenv("DATALOOP_API_KEY", secrets.token_urlsafe(8))
+    monkeypatch.setenv("DATALOOP_PATH", str(tmp_path / "state"))
+    monkeypatch.setenv("DATALOOP_MCP_COMMAND", str(executable))
+    monkeypatch.setattr(launcher, "runtime_python", lambda environ: (_ for _ in ()).throw(AssertionError("prepared")))
+    executed = []
+    monkeypatch.setattr(launcher, "os", types.SimpleNamespace(**{**vars(os), "name": "posix", "execve": lambda *a: executed.append(a[1])}))
+    launcher.main()
+    assert executed[0][0] == str(executable.resolve())
+
+
+def test_prepare_only_needs_no_credentials(tmp_path, monkeypatch, capsys):
+    launcher = load_launcher()
+    for name in ("DATALOOP_API_KEY", "DATALOOP_PATH", "DATALOOP_MCP_COMMAND"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(launcher.sys, "argv", ["launcher", "--prepare-only"])
+    monkeypatch.setattr(launcher, "runtime_python", lambda environ: tmp_path / "python")
+    assert launcher.main() == 0
+    assert json.loads(capsys.readouterr().out) == {"state": "ready", "python": str(tmp_path / "python")}
+
+
+def test_interrupted_preparation_reports_lock_path(tmp_path, monkeypatch):
+    launcher = load_launcher()
+    monkeypatch.setattr(launcher, "server_importable", lambda python, environ: False)
+    monkeypatch.setattr(launcher.time, "sleep", lambda seconds: None)
+    pyproject = (PLUGIN / "mcp-server" / "pyproject.toml").read_bytes()
+    identity = launcher.hashlib.sha256(sys.executable.encode() + sys.version.encode() + pyproject).hexdigest()[:16]
+    (tmp_path / f"{identity}.lock").mkdir()
+    try:
+        launcher.runtime_python({"DATALOOP_RUNTIME_DIR": str(tmp_path)})
+    except launcher.ConfigurationError as exc:
+        assert f"{identity}.lock" in str(exc) and "--prepare-only" in str(exc)
+    else:
+        raise AssertionError("a leftover lock must be reported")

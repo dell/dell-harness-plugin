@@ -49,7 +49,7 @@ def test_aidp_manifests_are_focused_read_only_packages():
         assert manifest["author"]["name"] == "Dell Technologies"
         assert manifest["author"]["url"].startswith("https://")
         assert manifest["homepage"].startswith("https://")
-        assert "repository" not in manifest
+        assert manifest["repository"] == "https://github.com/dell/dell-harness-plugin"
         assert manifest["license"] == "Apache-2.0"
         assert len(manifest["keywords"]) >= 3
         assert manifest["interface"]["capabilities"] == ["Read"]
@@ -73,14 +73,24 @@ def test_aidp_manifests_are_focused_read_only_packages():
         assert "ApiKey " not in serialized
 
 
-def test_openai_review_auth_handoff_is_explicit_and_secret_free():
+REVIEW_RECORDS = {
+    "dell-data-analytics-engine": "docs/validation/ddae-marketplace-review.md",
+    "dell-data-search-engine": "docs/validation/ddse-marketplace-review.md",
+}
+
+
+def test_review_auth_handoff_is_explicit_secret_free_and_out_of_customer_docs():
     for name, expected in PLUGINS.items():
         readme = (ROOT / name / "README.md").read_text(encoding="utf-8")
-        assert "## OpenAI review authentication handoff" in readme
-        assert expected["auth_phrase"] in readme
-        assert "five positive and three negative" in readme
-        assert "transcript references" in readme
-        assert "customer-secret-value" not in readme
+        record_path = REVIEW_RECORDS[name]
+        record = (ROOT / record_path).read_text(encoding="utf-8")
+        assert "## Review authentication handoff" in record
+        assert "five positive and three negative" in record
+        assert "transcript references" in record
+        assert "customer-secret-value" not in record
+        assert expected["auth_phrase"] in record
+        assert "authentication handoff" not in readme
+        assert f"(../{record_path})" in readme
 
 
 def test_customer_mcp_registration_is_documented_without_bundled_endpoint():

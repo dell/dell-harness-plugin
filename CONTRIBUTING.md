@@ -46,11 +46,18 @@ before a pull request.
 
 ## Development and testing
 
-Python 3.10 or newer is required. The DevSpaces and Data Orchestration Engine
+Python 3.11 or newer is required. The Agentic Workspace and Data Orchestration Engine
 packages pin different `mcp` releases, so test them in separate virtual
-environments:
+environments. At runtime each plugin's launcher prepares its own isolated
+environment for the same reason.
 
 ```bash
+# Repository-wide test dependencies
+python -m pip install -r requirements-dev.txt
+
+# Skill lint (frontmatter, routing exclusions, adapters, size)
+python scripts/validate_skills.py
+
 # Repository-wide packaging, evaluation, and release-hygiene tests
 python -m pytest tests -q
 
@@ -83,7 +90,13 @@ python -m venv .venv-doe
   ```
 
 - **Write safety.** New write or destructive MCP tools must stay behind explicit
-  opt-in gates and carry accurate MCP tool annotations.
+  opt-in gates and carry accurate MCP tool annotations. The one documented
+  exception is Agentic Workspace `connect_devspace`, which changes only local
+  state (see its `references/security-boundaries.md`).
+- **Skills.** Each `SKILL.md` needs `name` matching its directory, a
+  description that says when to use it and when not to ("Do not use for ..."),
+  an `agents/openai.yaml` adapter, and at most 200 lines; move detail to
+  `references/`. `scripts/validate_skills.py` enforces this in CI.
 - **Docs.** User-visible behavior changes need an update to the affected plugin
   README and a [CHANGELOG](CHANGELOG.md) entry under "Unreleased".
 
