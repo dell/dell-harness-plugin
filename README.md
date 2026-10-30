@@ -6,7 +6,7 @@ development workflows.
 
 | Plugin | Integration | Authentication |
 | --- | --- | --- |
-| `dell-devspaces-sandbox` | Dell Redhat Devspaces AI Factory Skill; connector lifecycle and SSH | Interactive connector authentication |
+| `dell-ai-factory-agentic-workspace` | Dell AI Factory Agentic Workspace; connector lifecycle and SSH | Interactive connector authentication |
 | `dell-data-analytics-engine` | Customer-managed DDAE/Starburst MCP | Interactive OAuth |
 | `dell-data-search-engine` | Customer-managed DDSE Kibana Agent Builder MCP | Least-privilege API key |
 | `dell-data-orchestration-engine` | Local Dataloop Python SDK MCP server | Scoped Dataloop API key |
@@ -18,7 +18,7 @@ Write and destructive operations use Codex write approval mode.
 
 ```powershell
 codex plugin marketplace add https://github.com/dell/dell-harness-plugin.git
-codex plugin add dell-devspaces-sandbox@dell-harness-plugin
+codex plugin add dell-ai-factory-agentic-workspace@dell-harness-plugin
 codex plugin add dell-data-analytics-engine@dell-harness-plugin
 codex plugin add dell-data-search-engine@dell-harness-plugin
 codex plugin add dell-data-orchestration-engine@dell-harness-plugin
@@ -42,9 +42,12 @@ product directory are the authoritative statement of current support.
 
 ## Configure Dev Spaces
 
-**Dell Redhat Devspaces AI Factory Skill** uses the Devspaces CLI connector for
+**Dell AI Factory Agentic Workspace** uses the Devspaces CLI connector for
 authentication guidance, workspace status, start/stop/restart, and managed SSH
-connections. Its existing plugin ID remains `dell-devspaces-sandbox`.
+connections. Its plugin ID is `dell-ai-factory-agentic-workspace` (formerly
+`dell-devspaces-sandbox`). To upgrade, run
+`codex plugin remove dell-devspaces-sandbox@dell-harness-plugin`, then install
+the new ID.
 
 Provide Python with `mcp` and set `DEVSPACES_CONNECTOR_COMMAND` to the
 connector executable. Set `DEVSPACES_CLUSTER_URL` to your Dev Spaces HTTPS
@@ -53,7 +56,7 @@ certificate authority, point `NODE_EXTRA_CA_CERTS` at that CA bundle.
 Authenticate interactively with the connector before use.
 
 Lifecycle writes and deletion remain gated. See
-[dell-devspaces-sandbox/README.md](dell-devspaces-sandbox/README.md) for setup,
+[dell-ai-factory-agentic-workspace/README.md](dell-ai-factory-agentic-workspace/README.md) for setup,
 connection lifetime, validation, and the optional legacy Kubernetes backend.
 
 ## Configure Dell data engines

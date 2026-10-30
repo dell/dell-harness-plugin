@@ -34,7 +34,7 @@ Each top-level plugin directory is one Dell product or service:
 
 | Directory | Plugin |
 | --- | --- |
-| `dell-devspaces-sandbox/` | Dell Redhat Devspaces AI Factory Skill |
+| `dell-ai-factory-agentic-workspace/` | Dell AI Factory Agentic Workspace |
 | `dell-data-analytics-engine/` | Dell Data Analytics Engine |
 | `dell-data-search-engine/` | Dell Data Search Engine |
 | `dell-data-orchestration-engine/` | Dell Data Orchestration Engine (Dataloop) |
@@ -54,11 +54,11 @@ environments:
 # Repository-wide packaging, evaluation, and release-hygiene tests
 python -m pytest tests -q
 
-# Dell Redhat Devspaces AI Factory Skill
+# Dell AI Factory Agentic Workspace
 python -m venv .venv-devspaces
-.venv-devspaces/bin/pip install -r dell-devspaces-sandbox/requirements-dev.txt
-.venv-devspaces/bin/python -m pytest dell-devspaces-sandbox/tests -q
-.venv-devspaces/bin/python dell-devspaces-sandbox/scripts/validate_plugin.py
+.venv-devspaces/bin/pip install -r dell-ai-factory-agentic-workspace/requirements-dev.txt
+.venv-devspaces/bin/python -m pytest dell-ai-factory-agentic-workspace/tests -q
+.venv-devspaces/bin/python dell-ai-factory-agentic-workspace/scripts/validate_plugin.py
 
 # Dell Data Orchestration Engine MCP server
 python -m venv .venv-doe

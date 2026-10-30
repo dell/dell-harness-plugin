@@ -5,8 +5,8 @@
   },
   "plugins": [
     {
-      "name": "dell-devspaces-sandbox",
-      "source": { "source": "local", "path": "./dell-devspaces-sandbox" },
+      "name": "dell-ai-factory-agentic-workspace",
+      "source": { "source": "local", "path": "./dell-ai-factory-agentic-workspace" },
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
       "category": "Productivity"
     },

@@ -14,7 +14,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 PLUGINS = (
-    "dell-devspaces-sandbox",
+    "dell-ai-factory-agentic-workspace",
     "dell-data-analytics-engine",
     "dell-data-search-engine",
     "dell-data-orchestration-engine",

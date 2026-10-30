@@ -1,0 +1,44 @@
+{
+  "name": "dell-ai-factory-agentic-workspace",
+  "version": "0.5.0",
+  "description": "Connect to and manage Dell AI Factory Agentic Workspace (built on Red Hat OpenShift Dev Spaces) using the Devspaces CLI connector.",
+  "author": {
+    "name": "Dell Technologies",
+    "url": "https://www.dell.com/"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "dell",
+    "openshift",
+    "dev-spaces",
+    "eclipse-che",
+    "devworkspace",
+    "ai-factory",
+    "agentic-workspace"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Dell AI Factory Agentic Workspace",
+    "shortDescription": "Connect and manage Dell AI Factory Agentic Workspace.",
+    "longDescription": "Local Codex integration for Dell AI Factory Agentic Workspace, built on Red Hat OpenShift Dev Spaces: authentication guidance, status, start, stop, restart, and managed SSH tunnels through a Dev Spaces CLI connector. Requires local Python, a connector installation, and network access to your own Dev Spaces cluster. Optional Kubernetes diagnostics remain available.",
+    "developerName": "Dell Technologies",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Authenticate to Dell AI Factory Agentic Workspace and list my workspaces.",
+      "Check the status of my Dev Spaces workspace.",
+      "Connect my workspace to Codex.",
+      "Restart my Dev Spaces workspace and verify its status."
+    ],
+    "websiteURL": "https://github.com/dell/dell-harness-plugin/tree/main/dell-ai-factory-agentic-workspace",
+    "brandColor": "#0672CE",
+    "composerIcon": "./assets/dell-technologies-wordmark.png",
+    "logo": "./assets/dell-technologies-wordmark.png"
+  },
+  "mcpServers": "./.mcp.json",
+  "repository": "https://github.com/dell/dell-harness-plugin",
+  "homepage": "https://github.com/dell/dell-harness-plugin/tree/main/dell-ai-factory-agentic-workspace"
+}

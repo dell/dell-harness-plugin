@@ -518,7 +518,7 @@ WRITE = ToolAnnotations(
 DELETE = ToolAnnotations(
     readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=True
 )
-mcp = FastMCP("Dell Dev Spaces Sandbox")
+mcp = FastMCP("Dell AI Factory Agentic Workspace")
 
 
 @mcp.tool(annotations=READ)

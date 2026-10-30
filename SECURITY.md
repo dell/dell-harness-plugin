@@ -13,7 +13,7 @@ Report privately so the maintainers can coordinate a fix and disclosure.
 Use GitHub's **private vulnerability reporting** on this repository, or email
 **security@dell.com**. Include:
 
-- The affected plugin (`dell-devspaces-sandbox`, `dell-data-analytics-engine`,
+- The affected plugin (`dell-ai-factory-agentic-workspace`, `dell-data-analytics-engine`,
   `dell-data-search-engine`, or `dell-data-orchestration-engine`) and version
   from its `.codex-plugin/plugin.json`.
 - A clear description of the vulnerability and its impact.

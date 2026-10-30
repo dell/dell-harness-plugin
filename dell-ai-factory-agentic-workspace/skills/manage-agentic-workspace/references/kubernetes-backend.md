@@ -2,7 +2,7 @@
 
 This is the pre-0.2.0 backend. To select it explicitly, change the MCP manifest script argument to `${PLUGIN_ROOT}/scripts/devspaces_mcp_server.py` and restart the server. The connector backend is the default. This backend does not provide SSH connect or restart tools.
 
-# Dell Dev Spaces Sandbox plugin
+## Legacy backend overview
 
 This pilot Codex plugin provides a narrow MCP interface for Eclipse Che and Red Hat OpenShift Dev Spaces. Workspace operations use the Kubernetes API and the DevWorkspace custom resource. A managed `oc` binary is used only to check and initiate corporate SSO with `oc login --web`.
 
@@ -58,7 +58,7 @@ Keep the write variables unset for read-only evaluation. Use an OpenShift OAuth-
 
 ```bash
 codex plugin marketplace add https://github.com/dell/dell-harness-plugin.git
-codex plugin add dell-devspaces-sandbox@dell-harness-plugin
+codex plugin add dell-ai-factory-agentic-workspace@dell-harness-plugin
 ```
 
 The server requires the packages constrained in `requirements.txt`. The supported distribution should include these dependencies in the Codex runtime image.
@@ -66,7 +66,7 @@ The server requires the packages constrained in `requirements.txt`. The supporte
 For a pilot workstation installation:
 
 ```powershell
-py -m pip install -r .\dell-devspaces-sandbox\requirements.txt
+py -m pip install -r .\dell-ai-factory-agentic-workspace\requirements.txt
 ```
 
 Confirm that `python` is available on `PATH` before restarting Codex. For
@@ -76,9 +76,9 @@ rather than installing them interactively.
 ## Validation
 
 ```bash
-python3 -m pytest dell-devspaces-sandbox/tests -q
+python3 -m pytest dell-ai-factory-agentic-workspace/tests -q
 DEVSPACES_ALLOWED_NAMESPACES=my-user-devspaces \
-  python3 dell-devspaces-sandbox/scripts/devspaces_mcp_server.py --check
+  python3 dell-ai-factory-agentic-workspace/scripts/devspaces_mcp_server.py --check
 ```
 
 The `--check` command validates identity and authorization, then performs only a DevWorkspace list.

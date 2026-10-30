@@ -30,7 +30,7 @@ async def session_run(scenario):
     async with stdio_client(params) as (read, write):
         async with ClientSession(read, write, read_timeout_seconds=timedelta(seconds=20)) as session:
             init = await session.initialize()
-            assert init.serverInfo.name == 'Dell Redhat Devspaces AI Factory Skill'
+            assert init.serverInfo.name == 'Dell AI Factory Agentic Workspace'
             tools = (await session.list_tools()).tools
             schemas = {tool.name: tool.outputSchema for tool in tools}
             assert len(tools) == 14

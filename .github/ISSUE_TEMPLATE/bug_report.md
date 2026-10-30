@@ -7,7 +7,7 @@ labels: bug
 
 ## Plugin and version
 
-- **Plugin**: dell-devspaces-sandbox / dell-data-analytics-engine / dell-data-search-engine / dell-data-orchestration-engine
+- **Plugin**: dell-ai-factory-agentic-workspace / dell-data-analytics-engine / dell-data-search-engine / dell-data-orchestration-engine
 - **Plugin version** (from `.codex-plugin/plugin.json`):
 - **Harness and version** (for example `codex --version`):
 - **OS and Python version**:

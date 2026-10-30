@@ -7,7 +7,7 @@
 #
 # Reference: https://developers.openai.com/codex/enterprise/managed-configuration
 
-# Dell Dev Spaces (plugin-bundled stdio adapter)
+# Dell AI Factory Agentic Workspace (plugin-bundled stdio adapter)
 [mcp_servers.dell_devspaces]
 identity = { command = "python" }
 

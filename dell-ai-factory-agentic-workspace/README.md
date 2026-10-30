@@ -1,8 +1,10 @@
-# Dell Redhat Devspaces AI Factory Skill
+# Dell AI Factory Agentic Workspace
 
 The default local MCP backend wraps the Devspaces CLI connector. It supports authentication guidance, list/status, start, stop, restart, managed SSH connect/disconnect, and separately gated deletion.
 
-Version 0.4.0 prepares its Python runtime automatically and exposes native authentication launch/progress tools for uninterrupted setup. Plugin ID/folder `dell-devspaces-sandbox` and skill invocation `$manage-devspaces-sandbox` stay stable for existing installations.
+The plugin prepares its Python runtime automatically and exposes native authentication launch/progress tools for uninterrupted setup. Invoke its skill as `$manage-agentic-workspace`.
+
+Version 0.5.0 renames the plugin ID and folder from `dell-devspaces-sandbox` to `dell-ai-factory-agentic-workspace` and the skill from `$manage-devspaces-sandbox` to `$manage-agentic-workspace`. Existing installations do not update automatically: run `codex plugin remove dell-devspaces-sandbox@dell-harness-plugin` first (both IDs register the same `dell_devspaces` MCP server), then install the new ID as shown below and reapply any local MCP argument changes such as the legacy backend selection. MCP server name `dell_devspaces`, tool names, environment variables, and the runtime cache location are unchanged.
 
 ## Setup
 
@@ -24,7 +26,7 @@ $env:DEVSPACES_ENABLE_WRITES = 'true'
 # $env:DEVSPACES_ENABLE_DELETE = 'true'
 ```
 
-Use a trusted CA when available. On a diagnosed certificate failure, `DEVSPACES_AUTO_TLS_RETRY=true` (default) retries read-only `--list` once with certificate verification disabled for this connector session. This can permit interception; a sanitized warning and runtime `tls_verification_enabled=false` expose the exception. Set `DEVSPACES_AUTO_TLS_RETRY=false` when verified TLS is required. The native authentication helper also retries an auth-specific certificate failure once when the list preflight was inconclusive. The exception never changes persistent settings, and workspace mutations are never automatically replayed. An already selected session exception can be carried with `DEVSPACES_ALLOW_INSECURE_TLS=true`; ambient `NODE_TLS_REJECT_UNAUTHORIZED` is ignored. See [troubleshooting](skills/manage-devspaces-sandbox/references/troubleshooting.md) for scope and stopping conditions.
+Use a trusted CA when available. On a diagnosed certificate failure, `DEVSPACES_AUTO_TLS_RETRY=true` (default) retries read-only `--list` once with certificate verification disabled for this connector session. This can permit interception; a sanitized warning and runtime `tls_verification_enabled=false` expose the exception. Set `DEVSPACES_AUTO_TLS_RETRY=false` when verified TLS is required. The native authentication helper also retries an auth-specific certificate failure once when the list preflight was inconclusive. The exception never changes persistent settings, and workspace mutations are never automatically replayed. An already selected session exception can be carried with `DEVSPACES_ALLOW_INSECURE_TLS=true`; ambient `NODE_TLS_REJECT_UNAUTHORIZED` is ignored. See [troubleshooting](skills/manage-agentic-workspace/references/troubleshooting.md) for scope and stopping conditions.
 
 A configure/connect request includes beginning native login when CLI access is unverified; no second user request is needed. The agent monitors structured authentication progress itself, then checks CLI access. It does not ask the user to validate terminal text. An empty inventory gets a bounded differential TLS probe when automatic retry is enabled; retain the exception only if it verifies the intended cluster. If both modes remain empty, restore the prior mode and finish native authentication before account-assignment clarification. The agent runs local commands and diagnostics itself. User participation is limited to SSO/MFA, credentials, and private terminal input. Authentication uses the machine's default browser through the native CLI; workspace status and validation always use the CLI, not dashboard browsing. Browser sign-in alone never proves CLI access.
 
@@ -47,7 +49,7 @@ Run the Python launcher with the configured interpreter (the agent performs this
 
 It opens a native Windows console and lets the CLI use the machine browser. Add `--foreground --pause` to use an existing local terminal. It skips login when CLI access to the cluster is already verified, and verifies access after auth; an empty list is inconclusive. Use `--check` for read-only CLI validation without starting login. Never run interactive foreground auth through a tool that captures the terminal stream. The Python helper does not depend on MCP or change PowerShell execution policy. On non-Windows systems use `--foreground` in a local terminal. The launcher reports only process launch, never authenticated status from a PID.
 
-If SSO has completed in the machine browser and the terminal remains at `Please enter the Developer Workspace URI:`, you may press **Enter once** with no URI to let the attempt finish. An empty entry can cancel the attempt on some versions; the agent must recheck CLI access afterward before reporting success. See the [prompt guidance](skills/manage-devspaces-sandbox/references/troubleshooting.md#developer-workspace-uri-prompt-after-browser-sso). Never share a credential-bearing URI in chat.
+If SSO has completed in the machine browser and the terminal remains at `Please enter the Developer Workspace URI:`, you may press **Enter once** with no URI to let the attempt finish. An empty entry can cancel the attempt on some versions; the agent must recheck CLI access afterward before reporting success. See the [prompt guidance](skills/manage-agentic-workspace/references/troubleshooting.md#developer-workspace-uri-prompt-after-browser-sso). Never share a credential-bearing URI in chat.
 
 Optional PowerShell entry point:
 
@@ -57,11 +59,11 @@ Optional PowerShell entry point:
 
 When `.ps1` files are blocked, invoke Python directly or run `launch-auth.cmd --connector <path> --cluster <origin>`; batch arguments now use Python-style switches. Set `DEVSPACES_PYTHON_COMMAND` for the batch launcher's interpreter, or use the Python launcher's explicit interpreter. Never paste batch source into PowerShell or change execution policy to make a helper run. Complete private authentication prompts only in the terminal. The agent checks actual native-window state and CLI access before reporting success.
 
-Install from this marketplace using the existing plugin ID:
+Install from this marketplace:
 
 ```powershell
 codex plugin marketplace add https://github.com/dell/dell-harness-plugin.git
-codex plugin add dell-devspaces-sandbox@dell-harness-plugin
+codex plugin add dell-ai-factory-agentic-workspace@dell-harness-plugin
 ```
 
 The manifest launches `python` with `scripts/prepare_runtime.py`. The bootstrap verifies MCP stdio imports and the pinned MCP version, reuses a working interpreter, or prepares a reusable isolated venv outside the plugin cache. `DEVSPACES_RUNTIME_DIR` can select the cache parent. Package installation uses normal verified TLS and writes logs only to stderr, preserving MCP stdout. If the `python` command is unavailable, resolve an installed interpreter and configure its absolute path. Run `prepare_runtime.py --prepare-only` for installation diagnostics or before restarting a client with a short server-startup timeout. Install `requirements.txt` for both backends, or `mcp==1.30.0` for the default connector backend. Installation does not provision the external connector or credentials.
@@ -109,14 +111,14 @@ Client timeouts are separate: Codex documents a default MCP tool timeout of 60 s
 
 ## Optional Kubernetes diagnostics
 
-The original `scripts/devspaces_mcp_server.py` remains available for separately configured events/logs and legacy operations. It is not loaded by default. See [legacy setup](skills/manage-devspaces-sandbox/references/kubernetes-backend.md). It uses `config/instances.json`, kubeconfig, and `oc`; these do not configure the connector backend. Never silently switch backends on failure.
+The original `scripts/devspaces_mcp_server.py` remains available for separately configured events/logs and legacy operations. It is not loaded by default. See [legacy setup](skills/manage-agentic-workspace/references/kubernetes-backend.md). It uses `config/instances.json`, kubeconfig, and `oc`; these do not configure the connector backend. Never silently switch backends on failure.
 
 ## Validation
 
 ```powershell
-python -m pytest dell-devspaces-sandbox/tests -q
-python dell-devspaces-sandbox/scripts/validate_plugin.py
-python dell-devspaces-sandbox/scripts/connector_mcp_server.py --check
+python -m pytest dell-ai-factory-agentic-workspace/tests -q
+python dell-ai-factory-agentic-workspace/scripts/validate_plugin.py
+python dell-ai-factory-agentic-workspace/scripts/connector_mcp_server.py --check
 ```
 
 Install `requirements-dev.txt` for offline validation. The validator checks packaging, boots an extracted ZIP, runs unit and MCP protocol tests, and writes evidence under `validation/evidence`. The last command is a read-only live check requiring authentication and CA trust. Synthetic tests do not validate live lifecycle changes or an end-to-end Codex SSH session. See [review and release gates](validation/REVIEW.md) and [workflow evaluation cases](evals/cases.json).
@@ -125,4 +127,4 @@ Install `requirements-dev.txt` for offline validation. The validator checks pack
 
 This is a local Codex plugin that runs on the user's workstation and talks to a Dev Spaces cluster that the user's organization operates. It is not a hosted connector, and ChatGPT web/mobile compatibility is out of scope. The Devspaces CLI connector is a separate executable that this repository does not distribute. Report issues through this repository's [issue tracker](https://github.com/dell/dell-harness-plugin/issues) and security vulnerabilities through [SECURITY.md](../SECURITY.md).
 
-Detailed [setup scenarios and recovery](skills/manage-devspaces-sandbox/references/setup-scenarios.md) cover runtime, login, TLS, private prompts, duplicate windows, empty inventory, tunnels, and SSH trust.
+Detailed [setup scenarios and recovery](skills/manage-agentic-workspace/references/setup-scenarios.md) cover runtime, login, TLS, private prompts, duplicate windows, empty inventory, tunnels, and SSH trust.

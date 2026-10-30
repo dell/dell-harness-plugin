@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-"""Dell Redhat Devspaces AI Factory Skill: local CLI connector MCP adapter."""
+"""Dell AI Factory Agentic Workspace: local CLI connector MCP adapter."""
 import argparse
 import atexit
 import json
@@ -453,7 +453,7 @@ class Connector:
 
 connector = Connector()
 atexit.register(connector.close)
-mcp = FastMCP("Dell Redhat Devspaces AI Factory Skill")
+mcp = FastMCP("Dell AI Factory Agentic Workspace")
 READ = ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
 WRITE = ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False)
 DESTRUCTIVE = ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=False)

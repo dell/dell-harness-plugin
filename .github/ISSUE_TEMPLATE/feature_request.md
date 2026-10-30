@@ -7,7 +7,7 @@ labels: enhancement
 
 ## Plugin
 
-dell-devspaces-sandbox / dell-data-analytics-engine / dell-data-search-engine / dell-data-orchestration-engine / repository
+dell-ai-factory-agentic-workspace / dell-data-analytics-engine / dell-data-search-engine / dell-data-orchestration-engine / repository
 
 ## Problem
 

@@ -1,5 +1,14 @@
 # Dev Spaces plugin pre-push review
 
+## 0.5.0 update: product rename
+
+The plugin is renamed from `dell-devspaces-sandbox` to
+`dell-ai-factory-agentic-workspace` (display name **Dell AI Factory Agentic
+Workspace**; skill `manage-agentic-workspace`). Behavior, tool contracts, the
+`dell_devspaces` MCP server name, and environment variables are unchanged.
+Files under `validation/evidence/` predate the rename and still record the
+former ID and 0.4.0 paths; regenerate them with the validator before release.
+
 ## 0.4.1 update: CLI-owned SSH configuration
 
 This update supersedes the 0.4.0 strict trust guard described below. The CLI now
@@ -112,7 +121,7 @@ Official references:
 Run from an environment with requirements-dev.txt installed:
 
 ```powershell
-python dell-devspaces-sandbox/scripts/validate_plugin.py
+python dell-ai-factory-agentic-workspace/scripts/validate_plugin.py
 ```
 
 The validator writes validation/evidence/summary.json, pytest.xml, tool-contract.json, four protocol transcripts, and an installable ZIP. summary.json is the authoritative pass/fail record and includes source hashes, dependency versions, platform, and package SHA-256. Tests boot the ZIP after extraction outside the checkout. The release ZIP contains runtime files and review/spec documents; it excludes tests, local environments, connector binaries, credentials, and evidence archives.
@@ -134,7 +143,7 @@ The retained Kubernetes adapter has regression unit tests only. Its live SSO, AP
 
 This package is a local stdio integration requiring an external executable, network access to an organization-operated Dev Spaces cluster, and interactive local authentication. It has no hosted OAuth endpoint or registered app mapping. Public directory support and ChatGPT/mobile execution must be established with the intended deployment model; do not assume that a local Codex package is portable to those surfaces.
 
-Before a public submission, obtain an approved support contact, applicable privacy/terms URLs, rights/approval for the listing assets and product naming, a supported review/demo account with realistic dummy workspaces, and surface-specific end-to-end evidence. Do not invent these administrative facts or expose real user credentials to satisfy a review checklist. The current user-requested display name is retained; formal product branding approval remains outside this code review.
+Before a public submission, obtain an approved support contact, applicable privacy/terms URLs, rights/approval for the listing assets and product naming, a supported review/demo account with realistic dummy workspaces, and surface-specific end-to-end evidence. Do not invent these administrative facts or expose real user credentials to satisfy a review checklist. The display name and plugin ID were updated in 0.5.0; formal listing-asset approval remains outside this code review.
 
 ## Known implementation limits
 

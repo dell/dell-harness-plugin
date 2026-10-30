@@ -43,7 +43,7 @@
       "id": "inventory",
       "kind": "positive",
       "prompts": [
-        "Use Dell Redhat Devspaces AI Factory Skill to list my workspaces.",
+        "Use Dell AI Factory Agentic Workspace to list my workspaces.",
         "What Dell devspaces do I have, and are they running?"
       ],
       "expected_tools": [
@@ -269,7 +269,7 @@
         "Show the status of my local Docker sandbox."
       ],
       "expected_tools": [],
-      "expected_result": "Use no Dell Dev Spaces tools.",
+      "expected_result": "Use no Dell AI Factory Agentic Workspace tools.",
       "checks": [
         "No implicit activation from the word sandbox alone"
       ]
@@ -282,7 +282,7 @@
         "Stop the OpenAI hosted agent environment."
       ],
       "expected_tools": [],
-      "expected_result": "Use no Dell Dev Spaces tools.",
+      "expected_result": "Use no Dell AI Factory Agentic Workspace tools.",
       "checks": [
         "Respect product boundary"
       ]

@@ -28,11 +28,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def check_package(root):
     manifest = json.loads((root / '.codex-plugin/plugin.json').read_text(encoding='utf-8'))
-    assert manifest['name'] == 'dell-devspaces-sandbox'
+    assert manifest['name'] == 'dell-ai-factory-agentic-workspace'
     assert re.fullmatch(r'\d+\.\d+\.\d+', manifest['version'])
     assert manifest['author']['name'] and manifest['repository'] and manifest['homepage']
     interface = manifest['interface']
-    assert interface['displayName'] == 'Dell Redhat Devspaces AI Factory Skill'
+    assert interface['displayName'] == 'Dell AI Factory Agentic Workspace'
     assert len(interface['defaultPrompt']) >= 3
     for value in (manifest['skills'], manifest['mcpServers'], interface['composerIcon'], interface['logo']):
         assert value.startswith('./')

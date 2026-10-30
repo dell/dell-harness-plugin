@@ -39,6 +39,17 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- **Breaking:** `dell-devspaces-sandbox` is renamed to
+  `dell-ai-factory-agentic-workspace` (0.5.0), with display name
+  **Dell AI Factory Agentic Workspace**. The plugin folder, marketplace entry,
+  and skill invocation (`$manage-devspaces-sandbox` →
+  `$manage-agentic-workspace`) change accordingly. Run
+  `codex plugin remove dell-devspaces-sandbox@dell-harness-plugin`, then
+  install `dell-ai-factory-agentic-workspace@dell-harness-plugin`. The
+  `dell_devspaces` MCP server name, tool names, environment variables, and
+  runtime cache location are unchanged. Earlier entries for this plugin use the
+  former ID `dell-devspaces-sandbox`.
+
 - `dell-devspaces-sandbox` 0.4.1: delegate SSH configuration and host-key policy
   to the CLI instead of inserting strict-checking overrides. Reconnecting removes
   only complete legacy plugin-owned guards for the selected alias, preserving
