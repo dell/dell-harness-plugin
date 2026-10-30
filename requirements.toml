@@ -7,16 +7,25 @@
 #
 # Reference: https://developers.openai.com/codex/enterprise/managed-configuration
 
+# Plugin-bundled stdio servers are keyed by plugin and server name. The
+# structured command form also matches the bundled launcher argument; the string
+# form (command = "python") would accept any arguments.
+
 # Dell AI Factory Agentic Workspace (plugin-bundled stdio adapter)
-[mcp_servers.dell_devspaces]
-identity = { command = "python" }
+[plugins.dell-ai-factory-agentic-workspace.mcp_servers.dell_devspaces.identity]
+command = { executable = "python", args = [
+  { match = "regex", value = ".*[/\\\\]scripts[/\\\\]prepare_runtime\\.py" },
+] }
 
 # Dell Data Orchestration Engine (plugin-bundled stdio launcher)
-[mcp_servers.dell_dataloop]
-identity = { command = "python" }
+[plugins.dell-data-orchestration-engine.mcp_servers.dell_dataloop.identity]
+command = { executable = "python", args = [
+  { match = "regex", value = ".*[/\\\\]scripts[/\\\\]dataloop_mcp_launcher\\.py" },
+] }
 
 # Dell Data Analytics Engine and Dell Data Search Engine are customer-managed
-# remote endpoints. Uncomment and replace each URL with your own deployment.
+# remote endpoints that users add to their own config.toml (not plugin-bundled).
+# Uncomment and replace each URL with your own deployment.
 #
 # [mcp_servers.dell_data_analytics_engine]
 # identity = { url = "https://ddae.example.com/mcp" }

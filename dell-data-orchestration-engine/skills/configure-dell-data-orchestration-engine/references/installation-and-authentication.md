@@ -6,12 +6,15 @@ The plugin starts its bundled Python MCP server as a local `stdio` subprocess.
 The server calls Dataloop through the `dtlpy` Python SDK. Each Codex runtime
 starts its own process; there is no shared hosted MCP service in this release.
 
-Install Python 3.10 or later and the bundled package dependencies in the runtime
-used by Codex:
+Install Python 3.11 or later. On first start the launcher reuses the starting
+interpreter if it can import the bundled server; otherwise it prepares an
+isolated virtual environment outside the plugin cache (override the location
+with `DATALOOP_RUNTIME_DIR`) and installs the dependencies declared in
+`mcp-server/pyproject.toml`. Do not install these dependencies into an
+interpreter shared with another plugin that pins a different `mcp` release.
 
 ```bash
 python --version
-python -m pip install "./dell-data-orchestration-engine/mcp-server"
 ```
 
 The server currently passes its full automated suite with `mcp>=2.0,<2.1`.

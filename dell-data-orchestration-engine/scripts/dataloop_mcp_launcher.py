@@ -6,10 +6,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import stat
+import subprocess
 import sys
+import time
+import tomllib
 from pathlib import Path
 
 ALLOWED_PROFILES = {"discovery", "pipelines", "models", "plugin-v1", "rag"}
@@ -117,7 +121,70 @@ def trusted_executable(requested: str) -> str:
     return str(resolved)
 
 
-def build_command(environ: dict[str, str]) -> list[str]:
+def server_importable(python: Path, environ: dict[str, str]) -> bool:
+    env = {**environ, "PYTHONPATH": str(BUNDLED_SERVER_SRC)}
+    try:
+        return subprocess.run(
+            [str(python), "-c", "import doe_mcp.server"], env=env,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=120,
+        ).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+def runtime_python(environ: dict[str, str]) -> Path:
+    """Return an interpreter that can run the bundled server.
+
+    Reuses the launching interpreter when it already satisfies the bundled
+    dependencies; otherwise prepares a reusable venv outside the plugin cache, so
+    the pinned mcp 2.0 line never conflicts with other plugins sharing `python`.
+    """
+    if server_importable(Path(sys.executable), environ):
+        return Path(sys.executable)
+    pyproject = (BUNDLED_SERVER_SRC.parent / "pyproject.toml").read_bytes()
+    requirements = tomllib.loads(pyproject.decode("utf-8"))["project"]["dependencies"]
+    identity = hashlib.sha256(sys.executable.encode() + sys.version.encode() + pyproject).hexdigest()[:16]
+    base = Path(environ.get("DATALOOP_RUNTIME_DIR") or
+                Path(environ.get("LOCALAPPDATA", str(Path.home() / ".cache"))) / "Dell" / "Dataloop" / "runtimes")
+    target = base / identity
+    python = target / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    if server_importable(python, environ):
+        return python
+    target.parent.mkdir(parents=True, exist_ok=True)
+    # Atomic directory lock coordinates simultaneous plugin starts; a stale lock
+    # is reported rather than deleted while another bootstrap could be active.
+    lock = target.with_suffix(".lock")
+    for attempt in range(300):
+        try:
+            lock.mkdir()
+            break
+        except FileExistsError:
+            if server_importable(python, environ):
+                return python
+            if attempt == 0:
+                print("dell-dataloop: waiting for the active runtime preparation.", file=sys.stderr, flush=True)
+            time.sleep(1)
+    else:
+        raise ConfigurationError("Runtime preparation is still active or its lock remains: " + str(lock))
+    try:
+        print("dell-dataloop: preparing isolated Python runtime.", file=sys.stderr, flush=True)
+        subprocess.run([sys.executable, "-m", "venv", str(target)], check=True,
+                       stdout=sys.stderr, stderr=sys.stderr, timeout=120)
+        subprocess.run([str(python), "-m", "pip", "install", "--disable-pip-version-check", *requirements],
+                       check=True, stdout=sys.stderr, stderr=sys.stderr, timeout=900)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise ConfigurationError(
+            "Could not prepare the isolated runtime; check Python venv support, package-network "
+            "access, and approved CA trust."
+        ) from exc
+    finally:
+        lock.rmdir()
+    if not server_importable(python, environ):
+        raise ConfigurationError("Prepared runtime cannot import the bundled MCP server.")
+    return python
+
+
+def build_command(environ: dict[str, str], python: Path | str = sys.executable) -> list[str]:
     requested = environ.get("DATALOOP_MCP_COMMAND")
     if requested:
         command = [trusted_executable(requested)]
@@ -133,7 +200,7 @@ def build_command(environ: dict[str, str]) -> list[str]:
             if not existing_pythonpath
             else str(BUNDLED_SERVER_SRC) + os.pathsep + existing_pythonpath
         )
-        command = [sys.executable, "-m", "doe_mcp.server"]
+        command = [str(python), "-m", "doe_mcp.server"]
     for profile in profiles_from(environ.get("DATALOOP_MCP_PROFILES")):
         command.extend(["--profile", profile])
     return command
@@ -175,12 +242,19 @@ def main() -> int:
         config = load_config(path)
         environment = merged_environment(dict(os.environ), config)
         validate_environment(environment)
-        command = build_command(environment)
+        if environment.get("DATALOOP_MCP_COMMAND"):
+            command = build_command(environment)
+        else:
+            command = build_command(environment, runtime_python(environment))
     except ConfigurationError as exc:
         print(f"dell-dataloop configuration error: {exc}", file=sys.stderr)
         return 2
 
-    # command[0] is always absolute (validated or sys.executable), so no PATH search occurs.
+    # command[0] is always absolute (validated or a resolved interpreter), so no PATH search occurs.
+    if os.name == "nt":
+        # Windows execve detaches the replacement from some process supervisors and
+        # breaks inherited stdio; keep a waiting parent instead.
+        return subprocess.call(command, env=environment)
     os.execve(command[0], command, environment)
     return 0
 

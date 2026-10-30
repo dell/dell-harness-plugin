@@ -46,11 +46,15 @@ before a pull request.
 
 ## Development and testing
 
-Python 3.10 or newer is required. The DevSpaces and Data Orchestration Engine
+Python 3.11 or newer is required. The Agentic Workspace and Data Orchestration Engine
 packages pin different `mcp` releases, so test them in separate virtual
-environments:
+environments. At runtime each plugin's launcher prepares its own isolated
+environment for the same reason.
 
 ```bash
+# Repository-wide test dependencies
+python -m pip install -r requirements-dev.txt
+
 # Skill lint (frontmatter, routing exclusions, adapters, size)
 python scripts/validate_skills.py
 
