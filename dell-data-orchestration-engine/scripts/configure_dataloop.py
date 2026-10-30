@@ -12,6 +12,7 @@ import json
 import os
 import stat
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -82,9 +83,16 @@ def configure(path: Path, args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 2
-    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    if os.name == "posix":
-        path.chmod(0o600)
+    # mkstemp creates the file user-only (0600), so the key is never briefly
+    # readable by others; os.replace swaps it in atomically.
+    descriptor, temporary = tempfile.mkstemp(dir=path.parent, prefix=".dataloop-", suffix=".tmp")
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, indent=2) + "\n")
+        os.replace(temporary, path)
+    except BaseException:
+        Path(temporary).unlink(missing_ok=True)
+        raise
     print(f"Wrote user-only Dataloop configuration to {path}")
     print("Restart Codex, then verify access with project_list.")
     return 0
@@ -115,6 +123,8 @@ def main() -> int:
         "--command", help="optional administrator-approved external MCP executable override"
     )
     args = parser.parse_args()
+    if args.profiles and "all" in args.profiles and len(args.profiles) > 1:
+        parser.error("--profiles all cannot be combined with other profiles")
     return (
         check(args.config.expanduser())
         if args.check

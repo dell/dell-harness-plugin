@@ -348,3 +348,51 @@ def test_windows_launch_keeps_waiting_parent(tmp_path, monkeypatch):
     monkeypatch.setattr(launcher.os, "name", "nt")
     assert launcher.main() == 7
     assert calls[0][1:3] == ["-m", "doe_mcp.server"]
+
+
+def load_configurer():
+    path = PLUGIN / "scripts" / "configure_dataloop.py"
+    spec = importlib.util.spec_from_file_location("configure_dataloop", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_configure_writes_key_user_only_from_creation(tmp_path, monkeypatch):
+    configurer = load_configurer()
+    api_key = secrets.token_urlsafe(16)
+    monkeypatch.setattr(configurer.getpass, "getpass", lambda prompt: api_key)
+    modes = []
+    real_replace = os.replace
+
+    def replace(source, target):
+        modes.append(stat.S_IMODE(os.stat(source).st_mode))
+        real_replace(source, target)
+
+    monkeypatch.setattr(configurer.os, "replace", replace)
+    config = tmp_path / "cfg" / "dataloop.json"
+    config.parent.mkdir()
+    config.write_text("{}", encoding="utf-8")
+    config.chmod(0o644)
+    args = configurer.argparse.Namespace(
+        state_path=str(tmp_path / "state"), no_verify_ssl=False, gate_url=None,
+        profiles=None, command=None,
+    )
+    assert configurer.configure(config, args) == 0
+    if os.name == "posix":
+        assert modes == [0o600]
+        assert stat.S_IMODE(config.stat().st_mode) == 0o600
+    assert json.loads(config.read_text(encoding="utf-8"))["api_key"] == api_key
+    assert [p.name for p in config.parent.iterdir()] == ["dataloop.json"]
+
+
+def test_configure_rejects_all_mixed_with_other_profiles(tmp_path):
+    completed = subprocess.run(
+        [sys.executable, str(PLUGIN / "scripts" / "configure_dataloop.py"),
+         "--config", str(tmp_path / "c.json"), "--profiles", "all", "rag"],
+        capture_output=True, text=True, stdin=subprocess.DEVNULL,
+    )
+    assert completed.returncode == 2
+    assert "cannot be combined" in completed.stderr
+    assert not (tmp_path / "c.json").exists()
