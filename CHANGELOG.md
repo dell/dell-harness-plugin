@@ -32,7 +32,7 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/).
   profile, tool-catalog hash, model, effort, fixture and limits for a validation
   run, and validates per-case results so run status stays separate from quality.
 - `docs/validation/VALIDATION_PLAN.md`: the ten installed-plugin case families
-  from the 2026-09-17 technical feedback, with environment, acceptance evidence,
+  with environment, acceptance evidence,
   current offline coverage, and a results log. Cases needing a live environment
   are marked `not run`.
 - Square listing icons (`dell-technologies-icon-square.png`, built by

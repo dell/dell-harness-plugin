@@ -42,9 +42,8 @@ export DDSE_MCP_AUTHORIZATION="ApiKey <encoded-api-key>"
 codex mcp get dell_data_search_engine --json
 ~~~
 
-For an OpenAI marketplace submission, attach these skills to the reviewed
-Universal MCP URL or approved URL template in the submission workflow. Keep
-customer-specific endpoints out of the reusable plugin package.
+Keep customer-specific endpoints out of the reusable plugin package; each
+customer registers its own MCP endpoint.
 
 Use a dedicated, least-privilege, expiring API key for the validated
 self-managed DDSE contract. Browser SSO into Kibana is not MCP OAuth. Claim
@@ -57,7 +56,7 @@ Initialize MCP and treat live `tools/list` as authoritative. Release, license,
 space, privileges, enabled features, installed content, and model configuration
 can change the catalog.
 
-The validated 25-tool pilot separated tools into:
+The validated 25-tool reference deployment separated tools into:
 
 - deterministic or product-native tools that do not require the Agent Builder
   chat model for core execution;
@@ -77,7 +76,7 @@ particular, `platform_core_search`, `platform_core_generate_esql`, and
 same Kibana space has a positively validated Agent Builder chat connector.
 
 Read `references/validated-tool-catalog.md` whenever a user asks for tool
-availability, descriptions, model dependencies, prerequisites, or pilot
+availability, descriptions, model dependencies, prerequisites, or reference-deployment
 evidence. Do not copy that baseline into a claim about another deployment.
 Read `references/evaluation-plan.md` when preparing hero prompts, release
 evidence, or OpenAI submission tests. Execute success, edge, and safety variants

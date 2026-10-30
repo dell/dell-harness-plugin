@@ -1,7 +1,6 @@
 # Installed-plugin validation plan
 
-Plan and results record for the ten validation case families in the Dell AIDP
-plugin technical feedback (2026-09-17). Offline tests in this repository
+Plan and results record for the ten installed-plugin validation case families. Offline tests in this repository
 establish local behavior with mocks; they do not establish backend behavior.
 Each case below needs a run against a scoped, disposable environment before its
 status moves past `not run`.

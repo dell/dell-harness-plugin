@@ -12,7 +12,7 @@ def test_catalog_references_include_current_metadata_gates():
         ROOT
         / "dell-data-analytics-engine/skills/configure-dell-data-analytics-engine/references/validated-tool-catalog.md"
     ).read_text(encoding="utf-8")
-    assert "OpenAI metadata audit — August 12, 2026" in ddae
+    assert "MCP metadata audit — August 12, 2026" in ddae
     assert "Authenticated Codex revalidation — September 10, 2026" in ddae
     assert "does not mark it required" in ddae
     assert "without reading customer data" in ddae
