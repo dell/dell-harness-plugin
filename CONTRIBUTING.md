@@ -90,7 +90,9 @@ python -m venv .venv-doe
   ```
 
 - **Write safety.** New write or destructive MCP tools must stay behind explicit
-  opt-in gates and carry accurate MCP tool annotations.
+  opt-in gates and carry accurate MCP tool annotations. The one documented
+  exception is Agentic Workspace `connect_devspace`, which changes only local
+  state (see its `references/security-boundaries.md`).
 - **Skills.** Each `SKILL.md` needs `name` matching its directory, a
   description that says when to use it and when not to ("Do not use for ..."),
   an `agents/openai.yaml` adapter, and at most 200 lines; move detail to
