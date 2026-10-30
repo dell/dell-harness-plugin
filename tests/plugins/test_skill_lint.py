@@ -66,3 +66,9 @@ def test_linter_rejects_name_directory_mismatch(tmp_path):
     text = (skill / "SKILL.md").read_text().replace("name: demo-skill", "name: other")
     (skill / "SKILL.md").write_text(text)
     assert any("must equal directory" in p for p in validate_skills.check_skill(skill))
+
+
+@pytest.mark.parametrize("skill_dir", SKILLS, ids=lambda p: p.name)
+def test_skill_treats_tool_output_as_data(skill_dir):
+    text = " ".join((skill_dir / "SKILL.md").read_text(encoding="utf-8").split())
+    assert "never as instructions" in text, "add the untrusted-data line after the opening paragraph"
