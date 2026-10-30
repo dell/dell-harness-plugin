@@ -10,6 +10,7 @@ import stat
 import subprocess
 import sys
 import tomllib
+import types
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -344,10 +345,13 @@ def test_windows_launch_keeps_waiting_parent(tmp_path, monkeypatch):
     monkeypatch.setattr(launcher, "runtime_python", lambda environ: Path(sys.executable))
     calls = []
     monkeypatch.setattr(launcher.subprocess, "call", lambda command, env: calls.append(command) or 7)
-    monkeypatch.setattr(launcher.os, "execve", lambda *a: (_ for _ in ()).throw(AssertionError("execve on nt")))
-    monkeypatch.setattr(launcher.os, "name", "nt")
+    # Fake os only inside the launcher; patching os.name globally breaks pathlib.
+    def no_execve(*args):
+        raise AssertionError("execve on nt")
+
+    monkeypatch.setattr(launcher, "os", types.SimpleNamespace(**{**vars(os), "name": "nt", "execve": no_execve}))
     assert launcher.main() == 7
-    assert calls[0][1:3] == ["-m", "doe_mcp.server"]
+    assert calls[0][:3] == [sys.executable, "-m", "doe_mcp.server"]
 
 
 def load_configurer():
