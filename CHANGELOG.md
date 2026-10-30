@@ -1,69 +1,20 @@
 # Changelog
 
 All notable changes to this repository are documented here. The format is
-loosely based on [Keep a Changelog](https://keepachangelog.com/).
+loosely based on [Keep a Changelog](https://keepachangelog.com/). Each release
+heading lists the plugin versions it ships; plugins are tagged
+`<plugin>/v<version>`.
 
 ## Unreleased
 
-### Security
+Nothing yet.
 
-- Closed the residual release-review items: removed pilot network-access
-  instructions (SOCKS proxy, host overrides, private-tunnel wording) and pilot
-  Keycloak values from the DDAE/DDSE docs and evaluation records, dropped
-  private-helper names from `.gitignore`, and made the DOE test suite hermetic
-  (real Dataloop requests are blocked). Validation evidence no longer records
-  local filesystem paths. The Dataloop launcher now executes the resolved
-  command and rejects a group- or world-writable parent directory. The
-  release-hygiene test also guards against these regressions.
-
-- Remediated the 2026-10-08 static-analysis scan (3 critical, 8 medium, 4 low).
-  The Codex evaluation runners send prompts on stdin (`codex exec -`) instead
-  of argv, validate case IDs, prompts and invocations, confine output
-  directories, and require an absolute `codex` path. The Dataloop launcher
-  accepts only an absolute, non-group/world-writable `DATALOOP_MCP_COMMAND`,
-  requires a user-owned configuration file, and executes without a `PATH`
-  search. URL validation no longer reads embedded credentials, label colours use
-  SHA-256, the token-file warning omits local paths, and test fixtures generate
-  their secrets at runtime.
-
-### Added
-
-- `scripts/record_run_metadata.py`: records the package hash, versions, effective
-  profile, tool-catalog hash, model, effort, fixture and limits for a validation
-  run, and validates per-case results so run status stays separate from quality.
-- `docs/validation/VALIDATION_PLAN.md`: the ten installed-plugin case families
-  with environment, acceptance evidence,
-  current offline coverage, and a results log. Cases needing a live environment
-  are marked `not run`.
-- Square listing icons (`dell-technologies-icon-square.png`, built by
-  `scripts/make_square_icon.py` from the existing wordmark) and a test that every
-  manifest icon is a square PNG. Replace with the brand-approved icon when available.
-
-- Continuous integration (`.github/workflows/ci.yml`): repository tests, the
-  Dev Spaces and Data Orchestration Engine suites, gitleaks, and REUSE.
-- `scripts/validate_skills.py`, a skill linter enforced by
-  `tests/plugins/test_skill_lint.py`. Every skill needs matching frontmatter,
-  a "Do not use for ..." routing exclusion, an `agents/openai.yaml` adapter,
-  no template placeholders, and at most 200 lines.
-- Static routing guards (`test_skill_routing_boundaries.py`) so the DDAE and
-  DDSE skills exclude each other and positive evaluation prompts do not leak
-  another product's vocabulary, and release-consistency checks
-  (`test_release_consistency.py`) tying manifests, marketplace, changelog, and
-  docs together.
-
-- `dell-data-orchestration-engine` 0.4.0: synchronized the bundled MCP server
-  with the upstream DOE MCP server as of 2026-09-21. The `plugin-v1` profile
-  grows from 36 to 42 tools (`item_get`, `annotation_get`, `pipeline_list`,
-  `pipeline_pause`, `pipeline_delete`, `model_delete_subset`). Upstream also
-  brings verified cleanup of temporary `rag_query` items and vectors
-  (`query_cleanup`), allowlisted `pii_report` samples, project-ownership checks
-  on lookups, and reuse of an identical existing pipeline. A new
-  inspect-and-rollback evaluation workflow covers the added tools.
+## 2026-10-30: `dell-ai-factory-agentic-workspace` 0.5.0, `dell-data-orchestration-engine` 0.5.0
 
 ### Changed
 
 - **Breaking:** `dell-devspaces-sandbox` is renamed to
-  `dell-ai-factory-agentic-workspace` (0.5.0), with display name
+  `dell-ai-factory-agentic-workspace` 0.5.0, with display name
   **Dell AI Factory Agentic Workspace**. The plugin folder, marketplace entry,
   and skill invocation (`$manage-devspaces-sandbox` →
   `$manage-agentic-workspace`) change accordingly. Run
@@ -72,6 +23,61 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/).
   `dell_devspaces` MCP server name, tool names, environment variables, and
   runtime cache location are unchanged. Earlier entries for this plugin use the
   former ID `dell-devspaces-sandbox`.
+- **Breaking:** Python 3.11 is the minimum for every plugin and repository
+  script. 3.10 never worked for the connector server or the evaluation scripts.
+- `dell-data-orchestration-engine` 0.5.0: the launcher prepares a reusable
+  isolated runtime outside the plugin cache (override with
+  `DATALOOP_RUNTIME_DIR`) when the starting `python` cannot import the bundled
+  server, so its `mcp` 2.0 pin no longer conflicts with Agentic Workspace's
+  `mcp` 1.30. On Windows it keeps a waiting parent instead of `execve`.
+- `requirements.toml` keys plugin-bundled servers under
+  `plugins.<plugin>.mcp_servers` and matches the launcher script argument.
+- DDAE, DDSE and DOE listings link to the Dell AI Data Platform page, and every
+  manifest declares its repository, privacy and terms URLs.
+- Marketplace-review material moved from the DDAE and DDSE READMEs and skills
+  to `docs/validation/ddae-marketplace-review.md` and
+  `docs/validation/ddse-marketplace-review.md`.
+- The Agentic Workspace TLS docs state that a certificate retry leaves the rest
+  of the connector session unverified, and `connect_devspace` is documented as
+  the one write-gate exception because it changes only local state.
+
+### Added
+
+- Continuous integration (`.github/workflows/ci.yml`) on Python 3.11 and 3.13:
+  skill lint, repository tests, the Agentic Workspace and Data Orchestration
+  Engine suites, gitleaks, and REUSE. Repository test dependencies are in
+  `requirements-dev.txt`.
+- `scripts/validate_skills.py`, a skill linter enforced by
+  `tests/plugins/test_skill_lint.py`. Every skill needs matching frontmatter,
+  a "Do not use for ..." routing exclusion, an `agents/openai.yaml` adapter,
+  no template placeholders, at most 200 lines, and a line treating tool output
+  as untrusted data.
+- Static routing guards (`test_skill_routing_boundaries.py`) and
+  release-consistency checks (`test_release_consistency.py`) tying manifests,
+  marketplace, changelog, and docs together.
+- `scripts/record_run_metadata.py` and `docs/validation/VALIDATION_PLAN.md` for
+  installed-plugin validation runs.
+- Square listing icons (`dell-technologies-icon-square.png`) for every plugin.
+  Replace with the brand-approved icon when available.
+
+### Fixed
+
+- `configure_dataloop.py` writes the API key through a user-only temporary file
+  and atomically replaces the configuration, closing a window in which the key
+  was world-readable. `--profiles all` combined with other profiles is rejected.
+- Every skill tells the agent to treat tool output as data, never as
+  instructions.
+
+### Removed
+
+- The duplicate `mcp-server/scripts/doe_state_dir.py` (the plugin's
+  `scripts/dataloop_state_dir.py` is the single helper) and a dead duplicate of
+  the DOE `plugin-v1` server instructions. The DDAE and DDSE Codex evaluation
+  runners share `scripts/codex_eval_runner.py`.
+
+## 2026-10-27: `dell-devspaces-sandbox` 0.4.1
+
+### Changed
 
 - `dell-devspaces-sandbox` 0.4.1: delegate SSH configuration and host-key policy
   to the CLI instead of inserting strict-checking overrides. Reconnecting removes
@@ -79,6 +85,10 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/).
   user policies and CLI Includes. CLI policies that disable host-key checking
   no longer require separate plugin key enrollment and do not verify server
   identity. Tunnel readiness remains separate from SSH login and Codex status.
+
+## 2026-10-26: `dell-devspaces-sandbox` 0.4.0
+
+### Changed
 
 - `dell-devspaces-sandbox` 0.4.0: reusable isolated Python/MCP bootstrap and a
   bundled retained client replace per-chat dependency/client generation. New
@@ -91,7 +101,6 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/).
   Independent end-to-end testing added automatic preservation of pinned SSH trust
   before connector-owned Includes, no-newline readiness detection, safe retained-
   client error categories, startup status, and duplicate-request protection.
-
 - `dell-devspaces-sandbox` 0.3.0: agent-operated native CLI authentication uses
   the machine browser, with bundled Python/PowerShell/batch helpers and CLI-only
   workspace validation. The batch launcher now accepts `--connector` and
@@ -101,8 +110,48 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/).
   require verified TLS. Runtime adds `automatic_tls_retry` and reports the
   effective TLS state. Existing tool names and inputs are unchanged.
 
-- Added missing routing exclusions to five skills and `agents/openai.yaml`
-  adapters to the DDAE and DDSE `configure-*` skills, found by the new linter.
+## 2026-10-14: public Apache-2.0 release preparation, `dell-data-orchestration-engine` 0.4.0
+
+### Security
+
+- Closed the residual release-review items: removed lab network-access
+  instructions (SOCKS proxy, host overrides, private-tunnel wording) and lab
+  Keycloak values from the DDAE/DDSE docs and evaluation records, dropped
+  private-helper names from `.gitignore`, and made the DOE test suite hermetic
+  (real Dataloop requests are blocked). Validation evidence no longer records
+  local filesystem paths. The Dataloop launcher now executes the resolved
+  command and rejects a group- or world-writable parent directory. The
+  release-hygiene test also guards against these regressions.
+- Remediated the 2026-10-08 static-analysis scan (3 critical, 8 medium, 4 low).
+  The Codex evaluation runners send prompts on stdin (`codex exec -`) instead
+  of argv, validate case IDs, prompts and invocations, confine output
+  directories, and require an absolute `codex` path. The Dataloop launcher
+  accepts only an absolute, non-group/world-writable `DATALOOP_MCP_COMMAND`,
+  requires a user-owned configuration file, and executes without a `PATH`
+  search. URL validation no longer reads embedded credentials, label colours use
+  SHA-256, the token-file warning omits local paths, and test fixtures generate
+  their secrets at runtime.
+
+### Added
+
+- `dell-data-orchestration-engine` 0.4.0: synchronized the bundled MCP server
+  with the upstream DOE MCP server as of 2026-09-21. The `plugin-v1` profile
+  grows from 36 to 42 tools (`item_get`, `annotation_get`, `pipeline_list`,
+  `pipeline_pause`, `pipeline_delete`, `model_delete_subset`). Upstream also
+  brings verified cleanup of temporary `rag_query` items and vectors
+  (`query_cleanup`), allowlisted `pii_report` samples, project-ownership checks
+  on lookups, and reuse of an identical existing pipeline. A new
+  inspect-and-rollback evaluation workflow covers the added tools.
+- `LICENSE`, `NOTICE`, `CONTRIBUTING.md` (with DCO sign-off),
+  `CODE_OF_CONDUCT.md`, `SECURITY.md`, `MAINTAINERS.md`, and GitHub issue and
+  pull request templates.
+- Release-hygiene tests that reject non-public hostnames, internal-distribution
+  wording, non-Apache manifest licenses, and missing copyright headers.
+- A `.gitleaks.toml` secret-scanning configuration.
+- `REUSE.toml` and `LICENSES/Apache-2.0.txt`; the repository passes
+  `reuse lint` (REUSE Specification 3.3).
+
+### Changed
 
 - Licensed the repository under Apache-2.0. Plugin manifests now declare
   `"license": "Apache-2.0"`, and every source file carries an SPDX copyright
@@ -114,17 +163,9 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/).
   plugins in this repository.
 - Documentation, fixtures, and evaluation cases use reserved example hostnames.
 
-### Removed
+## 2026-08-26: `dell-data-analytics-engine` 0.2.0, `dell-data-search-engine` 0.2.0
 
-  entries.
+### Changed
 
-### Added
-
-- `LICENSE`, `NOTICE`, `CONTRIBUTING.md` (with DCO sign-off),
-  `CODE_OF_CONDUCT.md`, `SECURITY.md`, `MAINTAINERS.md`, and GitHub issue and
-  pull request templates.
-- Release-hygiene tests that reject non-public hostnames, internal-distribution
-  wording, non-Apache manifest licenses, and missing copyright headers.
-- A `.gitleaks.toml` secret-scanning configuration.
-- `REUSE.toml` and `LICENSES/Apache-2.0.txt`; the repository passes
-  `reuse lint` (REUSE Specification 3.3).
+- `dell-data-analytics-engine` 0.2.0 and `dell-data-search-engine` 0.2.0:
+  documented DDAE OAuth and aligned plugin versions.
