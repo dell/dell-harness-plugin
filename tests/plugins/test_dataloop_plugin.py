@@ -400,3 +400,44 @@ def test_configure_rejects_all_mixed_with_other_profiles(tmp_path):
     assert completed.returncode == 2
     assert "cannot be combined" in completed.stderr
     assert not (tmp_path / "c.json").exists()
+
+
+def test_command_override_never_prepares_a_runtime(tmp_path, monkeypatch):
+    launcher = load_launcher()
+    executable = tmp_path / "doe-mcp"
+    executable.write_text("#!/bin/sh\n", encoding="utf-8")
+    executable.chmod(0o755)
+    monkeypatch.setenv("DATALOOP_CONFIG_FILE", str(tmp_path / "absent.json"))
+    monkeypatch.setenv("DATALOOP_API_KEY", secrets.token_urlsafe(8))
+    monkeypatch.setenv("DATALOOP_PATH", str(tmp_path / "state"))
+    monkeypatch.setenv("DATALOOP_MCP_COMMAND", str(executable))
+    monkeypatch.setattr(launcher, "runtime_python", lambda environ: (_ for _ in ()).throw(AssertionError("prepared")))
+    executed = []
+    monkeypatch.setattr(launcher, "os", types.SimpleNamespace(**{**vars(os), "name": "posix", "execve": lambda *a: executed.append(a[1])}))
+    launcher.main()
+    assert executed[0][0] == str(executable.resolve())
+
+
+def test_prepare_only_needs_no_credentials(tmp_path, monkeypatch, capsys):
+    launcher = load_launcher()
+    for name in ("DATALOOP_API_KEY", "DATALOOP_PATH", "DATALOOP_MCP_COMMAND"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(launcher.sys, "argv", ["launcher", "--prepare-only"])
+    monkeypatch.setattr(launcher, "runtime_python", lambda environ: tmp_path / "python")
+    assert launcher.main() == 0
+    assert json.loads(capsys.readouterr().out) == {"state": "ready", "python": str(tmp_path / "python")}
+
+
+def test_interrupted_preparation_reports_lock_path(tmp_path, monkeypatch):
+    launcher = load_launcher()
+    monkeypatch.setattr(launcher, "server_importable", lambda python, environ: False)
+    monkeypatch.setattr(launcher.time, "sleep", lambda seconds: None)
+    pyproject = (PLUGIN / "mcp-server" / "pyproject.toml").read_bytes()
+    identity = launcher.hashlib.sha256(sys.executable.encode() + sys.version.encode() + pyproject).hexdigest()[:16]
+    (tmp_path / f"{identity}.lock").mkdir()
+    try:
+        launcher.runtime_python({"DATALOOP_RUNTIME_DIR": str(tmp_path)})
+    except launcher.ConfigurationError as exc:
+        assert f"{identity}.lock" in str(exc) and "--prepare-only" in str(exc)
+    else:
+        raise AssertionError("a leftover lock must be reported")

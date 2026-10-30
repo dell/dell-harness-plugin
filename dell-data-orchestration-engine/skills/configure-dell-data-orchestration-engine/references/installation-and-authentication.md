@@ -15,7 +15,13 @@ interpreter shared with another plugin that pins a different `mcp` release.
 
 ```bash
 python --version
+python dell-data-orchestration-engine/scripts/dataloop_mcp_launcher.py --prepare-only
 ```
+
+Run `--prepare-only` before the first plugin start: the first installation can
+outlast the MCP client's startup timeout. If a start was interrupted, the
+launcher reports a leftover `.lock` path; remove it only when no other start is
+preparing the runtime.
 
 The server currently passes its full automated suite with `mcp>=2.0,<2.1`.
 MCP 2.1 changed ordinary tool-exception behavior and breaks the existing test

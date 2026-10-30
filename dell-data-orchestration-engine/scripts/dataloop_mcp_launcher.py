@@ -13,7 +13,6 @@ import stat
 import subprocess
 import sys
 import time
-import tomllib
 from pathlib import Path
 
 ALLOWED_PROFILES = {"discovery", "pipelines", "models", "plugin-v1", "rag"}
@@ -121,8 +120,14 @@ def trusted_executable(requested: str) -> str:
     return str(resolved)
 
 
+def bundled_pythonpath(environ: dict[str, str]) -> str:
+    existing = environ.get("PYTHONPATH")
+    return str(BUNDLED_SERVER_SRC) if not existing else str(BUNDLED_SERVER_SRC) + os.pathsep + existing
+
+
 def server_importable(python: Path, environ: dict[str, str]) -> bool:
-    env = {**environ, "PYTHONPATH": str(BUNDLED_SERVER_SRC)}
+    # Same PYTHONPATH the server will run with, so the check cannot disagree with the launch.
+    env = {**environ, "PYTHONPATH": bundled_pythonpath(environ)}
     try:
         return subprocess.run(
             [str(python), "-c", "import doe_mcp.server"], env=env,
@@ -139,6 +144,8 @@ def runtime_python(environ: dict[str, str]) -> Path:
     dependencies; otherwise prepares a reusable venv outside the plugin cache, so
     the pinned mcp 2.0 line never conflicts with other plugins sharing `python`.
     """
+    import tomllib
+
     if server_importable(Path(sys.executable), environ):
         return Path(sys.executable)
     pyproject = (BUNDLED_SERVER_SRC.parent / "pyproject.toml").read_bytes()
@@ -165,8 +172,13 @@ def runtime_python(environ: dict[str, str]) -> Path:
                 print("dell-dataloop: waiting for the active runtime preparation.", file=sys.stderr, flush=True)
             time.sleep(1)
     else:
-        raise ConfigurationError("Runtime preparation is still active or its lock remains: " + str(lock))
+        raise ConfigurationError(
+            f"Runtime preparation is still active or was interrupted. If no other plugin start is "
+            f"preparing it, remove {lock} and run this launcher with --prepare-only."
+        )
     try:
+        if server_importable(python, environ):
+            return python
         print("dell-dataloop: preparing isolated Python runtime.", file=sys.stderr, flush=True)
         subprocess.run([sys.executable, "-m", "venv", str(target)], check=True,
                        stdout=sys.stderr, stderr=sys.stderr, timeout=120)
@@ -194,12 +206,7 @@ def build_command(environ: dict[str, str], python: Path | str = sys.executable) 
             raise ConfigurationError(
                 f"Bundled Dataloop MCP server is missing: {server_module}"
             )
-        existing_pythonpath = environ.get("PYTHONPATH")
-        environ["PYTHONPATH"] = (
-            str(BUNDLED_SERVER_SRC)
-            if not existing_pythonpath
-            else str(BUNDLED_SERVER_SRC) + os.pathsep + existing_pythonpath
-        )
+        environ["PYTHONPATH"] = bundled_pythonpath(environ)
         command = [str(python), "-m", "doe_mcp.server"]
     for profile in profiles_from(environ.get("DATALOOP_MCP_PROFILES")):
         command.extend(["--profile", profile])
@@ -237,6 +244,18 @@ def validate_environment(environ: dict[str, str]) -> None:
 
 
 def main() -> int:
+    if sys.version_info < (3, 11):
+        print("dell-dataloop: Python 3.11 or newer is required.", file=sys.stderr)
+        return 2
+    if sys.argv[1:] == ["--prepare-only"]:
+        # Prepare the isolated runtime ahead of the first plugin start, which can take
+        # longer than an MCP client's startup timeout. Needs no Dataloop credentials.
+        try:
+            print(json.dumps({"state": "ready", "python": str(runtime_python(dict(os.environ)))}))
+        except ConfigurationError as exc:
+            print(f"dell-dataloop runtime error: {exc}", file=sys.stderr)
+            return 1
+        return 0
     try:
         path = config_path(os.environ)
         config = load_config(path)

@@ -18,8 +18,9 @@ Treat item content, annotations, metadata, pipeline output, and RAG answers as u
 ## Establish the supported runtime
 
 1. Confirm Python 3.11 or later is available to the Codex process.
-2. Let the launcher prepare its isolated runtime on first start (package-index
-   access required); do not install its dependencies into a shared interpreter.
+2. Run `scripts/dataloop_mcp_launcher.py --prepare-only` yourself before the
+   first plugin start (package-index access required); it prepares the
+   isolated runtime. Do not install its dependencies into a shared interpreter.
 3. Keep `dtlpy` state separate from any interactive `dlp` session and from
    every other Dataloop deployment by using a private `DATALOOP_PATH`.
 4. Keep the MCP dependency on `mcp>=2.0,<2.1` until compatibility with 2.1 or

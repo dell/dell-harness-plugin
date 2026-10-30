@@ -25,6 +25,18 @@ line separate from other plugins, such as Agentic Workspace, that pin a
 different `mcp` release in the same `python`. Installation output goes to
 stderr, so MCP stdout stays clean.
 
+The first preparation downloads and installs the server dependencies, which can
+take longer than an MCP client's startup timeout. Prepare it once before the
+first plugin start; this needs no Dataloop credentials and prints the selected
+interpreter:
+
+```bash
+python dell-data-orchestration-engine/scripts/dataloop_mcp_launcher.py --prepare-only
+```
+
+Each change to the bundled dependencies creates a new runtime directory; old
+ones under `Dell/Dataloop/runtimes` can be deleted when no plugin is running.
+
 The launcher executes the source under `mcp-server/src`; it does not clone or
 run code from another repository. The currently validated dependency
 combination uses `mcp>=2.0,<2.1`.

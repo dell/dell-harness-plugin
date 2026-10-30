@@ -10,7 +10,7 @@ and limits. Per-case results keep run status (did it finish) apart from quality
 
     python scripts/record_run_metadata.py --plugin dell-data-orchestration-engine \
         --profile plugin-v1 --model MODEL --effort EFFORT --client NAME=VERSION \
-        --fixture FIXTURE_ID --tool-catalog tools.json --out run-record.json
+        --fixture FIXTURE_ID --identity ROLE --tool-catalog tools.json --out run-record.json
 
 No credential, hostname, or local path is recorded.
 """
@@ -40,7 +40,9 @@ def package_hash(plugin_dir: Path) -> tuple[str, int]:
     digest = hashlib.sha256()
     files = sorted(
         p for p in plugin_dir.rglob("*")
-        if p.is_file() and not (SKIPPED & set(p.relative_to(plugin_dir).parts)) and p.suffix != ".pyc"
+        if p.is_file() and p.suffix != ".pyc"
+        and not any(part in SKIPPED or part.startswith(".venv") or part.endswith(".egg-info")
+                    for part in p.relative_to(plugin_dir).parts)
     )
     for path in files:
         digest.update(path.relative_to(plugin_dir).as_posix().encode("utf-8") + b"\0")
