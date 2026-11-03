@@ -38,7 +38,7 @@ def test_valid_archive_passes(tmp_path):
 @pytest.mark.parametrize(("name", "content", "expected"), [
     (".devin/mcp_config.local.json", "{}", "local or generated file"),
     ("README.md", "https://service." + "lab9" + "bgp.example", "private infrastructure hostname"),
-    ("plugin.json", '{"license": "Proprietary"}', "proprietary plugin license"),
+    ("plugin.json", '{"license": "' + "Proprietary" + '"}', "proprietary plugin license"),
     ("broken.py", "def invalid(:\n", "invalid .py file"),
 ])
 def test_unsafe_archive_content_is_rejected(tmp_path, name, content, expected):
