@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 import zipfile
 from pathlib import Path
 
@@ -32,6 +33,16 @@ def test_valid_archive_passes(tmp_path):
         "script.py": "print('ok')\n",
         "config.toml": 'name = "example"\n',
     })
+    assert VALIDATOR.validate_archive(path) == []
+
+
+def test_current_git_archive_passes(tmp_path):
+    path = tmp_path / "dell-harness-plugin.zip"
+    subprocess.run(
+        ["git", "archive", "--format=zip", "--prefix=dell-harness-plugin/", f"--output={path}", "HEAD"],
+        cwd=ROOT,
+        check=True,
+    )
     assert VALIDATOR.validate_archive(path) == []
 
 
