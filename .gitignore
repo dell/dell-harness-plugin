@@ -4,6 +4,9 @@ credentials.env
 *.pat
 .env
 .env.*
+.devin/mcp_config.local.json
+mcp_config.local.json
+*.local.json
 
 # Python
 __pycache__/

@@ -160,10 +160,17 @@ def test_license_and_community_files_are_present():
     assert "Apache License" in license_text and "Version 2.0, January 2004" in license_text
     assert "Dell Inc. or its subsidiaries" in (ROOT / "NOTICE").read_text(encoding="utf-8")
     assert (ROOT / "LICENSES/Apache-2.0.txt").read_text(encoding="utf-8") == license_text
-    for name in ("REUSE.toml", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "SECURITY.md", "MAINTAINERS.md",
-                 ".github/pull_request_template.md", ".github/ISSUE_TEMPLATE/config.yml"):
+    for name in ("REUSE.toml", "CONTRIBUTING.md", "CONTRIBUTORS.md", "CODE_OF_CONDUCT.md", "SECURITY.md",
+                 "MAINTAINERS.md", "docs/RELEASE_CHECKLIST.md", ".github/pull_request_template.md",
+                 ".github/ISSUE_TEMPLATE/config.yml"):
         assert (ROOT / name).is_file(), name
     assert "Signed-off-by" in (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+
+
+def test_local_configuration_patterns_are_ignored():
+    ignore = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+    for pattern in (".env", ".env.*", ".devin/mcp_config.local.json", "mcp_config.local.json", "*.local.json"):
+        assert pattern in ignore, f".gitignore must exclude {pattern}"
 
 
 def test_every_source_file_carries_the_copyright_header():
