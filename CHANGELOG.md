@@ -7,7 +7,10 @@ heading lists the plugin versions it ships; plugins are tagged
 
 ## Unreleased
 
-Nothing yet.
+### Documentation
+
+- Added public release ownership and a repeatable release checklist covering
+  validation, source-archive inspection, publishing, and post-release checks.
 
 ## 2026-10-30: `dell-ai-factory-agentic-workspace` 0.5.0, `dell-data-orchestration-engine` 0.5.0
 

@@ -74,6 +74,7 @@ Python SDK MCP server.
 - Harness-specific manifests and connection configuration stay inside the
   corresponding product directory.
 - `requirements.toml` is an example Codex MCP allowlist for these plugins.
+- Public releases follow the [release checklist](docs/RELEASE_CHECKLIST.md).
 - The repository contains no PAT values or other credentials, and examples use
   reserved `example.com` / `example.test` hostnames.
 

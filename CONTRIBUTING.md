@@ -100,6 +100,12 @@ python -m venv .venv-doe
 - **Docs.** User-visible behavior changes need an update to the affected plugin
   README and a [CHANGELOG](CHANGELOG.md) entry under "Unreleased".
 
+## Releases
+
+Maintainers use the [release checklist](docs/RELEASE_CHECKLIST.md) to align
+versions, validation, source-archive inspection, tags, and post-release checks.
+Release evidence must contain only public or reserved example data.
+
 ## Pull requests
 
 Use a [Conventional Commits](https://www.conventionalcommits.org/) style title,
