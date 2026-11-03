@@ -79,10 +79,10 @@ Python SDK MCP server.
 
 ## Contributing
 
-Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before
-opening a pull request; every commit must be signed off under the Developer
-Certificate of Origin (`git commit -s`). Participation is governed by the
-[Code of Conduct](CODE_OF_CONDUCT.md).
+Contributions are welcome. See the [contributors](CONTRIBUTORS.md), and read
+[CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request; every commit
+must be signed off under the Developer Certificate of Origin (`git commit -s`).
+Participation is governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Security
 
