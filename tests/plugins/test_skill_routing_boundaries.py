@@ -75,3 +75,18 @@ def test_every_product_has_a_non_invocation_or_ambiguous_routing_case(product):
     data = json.loads((ROOT / "evals/cases" / CASE_FILES[product]).read_text(encoding="utf-8"))
     variants = [v for w in data["workflows"] for v in w["variants"]]
     assert any(v["kind"] == "non_invocation" or v.get("invocation") in ("negative", "ambiguous") for v in variants)
+
+
+@pytest.mark.parametrize(
+    ("setup_skill", "analysis_skill"),
+    [
+        ("dell-data-analytics-engine/skills/configure-dell-data-analytics-engine", "analyze-governed-data-products"),
+        ("dell-data-search-engine/skills/configure-dell-data-search-engine", "investigate-dell-search-data"),
+    ],
+)
+def test_setup_skills_hand_analysis_requests_to_the_analysis_skill(setup_skill, analysis_skill):
+    desc = description(ROOT / setup_skill / "SKILL.md")
+    use_clause = re.split(r"\bdo not use\b", desc, flags=re.IGNORECASE)[0].lower()
+    for claim in ("data product search", "read-only trino sql", "index search", "es|ql", "security investigation"):
+        assert claim not in use_clause, f"{setup_skill} claims analysis work: {claim!r}"
+    assert analysis_skill in exclusion_clause(desc)
