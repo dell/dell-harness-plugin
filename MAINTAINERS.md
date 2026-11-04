@@ -1,8 +1,11 @@
 # Maintainers
 
-| Name | Area |
-|---|---|
-| Sagar Kewalramani | All plugins |
+Owner: Dell AIDP PdM Team.
+
+| Name | Contact | Area |
+|---|---|---|
+| Sagar Kewalramani | Sagar.Kewalramani@dell.com | All plugins |
+| Kirankumar Bhusanurmath | Kirankumar.Bhusanurmath@dell.com | All plugins |
 
 Maintainers review and merge pull requests, cut releases, and handle security
 reports per [SECURITY.md](SECURITY.md). To propose a change, open an issue or a
