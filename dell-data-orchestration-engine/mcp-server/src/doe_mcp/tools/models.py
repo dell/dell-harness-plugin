@@ -21,7 +21,7 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import outputs, paging, serialize
-from ..context import get_project, marketplace_dpks
+from ..context import get_project, marketplace_dpks, owned
 from ..guards import confirm_or_elicit
 from ..progress import report_progress
 from ..schemas import PiiMarkerSpec
@@ -258,6 +258,7 @@ def register(mcp: MCPServer) -> None:
             "it provisions billable compute that keeps running until the service is stopped",
         )
         project = get_project(project_id)
+        owned(project, "models", "model", model_id=model_id)
         report_progress(ctx, 0, 100, f"Deploying model {model_id}...")
         service = project.models.deploy(
             model_id=model_id,
@@ -295,12 +296,13 @@ def register(mcp: MCPServer) -> None:
             ctx, confirm, "start a training run", "training consumes billable compute on the platform"
         )
         project = get_project(project_id)
+        owned(project, "models", "model", model_id=model_id)
         project.models.train(
             model_id=model_id,
             # See model_deploy: reaching here means the call was already approved.
             service_config=validate_overrides(service_config, SERVICE_CONFIG_FIELDS, "service_config", True),
         )
-        return serialize.model(project.models.get(model_id=model_id))
+        return serialize.model(owned(project, "models", "model", model_id=model_id))
 
     @mcp.tool(title="Run a deployed model over items", annotations=MUTATING)
     def model_predict(
@@ -342,7 +344,9 @@ def register(mcp: MCPServer) -> None:
             "inference is billable and its predictions are written onto the items as annotations",
         )
         project = get_project(project_id)
-        model = project.models.get(model_id=model_id)
+        model = owned(project, "models", "model", model_id=model_id)
+        if dataset_id is not None:
+            owned(project, "datasets", "dataset", dataset_id=dataset_id)
         status = getattr(model, "status", None)
         execution = model.predict(item_ids=item_ids, dataset_id=dataset_id)
         return {
@@ -394,7 +398,7 @@ def register(mcp: MCPServer) -> None:
                 "an unfiltered subset is the same as no subset."
             )
         project = get_project(project_id)
-        model = project.models.get(model_id=model_id)
+        model = owned(project, "models", "model", model_id=model_id)
 
         filters = dl.Filters(resource=dl.FiltersResource.ITEM)
         if metadata_field is not None:
@@ -415,7 +419,7 @@ def register(mcp: MCPServer) -> None:
         # caller must be able to trust that nothing was applied. Applying first would leave the
         # subset live on a model the caller was told had failed.
         # A subset matching nothing fails at training time, hours later; say so now.
-        dataset = project.datasets.get(dataset_id=model.dataset_id)
+        dataset = owned(project, "datasets", "dataset", dataset_id=model.dataset_id)
         matched = dataset.items.list(filters=filters)
         matched_count = getattr(matched, "items_count", None)
         model.add_subset(subset_name=subset, subset_filter=filters)
@@ -450,8 +454,7 @@ def register(mcp: MCPServer) -> None:
         ],
     ) -> outputs.ModelSubsetRemovalResult:
         """Remove a training or validation subset definition from a model."""
-        project = get_project(project_id)
-        model = project.models.get(model_id=model_id)
+        model = owned(get_project(project_id), "models", "model", model_id=model_id)
         model.delete_subset(subset_name=subset)
         return {"model_id": model_id, "subset": subset, "removed": True}
 
@@ -495,8 +498,7 @@ def register(mcp: MCPServer) -> None:
         model_id: Annotated[str, Field(description="Id of the model.")],
     ) -> outputs.ModelSummary:
         """Fetch one model by id."""
-        project = get_project(project_id)
-        return serialize.model(project.models.get(model_id=model_id))
+        return serialize.model(owned(get_project(project_id), "models", "model", model_id=model_id))
 
     @mcp.tool(title="Delete model", annotations=DESTRUCTIVE)
     def model_delete(
@@ -510,7 +512,7 @@ def register(mcp: MCPServer) -> None:
         """Delete a model. Does not uninstall the app it came from."""
         confirm_or_elicit(ctx, confirm, "delete this model", "it cannot be undone")
         project = get_project(project_id)
-        model = project.models.get(model_id=model_id)
+        model = owned(project, "models", "model", model_id=model_id)
         name = model.name
         project.models.delete(model=model)
         return {"deleted": True, "id": model_id, "name": name}

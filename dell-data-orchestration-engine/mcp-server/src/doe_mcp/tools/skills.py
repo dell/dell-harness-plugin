@@ -55,7 +55,7 @@ from ..blueprint import (
     expected_canonical_graph,
     fingerprint,
 )
-from ..context import DoeError, dataloop_call, get_pipeline, get_project
+from ..context import DoeError, dataloop_call, get_pipeline, get_project, owned
 from ..guards import confirm_or_elicit
 from ..routing import CachingRouter, LexicalRouter, catalogue_from
 from ..schemas import CodeNodeSpec, DatasetNodeSpec
@@ -251,6 +251,10 @@ def register(mcp: MCPServer) -> None:
         confirm_or_elicit(
             ctx, confirm, "build this RAG pipeline", "it creates a pipeline and deploys code nodes"
         )
+        project = get_project(project_id)
+        owned(project, "datasets", "dataset", dataset_id=source_dataset_id)
+        owned(project, "datasets", "dataset", dataset_id=output_dataset_id)
+        owned(project, "models", "model", model_id=model_id)
         plan = rag_blueprint(
             name=name,
             source_dataset_id=source_dataset_id,

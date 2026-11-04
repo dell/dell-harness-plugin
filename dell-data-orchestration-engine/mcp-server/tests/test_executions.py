@@ -35,6 +35,7 @@ def platform(monkeypatch):
     """A project and pipeline whose execution repositories are recording mocks."""
     execution = SimpleNamespace(
         id="exec-1",
+        project_id="proj-1",
         status="in-progress",
         in_progress=True,
         service_id="svc-1",

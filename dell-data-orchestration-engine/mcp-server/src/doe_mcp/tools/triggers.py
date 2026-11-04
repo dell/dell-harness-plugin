@@ -26,7 +26,7 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import paging, serialize
-from ..context import dataloop_call, get_dataset, get_project
+from ..context import dataloop_call, get_dataset, get_project, owned
 from ..guards import confirm_or_elicit
 
 READ_ONLY = ToolAnnotations(
@@ -208,10 +208,7 @@ def register(mcp: MCPServer) -> None:
         trigger_id: Annotated[str, Field(description="Id of the trigger.")],
     ) -> dict[str, Any]:
         """Fetch one trigger, including whether it is still active."""
-        project = get_project(project_id)
-        return serialize.trigger(
-            dataloop_call("trigger lookup", lambda: project.triggers.get(trigger_id=trigger_id))
-        )
+        return serialize.trigger(owned(get_project(project_id), "triggers", "trigger", trigger_id=trigger_id))
 
     @mcp.tool(title="Delete trigger", annotations=DESTRUCTIVE)
     def trigger_delete(
@@ -230,5 +227,6 @@ def register(mcp: MCPServer) -> None:
             "whatever it was keeping up to date stops being updated",
         )
         project = get_project(project_id)
+        owned(project, "triggers", "trigger", trigger_id=trigger_id)
         deleted = dataloop_call("trigger delete", lambda: project.triggers.delete(trigger_id=trigger_id))
         return {"deleted": bool(deleted), "id": trigger_id}

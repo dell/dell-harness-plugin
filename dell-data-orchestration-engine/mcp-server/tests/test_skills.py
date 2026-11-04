@@ -16,7 +16,7 @@ import pytest
 
 from doe_mcp import blueprint as bp
 from doe_mcp.tools import rag, skills
-from tests.test_pipeline_nodes import build_pipeline
+from tests.test_pipeline_nodes import build_pipeline, owning_project
 
 CHOICES = dict(
     name="rag",
@@ -81,7 +81,7 @@ def test_the_chain_is_wired_end_to_end():
 
 def test_the_skill_builds_what_the_six_rag_tools_build(monkeypatch, call_tool):
     """Drives the real rag_add_*_node tools against one pipeline and compares canonical form."""
-    incremental = build_pipeline(project=SimpleNamespace(id="proj-1", name="proj"))
+    incremental = build_pipeline(project=owning_project())
     monkeypatch.setattr(
         "doe_mcp.tools.pipeline_nodes.get_pipeline", lambda project_id, pipeline_id: incremental
     )

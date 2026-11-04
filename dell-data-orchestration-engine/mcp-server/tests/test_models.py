@@ -149,7 +149,7 @@ class FakeDatasetsForSubsets:
             def list(self, filters=None):
                 return SimpleNamespace(items=[], items_count=outer.match_count)
 
-        return SimpleNamespace(id=dataset_id, items=_Items())
+        return SimpleNamespace(id=dataset_id, project_id="proj-1", items=_Items())
 
 
 @pytest.fixture
