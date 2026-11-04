@@ -133,6 +133,7 @@ PLUGIN_V1_TOOLS = frozenset(
         "model_deploy",
         "model_predict",
         "model_get",
+        "model_list",
         "model_delete",
         "app_uninstall",
     }
@@ -175,7 +176,8 @@ Start with `project_list`. Inspect data through `dataset_list`, `dataset_get`,
 `dataset_profile`, `item_list`, and `item_get`; inspect labels and exact annotations through
 `annotation_labels`, `annotation_list`, and `annotation_get`.
 
-Use `pipeline_list` before creating another workflow. Build RAG in order:
+Use `pipeline_list` before creating another workflow, and `model_list` to find a deployed
+embedding model. Build RAG in order:
 `rag_pipeline_create` -> `rag_add_pdf_filter_node` -> `rag_add_pdf_to_text_node` ->
 `rag_add_text_to_chunks_node` -> `rag_add_embedding_node` -> `rag_add_output_node` ->
 `pipeline_connect_nodes` -> `pipeline_validate` -> `pipeline_install`. Use

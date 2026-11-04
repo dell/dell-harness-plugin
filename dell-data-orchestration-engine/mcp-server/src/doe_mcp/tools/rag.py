@@ -720,7 +720,7 @@ def register(mcp: MCPServer) -> None:
                 "the server will then delete and verify both its item and feature vector"
             ),
             remedy=(
-                "Use dataset_visual_search with a precomputed query_vector to avoid writing a temporary item"
+                "Ask the user to approve the query in an MCP client that supports elicitation"
             ),
         )
         query_vector, _, cleanup = embed_query(dataset, model, query, resolved_set)
@@ -731,7 +731,7 @@ def register(mcp: MCPServer) -> None:
         if not usable:
             raise ValueError(
                 f"No usable vectors in feature set {resolved_set}. Embedding may still be running "
-                "— check dataset_embeddings_status."
+                "— check the embedding node's runs with execution_list."
             )
 
         scores = cosine_similarity(np.asarray([f.value for f in usable], dtype=float), query_vector)

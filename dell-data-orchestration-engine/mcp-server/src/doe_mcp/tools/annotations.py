@@ -135,7 +135,7 @@ def register(mcp: MCPServer) -> None:
     ) -> outputs.AnnotationLabelsResult:
         """List the labels this dataset's recipe defines.
 
-        These are the only labels `annotation_create` will accept, so check here before tagging.
+        Only these labels can be applied to items, so check here before tagging.
         """
         dataset = get_dataset(project_id, dataset_id)
         labels = dataloop_call("ontology read", lambda: ontology_labels(dataset))

@@ -32,6 +32,7 @@
     "model_deploy",
     "model_predict",
     "model_get",
+    "model_list",
     "model_delete",
     "app_uninstall",
     "pipeline_execute",
@@ -76,6 +77,7 @@
     "model_deploy",
     "model_predict",
     "model_get",
+    "model_list",
     "model_delete",
     "app_uninstall",
     "pipeline_execute",
@@ -193,6 +195,7 @@
       "model_deploy",
       "model_predict",
       "model_get",
+      "model_list",
       "model_delete",
       "app_uninstall",
       "pipeline_execute",
@@ -431,6 +434,7 @@
       "id": "dataloop-rag",
       "title": "Build and query an approved RAG pipeline",
       "covered_tools": [
+        "model_list",
         "rag_pipeline_create",
         "rag_add_pdf_filter_node",
         "rag_add_pdf_to_text_node",
@@ -451,6 +455,7 @@
           "invocation": "explicit",
           "prompt": "Build the approved synthetic-docs RAG graph with 500-character chunks, install it, and ask which retention period the policy states.",
           "expected_tool_path": [
+            "model_list",
             "rag_pipeline_create",
             "rag_add_pdf_filter_node",
             "rag_add_pdf_to_text_node",
@@ -472,6 +477,7 @@
           ],
           "forbidden_tools": [],
           "manual_checks": [
+            "Resolve the embedding model with model_list; never guess its ID.",
             "Retain the approval exchange.",
             "Verify the graph before installation.",
             "Pass confirm=true to pipeline_install only for the current approval, or retain accepted elicitation evidence.",

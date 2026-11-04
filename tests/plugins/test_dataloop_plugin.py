@@ -184,7 +184,7 @@ def test_dataloop_evaluation_definition_and_contract_inventory_validate():
     assert summary["submission_cases"]["negative"] >= 3
 
     definition = load_json(ROOT / "evals" / "cases" / "dataloop.json")
-    assert len(definition["contract_tools"]) == 42
+    assert len(definition["contract_tools"]) == 43
     assert definition["contract_tools"] == definition["declared_tools"]
     assert len(definition["upstream_tools"]) == 70
     assert len(set(definition["upstream_tools"])) == 70

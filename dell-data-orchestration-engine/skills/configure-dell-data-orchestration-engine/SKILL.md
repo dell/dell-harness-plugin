@@ -42,6 +42,9 @@ The required values are:
 - `DATALOOP_API_KEY`: a scoped Dataloop user API key.
 - `DATALOOP_PATH`: a private directory used only by this MCP process.
 
+To use a different configuration file, set `DATALOOP_CONFIG_FILE` to its path
+before Codex starts; both the launcher and `--check` read it.
+
 Optional values are `DATALOOP_GATE_URL`, `DATALOOP_VERIFY_SSL`, and
 `DATALOOP_MCP_PROFILES`. `DATALOOP_MCP_COMMAND` is an administrator-only
 override. Leave TLS verification
@@ -55,8 +58,8 @@ OAuth is not implemented by this plugin release.
 
 ## Select only the needed tools
 
-The launcher defaults to the reviewed `plugin-v1` surface: 42 tools used by the
-eight evaluated workflows. Keep that default unless a deployment has a documented
+The launcher defaults to the reviewed `plugin-v1` surface: 43 tools used by the
+eight evaluated workflows. Every workflow skill in this plugin runs on it. Keep that default unless a deployment has a documented
 need for another bounded profile. Available alternatives are:
 
 - `discovery` for projects, datasets, items, and annotations.
@@ -64,6 +67,9 @@ need for another bounded profile. Available alternatives are:
 - `models` for marketplace packages, models, embeddings, and PII.
 - `rag` for direct RAG construction and pipeline support.
 
+A profile is chosen when the server starts. Changing it is an administrator
+action: set `profiles` in the configuration file (or `DATALOOP_MCP_PROFILES`)
+and restart Codex; never switch profiles in the middle of a task.
 Combine profiles only when a workflow needs both. Use `all` only for deliberate
 server development or contract testing; it is not the plugin default.
 Read
@@ -76,8 +82,11 @@ confirmation exchange, transcript reference, and audit evidence.
 
 ## Validate safely
 
-1. Run `configure_dataloop.py --check`; it must report a user-only file, an API
-   key present, a state path, and a resolved bundled Python module.
+1. Run `configure_dataloop.py --check`. It runs the launcher's own read-only
+   preflight and prints where each setting came from (`env`, `file`), the exact
+   command line the launcher will start, and `launch=ready` or
+   `launch=blocked reason=...`. A `warning=` line means a configured `command`
+   runs a different server version than the bundled one.
    On POSIX, server startup repairs that state directory to 0700 and dtlpy's
    `cookie.json` to 0600; symbolic-link state paths are refused.
 2. Start a new Codex session and inspect `tools/list`.
