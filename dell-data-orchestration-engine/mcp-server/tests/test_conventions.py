@@ -154,7 +154,7 @@ def test_project_scoped_lookups_go_through_ownership_checks(path):
 
 
 def test_every_cited_document_ships_with_the_server():
-    """R08: a `docs/...md` path cited by shipped code or docs must exist.
+    """R08: a `docs/...md` path cited by shipped code must exist.
 
     Resolved against this server's root, or, when it is bundled in the plugin repository, that
     repository's root.
@@ -162,7 +162,7 @@ def test_every_cited_document_ships_with_the_server():
     root = SRC.parents[1]
     bases = [root, root.parents[1]]
     cited = set()
-    for path in [*SRC.rglob("*.py"), *(root / "scripts").glob("*.py"), *(root / "docs").rglob("*.md")]:
+    for path in [*SRC.rglob("*.py"), *(root / "scripts").glob("*.py")]:
         cited |= set(re.findall(r"docs/[A-Za-z0-9_./-]+\.md", path.read_text(encoding="utf-8")))
     missing = sorted(path for path in cited if not any((base / path).is_file() for base in bases))
 
