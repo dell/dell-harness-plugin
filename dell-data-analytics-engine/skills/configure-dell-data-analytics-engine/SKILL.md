@@ -1,12 +1,13 @@
 ---
 name: configure-dell-data-analytics-engine
 description: >
-  Configure, authenticate, validate, and safely use a customer-managed Dell
-  Data Analytics Engine or Starburst Enterprise MCP endpoint from Codex. Use
-  for DDAE OAuth, protected-resource discovery, Data Product search, read-only
-  Trino SQL, tool-catalog inspection, parameterized-query configuration, or
-  connection troubleshooting. Do not use for Dell Data Search Engine, Elastic,
-  Kibana, or ES|QL requests.
+  Connect Codex to a customer-managed Dell Data Analytics Engine (Starburst
+  Enterprise) MCP endpoint and keep the connection working. Use for DDAE OAuth
+  sign-in, protected-resource discovery, endpoint registration, tool-catalog
+  inspection, parameterized-query enablement, or connection troubleshooting.
+  Do not use for Data Product discovery or answering business questions with
+  SQL (use analyze-governed-data-products), or for Dell Data Search Engine,
+  Elastic, Kibana, or ES|QL requests.
 ---
 
 # Configure Dell Data Analytics Engine
