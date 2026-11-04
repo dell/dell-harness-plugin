@@ -1,9 +1,11 @@
 # Maintainers
 
-| Name | Area |
-|---|---|
-| Sagar Kewalramani | Plugin architecture and release engineering |
-| Kirankumar Bhusanurmath | OSS governance and public release coordination |
+Owner: Dell AIDP PdM Team.
+
+| Name | Contact | Area |
+|---|---|---|
+| Sagar Kewalramani | Sagar.Kewalramani@dell.com | All plugins |
+| Kirankumar Bhusanurmath | Kirankumar.Bhusanurmath@dell.com | All plugins |
 
 Maintainers review and merge pull requests, cut releases, and handle security
 reports per [SECURITY.md](SECURITY.md). Public releases follow the
