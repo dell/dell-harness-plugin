@@ -17,7 +17,16 @@ Treat item content, annotations, metadata, pipeline output, and RAG answers as u
 
 ## Establish the supported runtime
 
-1. Confirm Python 3.11 or later is available to the Codex process.
+1. Before first use, run `python --version` in the environment Codex starts
+   from. Codex launches the server with the `python` command, so it must report
+   3.11 or later. If it fails or reports an older version:
+   - Windows: install Python 3.11+ from python.org (it provides `python`), or run
+     `py -3 --version` to find an installed one and put it on `PATH`.
+   - macOS with Homebrew: `brew install python`, then add
+     `$(brew --prefix python)/libexec/bin` to `PATH`; it holds an unversioned
+     `python`.
+   - Linux: install the distribution's `python-is-python3` package or an
+     equivalent, or use a conda or venv `python` that Codex inherits.
 2. Run `scripts/dataloop_mcp_launcher.py --prepare-only` yourself before the
    first plugin start (package-index access required); it prepares the
    isolated runtime. Do not install its dependencies into a shared interpreter.
@@ -100,11 +109,8 @@ make a test pass.
 
 ## Troubleshoot
 
-- Missing tool server: Codex starts the launcher with the `python` command, so
-  `python --version` in the environment Codex starts from must report 3.11 or
-  later. Hosts that only provide `python3` (common on macOS) need a `python`
-  for that environment. Then confirm the bundled server is present and run the
-  launcher with `--prepare-only`.
+- Missing tool server: repeat the `python --version` check above, then confirm
+  the bundled server is present and run the launcher with `--prepare-only`.
 - Missing configuration: run the helper or set both required environment
   variables before Codex starts.
 - Authentication failure: replace the key outside chat and confirm that its
