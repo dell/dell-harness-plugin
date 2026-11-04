@@ -106,6 +106,11 @@ def register(mcp: MCPServer) -> None:
         # automation. A stale or cross-project id would otherwise create a
         # trigger that never fires.
         dataset = get_dataset(project_id, dataset_id)
+        project = get_project(project_id)
+        if pipeline_id is not None:
+            owned(project, "pipelines", "pipeline", pipeline_id=pipeline_id)
+        elif service_id is not None:
+            owned(project, "services", "service", service_id=service_id)
         confirm_or_elicit(
             ctx,
             confirm,
@@ -113,7 +118,6 @@ def register(mcp: MCPServer) -> None:
             f"it runs unattended on every matching event in dataset {dataset.name!r}, "
             "outliving this conversation, and each firing can incur platform cost",
         )
-        project = get_project(project_id)
 
         target = {"pipeline_id": pipeline_id, "service_id": service_id}
         # Check and create under one lock: separately they are a race that produces exactly the

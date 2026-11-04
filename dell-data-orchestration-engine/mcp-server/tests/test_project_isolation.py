@@ -174,3 +174,60 @@ def test_rag_pipeline_create_rejects_a_foreign_output_dataset(monkeypatch, call_
 
     _assert_rejected(result, "dataset")
     project.pipelines.create.assert_not_called()
+
+
+def test_trigger_create_rejects_another_projects_pipeline(monkeypatch, call_tool):
+    project = SimpleNamespace(id="proj-1", pipelines=Repo(FOREIGN), triggers=MagicMock())
+    monkeypatch.setattr(triggers, "get_dataset", lambda p, d: SimpleNamespace(id=d, name="ds"))
+    monkeypatch.setattr(triggers, "get_project", lambda project_id: project)
+
+    result = call_tool(
+        "trigger_create",
+        {"project_id": "proj-1", "name": "t", "dataset_id": "ds-1", "pipeline_id": "p-x", "confirm": True},
+    )
+
+    _assert_rejected(result, "pipeline")
+    project.triggers.create.assert_not_called()
+
+
+def test_model_create_rejects_another_projects_dataset(monkeypatch, call_tool):
+    project = SimpleNamespace(id="proj-1", apps=Repo("proj-1"), datasets=Repo(FOREIGN), models=MagicMock())
+    monkeypatch.setattr(models, "get_project", lambda project_id: project)
+
+    result = call_tool(
+        "model_create",
+        {
+            "project_id": "proj-1",
+            "app_id": "a-1",
+            "dpk_model_name": "m",
+            "model_name": "n",
+            "dataset_id": "ds-x",
+        },
+    )
+
+    _assert_rejected(result, "dataset")
+    project.models.create.assert_not_called()
+
+
+def test_app_uninstall_rejects_another_projects_app(monkeypatch, call_tool):
+    project = SimpleNamespace(id="proj-1", apps=Repo(FOREIGN))
+    project.apps.uninstall = MagicMock()
+    monkeypatch.setattr(models, "get_project", lambda project_id: project)
+
+    result = call_tool("app_uninstall", {"project_id": "proj-1", "app_id": "a-x", "confirm": True})
+
+    _assert_rejected(result, "app")
+    project.apps.uninstall.assert_not_called()
+
+
+def test_execution_list_rejects_another_projects_pipeline(monkeypatch, call_tool):
+    repository = MagicMock()
+    monkeypatch.setattr(
+        executions, "get_project", lambda project_id: SimpleNamespace(id="proj-1", pipelines=Repo(FOREIGN))
+    )
+    monkeypatch.setattr(dl.repositories, "Executions", lambda **_: repository)
+
+    result = call_tool("execution_list", {"project_id": "proj-1", "pipeline_id": "p-x"})
+
+    _assert_rejected(result, "pipeline")
+    repository.list.assert_not_called()

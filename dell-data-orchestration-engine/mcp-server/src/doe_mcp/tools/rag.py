@@ -719,9 +719,7 @@ def register(mcp: MCPServer) -> None:
                 "the query text is written to the dataset and sent to the model for inference; "
                 "the server will then delete and verify both its item and feature vector"
             ),
-            remedy=(
-                "Ask the user to approve the query in an MCP client that supports elicitation"
-            ),
+            remedy=("Ask the user to approve the query in an MCP client that supports elicitation"),
         )
         query_vector, _, cleanup = embed_query(dataset, model, query, resolved_set)
         features, truncated = dataloop_call(
