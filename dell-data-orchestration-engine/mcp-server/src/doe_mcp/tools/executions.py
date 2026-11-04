@@ -34,7 +34,7 @@ from mcp.server.mcpserver import Context
 from pydantic import Field
 
 from .. import outputs, paging, serialize
-from ..context import dataloop_call, get_execution, get_pipeline, get_project
+from ..context import dataloop_call, get_execution, get_pipeline, get_project, owned
 from ..guards import confirm_or_elicit
 from ..safety import ADDITIVE, DELETE, READ_ONLY
 
@@ -94,7 +94,10 @@ def register(mcp: MCPServer) -> None:
         filters = dl.Filters(resource=dl.FiltersResource.EXECUTION)
         filters.page = page
         filters.page_size = page_size
+        # An explicit filter can replace the repository's implicit project scope, so state it.
+        filters.add(field="projectId", values=project_id)
         if pipeline_id is not None:
+            owned(project, "pipelines", "pipeline", pipeline_id=pipeline_id)
             filters.add(field="pipelineId", values=pipeline_id)
         if in_progress_only:
             filters.add(field="latestStatus.status", values="in-progress")

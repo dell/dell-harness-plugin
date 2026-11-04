@@ -84,7 +84,7 @@ def _undeclared_mock_owners_are_not_under_test(monkeypatch: pytest.MonkeyPatch) 
         owner = getattr(resource, "project_id", None)
         if owner is None and getattr(resource, "project", None) is not None:
             owner = getattr(resource.project, "id", None)
-        if isinstance(owner, Base) or isinstance(project_id, Base) or "Mock" in str(project_id):
+        if isinstance(owner, Base):
             return resource
         return strict(resource, project_id, resource_name)
 

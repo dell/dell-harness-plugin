@@ -237,16 +237,25 @@ def require_settings(environ: dict[str, str]) -> Path:
         )
     if state_path.exists() and not state_path.is_dir():
         raise ConfigurationError(f"DATALOOP_PATH is not a directory: {state_path}")
+    if os.name == "posix" and state_path.exists() and state_path.stat().st_uid != os.getuid():
+        raise ConfigurationError(f"DATALOOP_PATH must be owned by the current user: {state_path}")
+    if not state_path.exists():
+        parent = next(p for p in state_path.parents if p.exists())
+        if not os.access(parent, os.W_OK | os.X_OK):
+            raise ConfigurationError(f"Cannot create DATALOOP_PATH {state_path}: {parent} is not writable")
     return state_path
 
 
 def validate_environment(environ: dict[str, str]) -> None:
     state_path = require_settings(environ)
-    state_path.mkdir(parents=True, exist_ok=True, mode=0o700)
-    if os.name == "posix":
-        # Repair state directories created by an older or more permissive
-        # setup. mkdir(mode=...) does not affect an existing directory.
-        state_path.chmod(0o700)
+    try:
+        state_path.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if os.name == "posix":
+            # Repair state directories created by an older or more permissive
+            # setup. mkdir(mode=...) does not affect an existing directory.
+            state_path.chmod(0o700)
+    except OSError as exc:
+        raise ConfigurationError(f"Cannot prepare DATALOOP_PATH {state_path}: {exc.strerror}") from exc
     state_mode = stat.S_IMODE(state_path.stat().st_mode)
     if os.name == "posix" and state_mode & 0o077:
         raise ConfigurationError(
@@ -282,7 +291,10 @@ def planned_runtime(environ: dict[str, str]) -> tuple[Path, bool]:
 
 
 def preflight(environ: dict[str, str]) -> dict[str, object]:
-    """Everything launch would decide, in launch's order, with no side effects.
+    """Everything launch would decide, in launch's order, without changing anything.
+
+    Nothing is created, repaired or prepared and a configured command is never run; without
+    one, the same import probe launch uses checks the bundled server.
 
     Raises the same `ConfigurationError` launch would. `configure_dataloop.py --check` reports
     this, so the check cannot disagree with what actually starts.

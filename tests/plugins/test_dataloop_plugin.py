@@ -587,3 +587,37 @@ def test_check_does_not_create_or_repair_anything(tmp_path):
     _check(config, _isolated_environ(tmp_path))
 
     assert not (tmp_path / "state").exists()
+
+
+def test_check_blocks_an_uncreatable_state_directory_like_launch(tmp_path):
+    if os.name != "posix" or os.geteuid() == 0:
+        return
+    locked = tmp_path / "locked"
+    locked.mkdir()
+    config = _private_config(tmp_path, command=str(_echo_command(tmp_path / "bin")), state_path=str(locked / "state"))
+    locked.chmod(0o500)
+    try:
+        check = _assert_same_outcome(config, _isolated_environ(tmp_path))
+    finally:
+        locked.chmod(0o700)
+
+    assert "launch=blocked" in check.stdout
+
+
+def test_check_never_runs_a_configured_command(tmp_path):
+    if os.name != "posix":
+        return
+    marker = tmp_path / "ran"
+    interpreter = tmp_path / "interp-bin"
+    interpreter.mkdir(mode=0o755)
+    fake = interpreter / "python"
+    fake.write_text(f"#!/bin/sh\ntouch {marker}\n", encoding="utf-8")
+    fake.chmod(0o755)
+    command = _echo_command(tmp_path / "bin")
+    command.write_text(f"#!{fake}\n", encoding="utf-8")
+    config = _private_config(tmp_path, command=str(command))
+
+    check = _check(config, _isolated_environ(tmp_path))
+
+    assert "launch=ready" in check.stdout
+    assert not marker.exists()

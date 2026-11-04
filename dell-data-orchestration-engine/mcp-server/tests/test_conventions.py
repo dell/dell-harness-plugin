@@ -108,7 +108,19 @@ def test_every_tool_module_exposes_a_register_function():
 
 
 #: Project-level repositories whose ``get`` returns a resource that names its own project.
-PROJECT_SCOPED_REPOSITORIES = {"datasets", "pipelines", "models", "services", "triggers", "executions"}
+PROJECT_SCOPED_REPOSITORIES = {
+    "datasets",
+    "pipelines",
+    "models",
+    "services",
+    "triggers",
+    "executions",
+    "apps",
+}
+
+# Not checked here, by design: dataset-scoped repositories (`dataset.items`, `dataset.annotations`,
+# `dataset.features`). They are reached only through a dataset that `context` has already
+# verified, and item responses do not reliably carry a project identity to check again.
 
 #: Lookups that are allowed to bypass `context`'s ownership helpers, each with its reason.
 UNVERIFIED_LOOKUP_EXCEPTIONS = {

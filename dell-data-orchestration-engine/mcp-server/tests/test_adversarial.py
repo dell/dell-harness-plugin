@@ -17,6 +17,7 @@ from types import SimpleNamespace
 import pytest
 
 from doe_mcp.tools import annotations, items, models, triggers
+from tests.conftest import OwnedRepo
 from tests.test_annotations import FakeAnnotations, fake_annotation
 from tests.test_items import FakeItems, fake_item
 
@@ -392,7 +393,7 @@ def test_concurrent_trigger_creates_cannot_both_pass_the_duplicate_check(monkeyp
                 created.append(entity)
             return entity
 
-    proj = SimpleNamespace(id="proj-1", triggers=RacingTriggers())
+    proj = SimpleNamespace(id="proj-1", triggers=RacingTriggers(), pipelines=OwnedRepo("proj-1"))
     monkeypatch.setattr(triggers, "get_project", lambda project_id: proj)
     monkeypatch.setattr(
         triggers,

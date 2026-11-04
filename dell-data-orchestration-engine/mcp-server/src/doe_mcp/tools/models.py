@@ -205,7 +205,9 @@ def register(mcp: MCPServer) -> None:
                 "model-adapter-specific, so this server cannot validate them",
             )
         project = get_project(project_id)
-        app = project.apps.get(app_id=app_id)
+        app = owned(project, "apps", "app", app_id=app_id)
+        if dataset_id is not None:
+            owned(project, "datasets", "dataset", dataset_id=dataset_id)
         resolved_output_type = output_type or component_output_type(app, dpk_model_name)
         extra = {"output_type": resolved_output_type} if resolved_output_type else {}
         model = project.models.create(
@@ -525,5 +527,6 @@ def register(mcp: MCPServer) -> None:
         """
         confirm_or_elicit(ctx, confirm, "uninstall this app", "models created from it will stop working")
         project = get_project(project_id)
+        owned(project, "apps", "app", app_id=app_id)
         ok = project.apps.uninstall(app_id=app_id)
         return {"uninstalled": bool(ok), "id": app_id}

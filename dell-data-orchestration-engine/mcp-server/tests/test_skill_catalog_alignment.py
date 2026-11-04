@@ -68,7 +68,9 @@ def test_server_instructions_name_only_default_tools():
 
 @pytest.mark.parametrize("tool", PLUGIN_TOOLS, ids=lambda tool: tool.name)
 def test_advertised_tool_text_names_only_default_tools(tool):
-    text = " ".join([tool.description or "", json.dumps(tool.input_schema), json.dumps(tool.output_schema or {})])
+    text = " ".join(
+        [tool.description or "", json.dumps(tool.input_schema), json.dumps(tool.output_schema or {})]
+    )
 
     assert _mentioned(text) <= DEFAULT, f"{tool.name} points at {_mentioned(text) - DEFAULT}"
 

@@ -12,7 +12,6 @@ import importlib.util
 import json
 import os
 import stat
-import subprocess
 import sys
 import tempfile
 import tomllib
@@ -43,30 +42,37 @@ def _bundled_version() -> str:
 
 
 def _command_version(executable: str) -> str | None:
-    """The DOE server version an external console script would run, read via its interpreter."""
+    """The DOE server version an external console script would run, read from package metadata.
+
+    Never executes the command or its interpreter: the shebang only locates the environment,
+    whose installed ``*.dist-info/METADATA`` is read as text.
+    """
     try:
         shebang = Path(executable).read_bytes()[:256].split(b"\n", 1)[0].decode("utf-8")
     except (OSError, UnicodeDecodeError):
         return None
     interpreter = shebang[2:].strip().split()[0] if shebang.startswith("#!") else ""
-    if not os.path.isabs(interpreter) or not os.access(interpreter, os.X_OK):
+    if not os.path.isabs(interpreter):
         return None
-    probe = "import importlib.metadata as m; print(m.version('dell-data-orchestration-engine-mcp'))"
-    try:
-        completed = subprocess.run(
-            [interpreter, "-c", probe], capture_output=True, text=True, timeout=60, env={}
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    if completed.returncode != 0:
-        return None
-    return completed.stdout.strip() or None
+    environment = Path(interpreter).parent.parent
+    patterns = (
+        "lib/python*/site-packages/dell_data_orchestration_engine_mcp-*.dist-info/METADATA",
+        "Lib/site-packages/dell_data_orchestration_engine_mcp-*.dist-info/METADATA",
+    )
+    for pattern in patterns:
+        for metadata in sorted(environment.glob(pattern)):
+            for line in metadata.read_text(encoding="utf-8", errors="replace").splitlines():
+                if line.startswith("Version:"):
+                    return line.split(":", 1)[1].strip() or None
+    return None
 
 
 def check(path: Path) -> int:
     """Report what the launcher would start, using the launcher's own resolution.
 
-    Read-only: nothing is created, repaired or prepared. Exit 0 only when launch would start.
+    Changes nothing: no file is created, repaired or prepared, and a configured command is
+    never run. When no command is configured, the launcher's own import probe of the bundled
+    server runs, as it would at launch. Exit 0 only when launch would start.
     """
     launcher = _launcher()
     environ = {**os.environ, "DATALOOP_CONFIG_FILE": str(path)}
