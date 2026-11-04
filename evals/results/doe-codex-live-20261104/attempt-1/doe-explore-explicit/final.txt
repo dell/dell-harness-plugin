@@ -1,0 +1,15 @@
+Project **doe-plugin-validation-20261104**, dataset **synthetic-docs**, contains **5 files**.
+
+| File type | Count |
+|---|---:|
+| CSV (`text/csv`) | 3 |
+| Plain text (`text/plain`) | 2 |
+
+| Folder | Files |
+|---|---:|
+| `/reports` | 3 |
+| `/policies` | 2 |
+
+All 5 files are unannotated; the dataset has **0 annotations**.
+
+The profile covered all 5 items without truncation or file filters. A separate one-item metadata sample used `/reports/*`. No raw content was downloaded.
