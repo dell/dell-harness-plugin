@@ -9,13 +9,13 @@ PLUGINS = {
     "dell-data-analytics-engine": {
         "skill": "configure-dell-data-analytics-engine",
         "minimum_workflows": 6,
-        "base_version": "0.2.0",
+        "base_version": "0.2.1",
         "auth_phrase": "MCP-native OAuth",
     },
     "dell-data-search-engine": {
         "skill": "configure-dell-data-search-engine",
         "minimum_workflows": 8,
-        "base_version": "0.2.0",
+        "base_version": "0.2.1",
         "auth_phrase": "review API key",
     },
 }
