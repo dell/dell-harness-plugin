@@ -9,20 +9,13 @@ from typing import Annotated, Any
 import dtlpy as dl
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
-from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import outputs, paging, serialize
 from ..context import get_dataset, get_project
 from ..guards import confirm_or_elicit
+from ..safety import ADDITIVE, DELETE, OVERWRITE, READ_ONLY
 
-READ_ONLY = ToolAnnotations(
-    read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
-)
-MUTATING = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=False)
-DESTRUCTIVE = ToolAnnotations(
-    read_only_hint=False, destructive_hint=True, idempotent_hint=False, open_world_hint=False
-)
 SAFE_PATCH_FIELDS = {"name", "description", "metadata"}
 
 
@@ -100,7 +93,7 @@ def register(mcp: MCPServer) -> None:
         """Fetch one dataset by id."""
         return serialize.dataset(get_dataset(project_id, dataset_id))
 
-    @mcp.tool(title="Create dataset", annotations=MUTATING)
+    @mcp.tool(title="Create dataset", annotations=ADDITIVE)
     def dataset_create(
         project_id: Annotated[str, Field(description="Project to create the dataset in.")],
         name: Annotated[str, Field(min_length=1, description="Name for the new dataset.")],
@@ -135,7 +128,7 @@ def register(mcp: MCPServer) -> None:
         )
         return serialize.dataset(dataset)
 
-    @mcp.tool(title="Update dataset", annotations=MUTATING)
+    @mcp.tool(title="Update dataset", annotations=OVERWRITE)
     def dataset_update(
         project_id: Annotated[str, Field(description="Project that owns the dataset.")],
         dataset_id: Annotated[str, Field(description="Id of the dataset to update.")],
@@ -156,7 +149,7 @@ def register(mcp: MCPServer) -> None:
         updated = dataset.project.datasets.update(dataset=dataset, patch=merged_patch)
         return serialize.dataset(updated)
 
-    @mcp.tool(title="Delete dataset", annotations=DESTRUCTIVE)
+    @mcp.tool(title="Delete dataset", annotations=DELETE)
     def dataset_delete(
         project_id: Annotated[str, Field(description="Project that owns the dataset.")],
         dataset_id: Annotated[str, Field(description="Id of the dataset to delete.")],

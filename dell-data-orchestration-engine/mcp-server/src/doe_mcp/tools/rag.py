@@ -39,20 +39,15 @@ import dtlpy as dl
 import numpy as np
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
-from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import outputs, paging, serialize
 from ..context import dataloop_call, get_dataset, get_project, owned
 from ..guards import elicit_or_refuse, gate_local_compute
+from ..safety import ADDITIVE
 from ..schemas import CodeNodeSpec, DatasetNodeSpec
 from . import pipeline_nodes
 from .embeddings import cosine_similarity, read_vectors
-
-READ_ONLY = ToolAnnotations(
-    read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
-)
-MUTATING = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=False)
 
 # Where derived items live in the output dataset. Fixed rather than configurable so the DQL in
 # the embedding node and the provenance the query tool reports describe the same layout.
@@ -497,7 +492,7 @@ def chunk_text(item: Any, limit: int = MAX_CHUNK_TEXT_CHARS) -> str | None:
 def register(mcp: MCPServer) -> None:
     """Register RAG pipeline tools with the MCP server."""
 
-    @mcp.tool(title="Create RAG pipeline", annotations=MUTATING)
+    @mcp.tool(title="Create RAG pipeline", annotations=ADDITIVE)
     def rag_pipeline_create(
         project_id: Annotated[str, Field(description="Project to create the RAG pipeline in.")],
         name: Annotated[str, Field(min_length=1, description="Name for the RAG pipeline.")],
@@ -543,7 +538,7 @@ def register(mcp: MCPServer) -> None:
         """
         return pipeline_nodes.add_node(project_id, pipeline_id, spec, references)
 
-    @mcp.tool(title="Add PDF filter node to RAG pipeline", annotations=MUTATING)
+    @mcp.tool(title="Add PDF filter node to RAG pipeline", annotations=ADDITIVE)
     def rag_add_pdf_filter_node(
         project_id: Annotated[str, Field(description="Project owning the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to add the node to.")],
@@ -571,7 +566,7 @@ def register(mcp: MCPServer) -> None:
             ),
         )
 
-    @mcp.tool(title="Add PDF-to-text conversion node", annotations=MUTATING)
+    @mcp.tool(title="Add PDF-to-text conversion node", annotations=ADDITIVE)
     def rag_add_pdf_to_text_node(
         project_id: Annotated[str, Field(description="Project owning the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to add the node to.")],
@@ -594,7 +589,7 @@ def register(mcp: MCPServer) -> None:
             (("dataset", output_dataset_id),),
         )
 
-    @mcp.tool(title="Add text-to-chunks node", annotations=MUTATING)
+    @mcp.tool(title="Add text-to-chunks node", annotations=ADDITIVE)
     def rag_add_text_to_chunks_node(
         project_id: Annotated[str, Field(description="Project owning the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to add the node to.")],
@@ -627,7 +622,7 @@ def register(mcp: MCPServer) -> None:
             (("dataset", output_dataset_id),),
         )
 
-    @mcp.tool(title="Add embedding generation node", annotations=MUTATING)
+    @mcp.tool(title="Add embedding generation node", annotations=ADDITIVE)
     def rag_add_embedding_node(
         project_id: Annotated[str, Field(description="Project owning the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to add the node to.")],
@@ -659,7 +654,7 @@ def register(mcp: MCPServer) -> None:
             (("dataset", output_dataset_id), ("model", model_id)),
         )
 
-    @mcp.tool(title="Add output storage node", annotations=MUTATING)
+    @mcp.tool(title="Add output storage node", annotations=ADDITIVE)
     def rag_add_output_node(
         project_id: Annotated[str, Field(description="Project owning the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to add the node to.")],
@@ -682,7 +677,7 @@ def register(mcp: MCPServer) -> None:
             ),
         )
 
-    @mcp.tool(title="Query RAG dataset", annotations=MUTATING)
+    @mcp.tool(title="Query RAG dataset", annotations=ADDITIVE)
     def rag_query(
         project_id: Annotated[str, Field(description="Project owning the dataset.")],
         dataset_id: Annotated[str, Field(description="Dataset holding the chunk items.")],

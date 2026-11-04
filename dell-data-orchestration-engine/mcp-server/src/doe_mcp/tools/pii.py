@@ -23,17 +23,12 @@ from typing import Annotated, Any
 
 import dtlpy as dl
 from mcp.server import MCPServer
-from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import outputs, paging, serialize
 from ..context import dataloop_call, get_dataset
+from ..safety import OVERWRITE, READ_ONLY
 from ..schemas import PiiFindingsSpec, PiiMarkerSpec
-
-READ_ONLY = ToolAnnotations(
-    read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
-)
-MUTATING = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=False)
 
 SAMPLE_SIZE = 5
 # Canonical location of scan findings: a flat map of detected entity type to true, e.g.
@@ -187,7 +182,7 @@ def register(mcp: MCPServer) -> None:
             "caveat": caveat,
         }
 
-    @mcp.tool(title="Record PII findings on an item", annotations=MUTATING)
+    @mcp.tool(title="Record PII findings on an item", annotations=OVERWRITE)
     def pii_set_findings(
         project_id: Annotated[str, Field(description="Project that owns the dataset.")],
         dataset_id: Annotated[str, Field(description="Dataset that holds the item.")],

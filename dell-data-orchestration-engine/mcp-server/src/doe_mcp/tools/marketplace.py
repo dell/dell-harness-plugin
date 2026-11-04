@@ -12,15 +12,11 @@ from typing import Annotated, Any
 
 import dtlpy as dl
 from mcp.server import MCPServer
-from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import outputs, paging, serialize
 from ..context import marketplace_dpks
-
-READ_ONLY = ToolAnnotations(
-    read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
-)
+from ..safety import READ_ONLY_MARKETPLACE
 
 # Cap on how much of the catalogue a name search will page through, so one tool call
 # cannot walk an unbounded registry.
@@ -107,7 +103,7 @@ def scan_catalogue(
 
 
 def register(mcp: MCPServer) -> None:
-    @mcp.tool(title="Search marketplace", annotations=READ_ONLY)
+    @mcp.tool(title="Search marketplace", annotations=READ_ONLY_MARKETPLACE)
     def marketplace_search(
         name: Annotated[
             str | None,
@@ -175,7 +171,7 @@ def register(mcp: MCPServer) -> None:
         filters.page_size = page_size
         return paging.from_paged(dpks.list(filters=filters), serialize.dpk, limit=limit)
 
-    @mcp.tool(title="Get marketplace package", annotations=READ_ONLY)
+    @mcp.tool(title="Get marketplace package", annotations=READ_ONLY_MARKETPLACE)
     def marketplace_get_dpk(
         dpk_id: Annotated[str | None, Field(description="Id of the DPK. Provide this or dpk_name.")] = None,
         dpk_name: Annotated[str | None, Field(description="Name of the DPK.")] = None,

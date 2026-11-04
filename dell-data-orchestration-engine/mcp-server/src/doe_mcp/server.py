@@ -255,7 +255,7 @@ def strip_schema_titles(mcp: MCPServer) -> None:
 
 
 def make_tool_annotations_explicit(mcp: MCPServer) -> None:
-    """Materialize every optional MCP behavior hint for a stable plugin contract."""
+    """Materialize every optional MCP behavior hint, on every profile, for a stable contract."""
     for tool in mcp._tool_manager._tools.values():
         current = tool.annotations or ToolAnnotations()
         read_only = current.read_only_hint is True
@@ -290,7 +290,7 @@ def build_server(profiles: list[str] | None = None) -> MCPServer:
             raise RuntimeError(f"Plugin profile references missing tools: {sorted(missing)}")
         for tool_name in registered - PLUGIN_V1_TOOLS:
             mcp.remove_tool(tool_name)
-        make_tool_annotations_explicit(mcp)
+    make_tool_annotations_explicit(mcp)
     prompts.register(mcp)
     strip_schema_titles(mcp)
     return mcp

@@ -22,20 +22,12 @@ from typing import Annotated, Any, Literal
 import dtlpy as dl
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
-from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import paging, serialize
 from ..context import dataloop_call, get_dataset, get_project, owned
 from ..guards import confirm_or_elicit
-
-READ_ONLY = ToolAnnotations(
-    read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
-)
-MUTATING = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=False)
-DESTRUCTIVE = ToolAnnotations(
-    read_only_hint=False, destructive_hint=True, idempotent_hint=False, open_world_hint=False
-)
+from ..safety import ADDITIVE, DELETE, READ_ONLY
 
 ACTIONS = {
     "created": dl.TriggerAction.CREATED,
@@ -77,7 +69,7 @@ def duplicate_of(existing: Any, resource: str, actions: Sequence[str], target: d
 
 
 def register(mcp: MCPServer) -> None:
-    @mcp.tool(title="Create trigger", annotations=MUTATING)
+    @mcp.tool(title="Create trigger", annotations=ADDITIVE)
     def trigger_create(
         project_id: Annotated[str, Field(description="Project to create the trigger in.")],
         name: Annotated[str, Field(min_length=1, description="Name for the trigger.")],
@@ -210,7 +202,7 @@ def register(mcp: MCPServer) -> None:
         """Fetch one trigger, including whether it is still active."""
         return serialize.trigger(owned(get_project(project_id), "triggers", "trigger", trigger_id=trigger_id))
 
-    @mcp.tool(title="Delete trigger", annotations=DESTRUCTIVE)
+    @mcp.tool(title="Delete trigger", annotations=DELETE)
     def trigger_delete(
         project_id: Annotated[str, Field(description="Project that owns the trigger.")],
         trigger_id: Annotated[str, Field(description="Id of the trigger to delete.")],

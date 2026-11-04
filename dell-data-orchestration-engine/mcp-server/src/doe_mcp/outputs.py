@@ -9,9 +9,9 @@ typed summaries.  Stable ids are present wherever a later tool call can address 
 entity.
 """
 
-from typing import Any
+from typing import Any, NotRequired
 
-from typing_extensions import NotRequired, TypedDict
+from typing_extensions import TypedDict
 
 
 class ProjectSummary(TypedDict):

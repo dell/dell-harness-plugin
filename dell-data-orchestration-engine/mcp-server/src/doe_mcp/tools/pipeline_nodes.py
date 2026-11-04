@@ -24,12 +24,12 @@ from typing import Annotated, Any
 import dtlpy as dl
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
-from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import code_node, outputs, serialize
 from ..context import dataloop_call, get_pipeline, owned
 from ..guards import confirm_or_elicit
+from ..safety import ADDITIVE, DELETE, OVERWRITE
 from ..schemas import (
     CodeNodeSpec,
     DatasetNodeSpec,
@@ -38,10 +38,6 @@ from ..schemas import (
     TaskNodeSpec,
 )
 
-MUTATING = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=False)
-DESTRUCTIVE = ToolAnnotations(
-    read_only_hint=False, destructive_hint=True, idempotent_hint=False, open_world_hint=False
-)
 _locks_guard = threading.Lock()
 _pipeline_locks: dict[str, threading.Lock] = {}
 
@@ -370,7 +366,7 @@ def add_node(
 
 
 def register(mcp: MCPServer) -> None:
-    @mcp.tool(title="Add pipeline node", annotations=MUTATING)
+    @mcp.tool(title="Add pipeline node", annotations=ADDITIVE)
     def pipeline_node_add(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to add the node to.")],
@@ -388,7 +384,7 @@ def register(mcp: MCPServer) -> None:
             raise ValueError("Refusing to add code node: set confirm_code=true after reviewing the code.")
         return add_node(project_id, pipeline_id, node)
 
-    @mcp.tool(title="Update pipeline node", annotations=MUTATING)
+    @mcp.tool(title="Update pipeline node", annotations=OVERWRITE)
     def pipeline_node_update(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline containing the node.")],
@@ -470,7 +466,7 @@ def register(mcp: MCPServer) -> None:
             "node": serialize.node(_require_node(verified, final_name)),
         }
 
-    @mcp.tool(title="Remove pipeline node", annotations=DESTRUCTIVE)
+    @mcp.tool(title="Remove pipeline node", annotations=DELETE)
     def pipeline_node_remove(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline containing the node.")],
@@ -500,7 +496,7 @@ def register(mcp: MCPServer) -> None:
         verified = _retry_until_visible(project_id, pipeline_id, mutate, verify)
         return {"removed": True, "node_name": node_name, "pipeline": serialize.pipeline(verified)}
 
-    @mcp.tool(title="Connect pipeline nodes", annotations=MUTATING)
+    @mcp.tool(title="Connect pipeline nodes", annotations=ADDITIVE)
     def pipeline_connect_nodes(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to wire up.")],
@@ -553,7 +549,7 @@ def register(mcp: MCPServer) -> None:
         verified = _retry_until_visible(project_id, pipeline_id, mutate, lambda p: state(p) is True)
         return serialize.pipeline(verified, include_graph=True)
 
-    @mcp.tool(title="Disconnect pipeline nodes", annotations=DESTRUCTIVE)
+    @mcp.tool(title="Disconnect pipeline nodes", annotations=DELETE)
     def pipeline_disconnect_nodes(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to edit.")],

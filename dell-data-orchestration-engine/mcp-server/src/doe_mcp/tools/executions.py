@@ -31,22 +31,16 @@ from typing import Annotated, Any
 import dtlpy as dl
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
-from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import outputs, paging, serialize
 from ..context import dataloop_call, get_execution, get_pipeline, get_project
 from ..guards import confirm_or_elicit
-
-READ_ONLY = ToolAnnotations(
-    read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
-)
-MUTATING = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=False)
-DESTRUCTIVE = ToolAnnotations(read_only_hint=False, destructive_hint=True, open_world_hint=False)
+from ..safety import ADDITIVE, DELETE, READ_ONLY
 
 
 def register(mcp: MCPServer) -> None:
-    @mcp.tool(title="Run a pipeline once", annotations=MUTATING)
+    @mcp.tool(title="Run a pipeline once", annotations=ADDITIVE)
     def pipeline_execute(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to run.")],
@@ -107,7 +101,7 @@ def register(mcp: MCPServer) -> None:
         listed = dataloop_call("execution list", lambda: repo.list(filters=filters))
         return paging.from_paged(listed, lambda entity: dict(serialize.execution(entity)), limit=page_size)
 
-    @mcp.tool(title="Terminate a running execution", annotations=DESTRUCTIVE)
+    @mcp.tool(title="Terminate a running execution", annotations=DELETE)
     def execution_terminate(
         project_id: Annotated[str, Field(description="Project that owns the execution.")],
         execution_id: Annotated[str, Field(description="Execution to stop.")],
