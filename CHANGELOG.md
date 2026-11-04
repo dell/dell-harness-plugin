@@ -30,6 +30,10 @@ heading lists the plugin versions it ships; plugins are tagged
   "Use $skill to ..." template; the skill linter rejects the template.
 - DDAE and DDSE READMEs and setup skills state that a deployed Dell AI Data
   Platform instance with the vendor MCP server is required.
+- Every plugin's square listing icon is now built from the brand-approved Dell
+  Technologies logo (`scripts/make_square_icon.py PATH_TO_LOGO`).
+- The DOE setup skill checks `python --version` before first use and gives the
+  Windows, macOS and Linux fix when `python` is missing or older than 3.11.
 
 ### Fixed
 
