@@ -1,4 +1,4 @@
 interface:
   display_name: "Dell AI Factory Agentic Workspace"
   short_description: "Connect, inspect, and manage Dell AI Factory Agentic Workspace"
-  default_prompt: "Use $manage-agentic-workspace to check my Dell AI Factory Agentic Workspace and connect it to Codex."
+  default_prompt: "Check my Agentic Workspace and connect it to Codex with $manage-agentic-workspace."

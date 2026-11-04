@@ -1,4 +1,4 @@
 interface:
   display_name: "Build Dataloop RAG Workflows"
   short_description: "Plan and build governed document RAG pipelines."
-  default_prompt: "Use $build-dataloop-rag-workflows to plan a governed RAG workflow for my documents."
+  default_prompt: "Turn the PDFs in my policy-docs dataset into a searchable RAG dataset with $build-dataloop-rag-workflows."

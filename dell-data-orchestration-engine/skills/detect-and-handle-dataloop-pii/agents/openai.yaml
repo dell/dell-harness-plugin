@@ -1,4 +1,4 @@
 interface:
   display_name: "Handle Dataloop PII"
   short_description: "Plan and operate human approved PII workflows."
-  default_prompt: "Use $detect-and-handle-dataloop-pii to assess and handle PII in an authorized dataset."
+  default_prompt: "Does my support-tickets dataset contain PII? Don't show me the values. Use $detect-and-handle-dataloop-pii."

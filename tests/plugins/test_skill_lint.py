@@ -22,7 +22,7 @@ def test_skill_passes_lint(skill_dir):
     assert validate_skills.check_skill(skill_dir) == []
 
 
-def make_skill(tmp_path, description, body="# Title\n", adapter=True):
+def make_skill(tmp_path, description, body="# Title\n", adapter=True, prompt="Profile my demo data with $demo-skill."):
     skill = tmp_path / "dell-x" / "skills" / "demo-skill"
     (skill / "agents").mkdir(parents=True)
     (skill / "SKILL.md").write_text(
@@ -31,7 +31,7 @@ def make_skill(tmp_path, description, body="# Title\n", adapter=True):
     if adapter:
         (skill / "agents/openai.yaml").write_text(
             'interface:\n  display_name: "D"\n  short_description: "S"\n'
-            '  default_prompt: "Use $demo-skill now."\n',
+            f'  default_prompt: "{prompt}"\n',
             encoding="utf-8",
         )
     return skill
@@ -42,6 +42,11 @@ GOOD = "Investigate demo data for the user. Use for demo requests. Do not use fo
 
 def test_linter_accepts_a_well_formed_skill(tmp_path):
     assert validate_skills.check_skill(make_skill(tmp_path, GOOD)) == []
+
+
+def test_linter_rejects_the_template_sample_prompt(tmp_path):
+    skill = make_skill(tmp_path, GOOD, prompt="Use $demo-skill to help me with my data.")
+    assert any("template" in p for p in validate_skills.check_skill(skill))
 
 
 def test_linter_requires_an_exclusion_clause(tmp_path):

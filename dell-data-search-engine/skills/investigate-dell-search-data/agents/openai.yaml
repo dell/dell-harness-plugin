@@ -1,4 +1,4 @@
 interface:
   display_name: "Investigate Dell Search Data"
   short_description: "Investigate governed DDSE data safely"
-  default_prompt: "Use $investigate-dell-search-data to investigate this question with the authorized DDSE tools."
+  default_prompt: "Why did checkout errors spike in the last hour? Show the log evidence with $investigate-dell-search-data."
