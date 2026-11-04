@@ -33,18 +33,13 @@ import dtlpy as dl
 import numpy as np
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
-from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import paging
 from ..context import dataloop_call, get_dataset, get_project, owned
 from ..guards import confirm_or_elicit, elicit_or_refuse, gate_local_compute
 from ..progress import report_progress
-
-READ_ONLY = ToolAnnotations(
-    read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
-)
-MUTATING = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=False)
+from ..safety import ADDITIVE, READ_ONLY
 
 # Extraction spins up a high-memory machine and runs a model over every item, so the ceiling is
 # a guard against embedding a very large dataset by accident, not a technical limit.
@@ -217,7 +212,7 @@ def register(mcp: MCPServer) -> None:
             ),
         }
 
-    @mcp.tool(title="Extract embeddings for a dataset", annotations=MUTATING)
+    @mcp.tool(title="Extract embeddings for a dataset", annotations=ADDITIVE)
     def dataset_embed(
         project_id: Annotated[str, Field(description="Project that owns the dataset.")],
         dataset_id: Annotated[str, Field(description="Dataset to embed.")],
@@ -407,7 +402,7 @@ def register(mcp: MCPServer) -> None:
             ),
         }
 
-    @mcp.tool(title="Semantic visual search over a dataset", annotations=MUTATING)
+    @mcp.tool(title="Semantic visual search over a dataset", annotations=ADDITIVE)
     def dataset_visual_search(
         project_id: Annotated[str, Field(description="Project that owns the dataset.")],
         dataset_id: Annotated[str, Field(description="Dataset to search in.")],

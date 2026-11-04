@@ -17,23 +17,16 @@ from typing import Annotated, Any, Literal
 import dtlpy as dl
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
-from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import outputs, paging, serialize
 from ..context import get_project, marketplace_dpks, owned
 from ..guards import confirm_or_elicit
 from ..progress import report_progress
+from ..safety import ADDITIVE, ADDITIVE_MARKETPLACE, DELETE, OVERWRITE, READ_ONLY
 from ..schemas import PiiMarkerSpec
 from .pii import apply_marker_filter, marker_exclusion_warning
 
-READ_ONLY = ToolAnnotations(
-    read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
-)
-MUTATING = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=False)
-DESTRUCTIVE = ToolAnnotations(
-    read_only_hint=False, destructive_hint=True, idempotent_hint=False, open_world_hint=False
-)
 INSTALLATION_FIELDS = {"components", "compute", "settings"}
 SERVICE_CONFIG_FIELDS = {"runtime", "autoscaler", "concurrency", "replicas", "resources"}
 
@@ -93,7 +86,7 @@ def model_ids_from_services(project: Any) -> list[str]:
 
 
 def register(mcp: MCPServer) -> None:
-    @mcp.tool(title="Install marketplace package", annotations=MUTATING)
+    @mcp.tool(title="Install marketplace package", annotations=ADDITIVE_MARKETPLACE)
     def model_install(
         project_id: Annotated[str, Field(description="Project to install the package into.")],
         dpk_id: Annotated[str | None, Field(description="Id of the DPK. Provide this or dpk_name.")] = None,
@@ -162,7 +155,7 @@ def register(mcp: MCPServer) -> None:
         filters.page_size = page_size
         return paging.from_paged(project.apps.list(filters=filters), serialize.app, limit=limit)
 
-    @mcp.tool(title="Create model", annotations=MUTATING)
+    @mcp.tool(title="Create model", annotations=ADDITIVE)
     def model_create(
         project_id: Annotated[str, Field(description="Project to create the model in.")],
         app_id: Annotated[str, Field(description="Installed app id, from model_install.")],
@@ -229,7 +222,7 @@ def register(mcp: MCPServer) -> None:
         )
         return serialize.model(model)
 
-    @mcp.tool(title="Deploy model", annotations=MUTATING)
+    @mcp.tool(title="Deploy model", annotations=ADDITIVE)
     def model_deploy(
         project_id: Annotated[str, Field(description="Project that owns the model.")],
         model_id: Annotated[str, Field(description="Id of the model to deploy.")],
@@ -269,7 +262,7 @@ def register(mcp: MCPServer) -> None:
         report_progress(ctx, 100, 100, "Model deployed.")
         return {"model_id": model_id, "service": serialize.service(service)}
 
-    @mcp.tool(title="Train model", annotations=MUTATING)
+    @mcp.tool(title="Train model", annotations=ADDITIVE)
     def model_train(
         project_id: Annotated[str, Field(description="Project that owns the model.")],
         model_id: Annotated[str, Field(description="Id of the model to train.")],
@@ -304,7 +297,7 @@ def register(mcp: MCPServer) -> None:
         )
         return serialize.model(owned(project, "models", "model", model_id=model_id))
 
-    @mcp.tool(title="Run a deployed model over items", annotations=MUTATING)
+    @mcp.tool(title="Run a deployed model over items", annotations=ADDITIVE)
     def model_predict(
         project_id: Annotated[str, Field(description="Project that owns the model.")],
         model_id: Annotated[
@@ -362,7 +355,7 @@ def register(mcp: MCPServer) -> None:
             ),
         }
 
-    @mcp.tool(title="Define a training or validation subset", annotations=MUTATING)
+    @mcp.tool(title="Define a training or validation subset", annotations=OVERWRITE)
     def model_set_subset(
         project_id: Annotated[str, Field(description="Project that owns the model.")],
         model_id: Annotated[str, Field(description="Model whose subset to define.")],
@@ -445,7 +438,7 @@ def register(mcp: MCPServer) -> None:
             "warning": " ".join(warnings) or None,
         }
 
-    @mcp.tool(title="Remove a subset definition", annotations=MUTATING)
+    @mcp.tool(title="Remove a subset definition", annotations=DELETE)
     def model_delete_subset(
         project_id: Annotated[str, Field(description="Project that owns the model.")],
         model_id: Annotated[str, Field(description="Model whose subset to remove.")],
@@ -500,7 +493,7 @@ def register(mcp: MCPServer) -> None:
         """Fetch one model by id."""
         return serialize.model(owned(get_project(project_id), "models", "model", model_id=model_id))
 
-    @mcp.tool(title="Delete model", annotations=DESTRUCTIVE)
+    @mcp.tool(title="Delete model", annotations=DELETE)
     def model_delete(
         project_id: Annotated[str, Field(description="Project that owns the model.")],
         model_id: Annotated[str, Field(description="Id of the model to delete.")],
@@ -517,7 +510,7 @@ def register(mcp: MCPServer) -> None:
         project.models.delete(model=model)
         return {"deleted": True, "id": model_id, "name": name}
 
-    @mcp.tool(title="Uninstall app", annotations=DESTRUCTIVE)
+    @mcp.tool(title="Uninstall app", annotations=DELETE)
     def app_uninstall(
         project_id: Annotated[str, Field(description="Project that owns the app.")],
         app_id: Annotated[str, Field(description="Id of the installed app to remove.")],

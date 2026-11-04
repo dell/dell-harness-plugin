@@ -43,7 +43,6 @@ from typing import Annotated, Any
 
 import dtlpy as dl
 from mcp.server import MCPServer
-from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import serialize
@@ -58,6 +57,7 @@ from ..blueprint import (
 from ..context import DoeError, dataloop_call, get_pipeline, get_project, owned
 from ..guards import confirm_or_elicit
 from ..routing import CachingRouter, LexicalRouter, catalogue_from
+from ..safety import IDEMPOTENT_WRITE, READ_ONLY
 from ..schemas import CodeNodeSpec, DatasetNodeSpec
 from .rag import (
     CHUNK_FOLDER,
@@ -68,9 +68,6 @@ from .rag import (
     TEXT_TO_CHUNKS_CODE,
     python_string_literal,
 )
-
-MUTATING = ToolAnnotations(read_only_hint=False, open_world_hint=False)
-READ_ONLY = ToolAnnotations(read_only_hint=True, open_world_hint=False)
 
 #: Process-wide, so the same request routes the same way for the life of the server. See
 #: `doe_mcp.routing` on why caching is where determinism is actually *added* here.
@@ -226,7 +223,7 @@ def _tool_catalogue(mcp: MCPServer) -> list[Any]:
 
 
 def register(mcp: MCPServer) -> None:
-    @mcp.tool(title="Build a RAG pipeline in one deterministic pass", annotations=MUTATING)
+    @mcp.tool(title="Build a RAG pipeline in one deterministic pass", annotations=IDEMPOTENT_WRITE)
     def rag_pipeline_build(
         project_id: Annotated[str, Field(description="Project to create the pipeline in.")],
         name: Annotated[str, Field(min_length=1, description="Name for the RAG pipeline.")],
