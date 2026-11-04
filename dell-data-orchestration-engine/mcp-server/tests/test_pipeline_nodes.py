@@ -15,11 +15,24 @@ import pytest
 
 from doe_mcp.schemas import CodeNodeSpec, DatasetNodeSpec, TaskNodeSpec
 from doe_mcp.tools import pipeline_nodes
+from tests.conftest import OwnedRepo
 
 CODE = "def run(item):\n    return item\n"
 
 
+def owning_project(project_id="proj-1"):
+    """A project whose dataset, model and service lookups pass the R04 ownership check."""
+    return SimpleNamespace(
+        id=project_id,
+        name="p",
+        datasets=OwnedRepo(project_id),
+        models=OwnedRepo(project_id),
+        services=OwnedRepo(project_id),
+    )
+
+
 def build_pipeline(project=None):
+    project = project if project is not None else owning_project()
     pipeline = dl.entities.Pipeline.from_json(
         _json={
             "id": "pipe-1",
@@ -45,8 +58,7 @@ def dataset_node(name, dataset_id="ds-1"):
 
 @pytest.fixture
 def pipeline(monkeypatch):
-    project = SimpleNamespace(id="proj-1", name="proj")
-    pipe = build_pipeline(project=project)
+    pipe = build_pipeline(project=owning_project())
     monkeypatch.setattr(pipeline_nodes, "get_pipeline", lambda project_id, pipeline_id: pipe)
     return pipe
 

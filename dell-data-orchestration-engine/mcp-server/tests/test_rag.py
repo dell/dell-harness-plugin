@@ -21,6 +21,7 @@ import dtlpy as dl
 import pytest
 
 from doe_mcp.tools import rag
+from tests.conftest import OwnedRepo
 
 
 @pytest.fixture
@@ -50,7 +51,9 @@ def mock_pipeline():
             "variables": [],
         },
         client_api=dl.client_api,
-        project=SimpleNamespace(id="proj-1", name="test_project"),
+        project=SimpleNamespace(
+            id="proj-1", name="test_project", datasets=OwnedRepo("proj-1"), models=OwnedRepo("proj-1")
+        ),
         is_fetched=False,
     )
     # Keep the graph local: update() would otherwise PATCH the platform.
@@ -391,7 +394,9 @@ def rag_query_platform(monkeypatch, mock_project, mock_dataset):
     }
     mock_dataset.items.get.side_effect = lambda item_id: chunks[item_id]
 
-    model = SimpleNamespace(id="model-1", embed=MagicMock(return_value=SimpleNamespace(wait=lambda: None)))
+    model = SimpleNamespace(
+        id="model-1", project_id="proj-1", embed=MagicMock(return_value=SimpleNamespace(wait=lambda: None))
+    )
     mock_project.models.get.return_value = model
 
     monkeypatch.setattr("doe_mcp.tools.rag.get_dataset", lambda pid, did: mock_dataset)
@@ -524,7 +529,9 @@ def test_rag_query_skips_vectors_for_non_chunk_items(call_tool, rag_query_platfo
 def test_rag_query_without_feature_set_is_an_error(call_tool, monkeypatch, mock_project, mock_dataset):
     """Nothing embedded yet means say so, not return an empty result that reads as 'no match'."""
     mock_dataset.feature_sets.list.return_value = SimpleNamespace(items=[])
-    mock_project.models.get.return_value = SimpleNamespace(id="model-1", embed=MagicMock())
+    mock_project.models.get.return_value = SimpleNamespace(
+        id="model-1", project_id="proj-1", embed=MagicMock()
+    )
     monkeypatch.setattr("doe_mcp.tools.rag.get_dataset", lambda pid, did: mock_dataset)
     monkeypatch.setattr("doe_mcp.tools.rag.get_project", lambda pid: mock_project)
 
@@ -660,7 +667,9 @@ def test_rag_query_refuses_side_effects_without_human_elicitation(
 ):
     feature_set = SimpleNamespace(id="fs-1", name="clip", model_id="model-1")
     mock_dataset.feature_sets.list.return_value = SimpleNamespace(items=[feature_set])
-    mock_project.models.get.return_value = SimpleNamespace(id="model-1", embed=MagicMock())
+    mock_project.models.get.return_value = SimpleNamespace(
+        id="model-1", project_id="proj-1", embed=MagicMock()
+    )
     monkeypatch.setattr("doe_mcp.tools.rag.get_dataset", lambda pid, did: mock_dataset)
     monkeypatch.setattr("doe_mcp.tools.rag.get_project", lambda pid: mock_project)
 
@@ -683,7 +692,9 @@ def test_embed_query_preserves_primary_error_and_reports_cleanup_failures():
         SimpleNamespace(items=[]),
         SimpleNamespace(items=[]),
     ]
-    model = SimpleNamespace(id="model-1", embed=MagicMock(side_effect=RuntimeError("embed boom")))
+    model = SimpleNamespace(
+        id="model-1", project_id="proj-1", embed=MagicMock(side_effect=RuntimeError("embed boom"))
+    )
 
     with pytest.raises(RuntimeError) as excinfo:
         rag.embed_query(dataset, model, "query", "fs-1")
@@ -707,7 +718,7 @@ def test_embed_query_reports_residual_vector_after_delete():
         SimpleNamespace(items=[feature]),
         SimpleNamespace(items=[feature]),
     ]
-    model = SimpleNamespace(id="model-1", embed=MagicMock(return_value=None))
+    model = SimpleNamespace(id="model-1", project_id="proj-1", embed=MagicMock(return_value=None))
 
     with pytest.raises(RuntimeError, match="embedding succeeded but cleanup failed") as excinfo:
         rag.embed_query(dataset, model, "query", "fs-1")

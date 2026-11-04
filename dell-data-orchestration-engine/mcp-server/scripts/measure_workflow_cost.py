@@ -206,6 +206,10 @@ class FakeModelsRepo:
     def list(self, filters=None) -> SimpleNamespace:
         return _page([])
 
+    def get(self, model_id: str) -> SimpleNamespace:
+        # The embedding node verifies its model belongs to the project before writing (R04).
+        return SimpleNamespace(id=model_id, project_id="proj-1")
+
 
 class FakeDpksRepo:
     def __init__(self, dpks: list[Any]):

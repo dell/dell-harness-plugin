@@ -104,3 +104,37 @@ def test_every_tool_module_exposes_a_register_function():
 
     for module in (*ALL_MODULES, *PROFILE_ONLY):
         assert callable(getattr(module, "register", None)), f"{module.__name__} has no register()"
+
+
+#: Project-level repositories whose ``get`` returns a resource that names its own project.
+PROJECT_SCOPED_REPOSITORIES = {"datasets", "pipelines", "models", "services", "triggers", "executions"}
+
+#: Lookups that are allowed to bypass `context`'s ownership helpers, each with its reason.
+UNVERIFIED_LOOKUP_EXCEPTIONS = {
+    # Looked up by name only to find an id, then re-fetched through context.get_pipeline.
+    ("skills.py", "pipelines"),
+}
+
+
+@pytest.mark.parametrize("path", sorted(SOURCES), ids=lambda p: p.name)
+def test_project_scoped_lookups_go_through_ownership_checks(path):
+    """R04: a `<repo>.get(...)` on a project-level repository must go through `context`, which
+    rejects a response owned by another project before any caller can use it. String literals
+    (code that runs on DOE's runners) are not calls, so the AST walk ignores them.
+    """
+    if path.name == "context.py":
+        return
+    offenders = []
+    for node in ast.walk(ast.parse(SOURCES[path])):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)):
+            continue
+        if node.func.attr != "get" or not isinstance(node.func.value, ast.Attribute):
+            continue
+        repository = node.func.value.attr
+        if (
+            repository in PROJECT_SCOPED_REPOSITORIES
+            and (path.name, repository) not in UNVERIFIED_LOOKUP_EXCEPTIONS
+        ):
+            offenders.append(f"line {node.lineno}: .{repository}.get(...)")
+
+    assert not offenders, f"{path.name} bypasses context ownership checks: {offenders}"

@@ -37,7 +37,7 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import paging
-from ..context import dataloop_call, get_dataset, get_project
+from ..context import dataloop_call, get_dataset, get_project, owned
 from ..guards import confirm_or_elicit, elicit_or_refuse, gate_local_compute
 from ..progress import report_progress
 
@@ -272,8 +272,7 @@ def register(mcp: MCPServer) -> None:
             )
         confirm_or_elicit(ctx, confirm, f"extract embeddings for {items_count or 'all'} item(s)", consequence)
 
-        project = get_project(project_id)
-        model = project.models.get(model_id=model_id)
+        model = owned(get_project(project_id), "models", "model", model_id=model_id)
         report_progress(ctx, 0, 100, f"Starting embedding extraction for {items_count or 'all'} item(s)...")
         dataloop_call(
             "embedding extraction",
@@ -491,8 +490,7 @@ def register(mcp: MCPServer) -> None:
                 ),
                 remedy="Pass query_vector instead to search without writing anything.",
             )
-            project = get_project(project_id)
-            model = dataloop_call("model lookup", lambda: project.models.get(model_id=model_id))
+            model = owned(get_project(project_id), "models", "model", model_id=model_id)
             # Deferred import: rag.py imports read_vectors/cosine_similarity from this module, so
             # importing embed_query at module level here would be circular.
             from .rag import embed_query

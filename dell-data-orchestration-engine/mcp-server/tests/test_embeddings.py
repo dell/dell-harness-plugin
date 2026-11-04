@@ -108,6 +108,8 @@ def test_status_reports_an_existing_feature_set(monkeypatch, call_tool):
 
 
 class FakeModel:
+    project_id = "proj-1"
+
     def __init__(self):
         self.embedded = None
 
@@ -497,8 +499,8 @@ def text_query_dataset(monkeypatch, feature_pages, missing_items=()):
         feature_pages=feature_pages,
         missing_items=missing_items,
     )
-    fake_model = SimpleNamespace(id="model-1")
-    proj = SimpleNamespace(models=SimpleNamespace(get=lambda model_id=None, **_: fake_model))
+    fake_model = SimpleNamespace(id="model-1", project_id="proj-1")
+    proj = SimpleNamespace(id="proj-1", models=SimpleNamespace(get=lambda model_id=None, **_: fake_model))
     monkeypatch.setattr(embeddings, "get_project", lambda project_id: proj)
     return dataset, fake_model
 

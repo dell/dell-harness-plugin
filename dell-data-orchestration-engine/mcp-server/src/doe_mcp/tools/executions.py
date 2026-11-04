@@ -35,7 +35,7 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import outputs, paging, serialize
-from ..context import dataloop_call, get_pipeline, get_project
+from ..context import dataloop_call, get_execution, get_pipeline, get_project
 from ..guards import confirm_or_elicit
 
 READ_ONLY = ToolAnnotations(
@@ -43,12 +43,6 @@ READ_ONLY = ToolAnnotations(
 )
 MUTATING = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=False)
 DESTRUCTIVE = ToolAnnotations(read_only_hint=False, destructive_hint=True, open_world_hint=False)
-
-
-def _execution_of(project: Any, execution_id: str) -> Any:
-    """Fetch one execution. `Executions` needs a project or a service to scope the lookup."""
-    repo = dl.repositories.Executions(client_api=dl.client_api, project=project)
-    return dataloop_call("execution lookup", lambda: repo.get(execution_id=execution_id))
 
 
 def register(mcp: MCPServer) -> None:
@@ -134,11 +128,11 @@ def register(mcp: MCPServer) -> None:
             "its work is abandoned mid-flight and partial writes are not rolled back",
         )
         project = get_project(project_id)
-        execution = _execution_of(project, execution_id)
+        execution = get_execution(project, execution_id)
         dataloop_call("execution terminate", lambda: execution.terminate())
         # Re-read rather than trusting terminate()'s return, the same discipline as the graph
         # mutations: the caller needs the platform's view of the status, not ours.
-        return {"terminated": True, "execution": serialize.execution(_execution_of(project, execution_id))}
+        return {"terminated": True, "execution": serialize.execution(get_execution(project, execution_id))}
 
     @mcp.tool(title="Validate a pipeline graph", annotations=READ_ONLY)
     def pipeline_validate(

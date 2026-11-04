@@ -43,7 +43,7 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import outputs, paging, serialize
-from ..context import dataloop_call, get_dataset, get_project
+from ..context import dataloop_call, get_dataset, get_project, owned
 from ..guards import elicit_or_refuse, gate_local_compute
 from ..schemas import CodeNodeSpec, DatasetNodeSpec
 from . import pipeline_nodes
@@ -513,6 +513,8 @@ def register(mcp: MCPServer) -> None:
         Add stages with rag_add_*, wire with pipeline_connect_nodes, then pipeline_install.
         """
         project = get_project(project_id)
+        owned(project, "datasets", "dataset", dataset_id=source_dataset_id)
+        owned(project, "datasets", "dataset", dataset_id=output_dataset_id)
 
         # Create the pipeline
         pipeline = project.pipelines.create(name=name, project_id=project_id)
@@ -528,7 +530,10 @@ def register(mcp: MCPServer) -> None:
         return serialize.pipeline(pipeline)
 
     def add_node(
-        project_id: str, pipeline_id: str, spec: CodeNodeSpec | DatasetNodeSpec
+        project_id: str,
+        pipeline_id: str,
+        spec: CodeNodeSpec | DatasetNodeSpec,
+        references: tuple[tuple[str, str], ...] = (),
     ) -> outputs.PipelineNodeResult:
         """Add one built node to a pipeline. Delegates to pipeline_nodes.add_node.
 
@@ -536,7 +541,7 @@ def register(mcp: MCPServer) -> None:
         read-modify-write race (see pipeline_nodes._retry_until_visible) covers every
         rag_add_*_node tool too, not just pipeline_node_add.
         """
-        return pipeline_nodes.add_node(project_id, pipeline_id, spec)
+        return pipeline_nodes.add_node(project_id, pipeline_id, spec, references)
 
     @mcp.tool(title="Add PDF filter node to RAG pipeline", annotations=MUTATING)
     def rag_add_pdf_filter_node(
@@ -586,6 +591,7 @@ def register(mcp: MCPServer) -> None:
             project_id,
             pipeline_id,
             CodeNodeSpec(node_type="code", name=node_name, code=code, position=position or (2, 1)),
+            (("dataset", output_dataset_id),),
         )
 
     @mcp.tool(title="Add text-to-chunks node", annotations=MUTATING)
@@ -618,6 +624,7 @@ def register(mcp: MCPServer) -> None:
             project_id,
             pipeline_id,
             CodeNodeSpec(node_type="code", name=node_name, code=code, position=position or (3, 1)),
+            (("dataset", output_dataset_id),),
         )
 
     @mcp.tool(title="Add embedding generation node", annotations=MUTATING)
@@ -649,6 +656,7 @@ def register(mcp: MCPServer) -> None:
             project_id,
             pipeline_id,
             CodeNodeSpec(node_type="code", name=node_name, code=code, position=position or (4, 1)),
+            (("dataset", output_dataset_id), ("model", model_id)),
         )
 
     @mcp.tool(title="Add output storage node", annotations=MUTATING)
@@ -701,8 +709,7 @@ def register(mcp: MCPServer) -> None:
         absent. Ranking is local over a bounded sample: check `scan_truncated`.
         """
         dataset = get_dataset(project_id, dataset_id)
-        project = get_project(project_id)
-        model = dataloop_call("model lookup", lambda: project.models.get(model_id=model_id))
+        model = owned(get_project(project_id), "models", "model", model_id=model_id)
         resolved_set = resolve_feature_set(dataset, model_id, feature_set_id)
 
         # Ranking happens here, not on the platform (dtlpy has no vector-distance query), so the
