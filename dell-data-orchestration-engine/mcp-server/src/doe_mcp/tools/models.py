@@ -324,8 +324,8 @@ def register(mcp: MCPServer) -> None:
 
         Two consequences to state before confirming. Inference is **billable**, per item over a
         whole dataset. And predictions are **written onto the items as annotations**, so a dataset
-        someone only wanted to explore comes back changed; `annotation_delete_by_model` undoes
-        exactly this model's contribution.
+        someone only wanted to explore comes back changed, until this model's annotations are
+        removed.
         """
         if bool(item_ids) == bool(dataset_id):
             raise ValueError("Provide exactly one of item_ids or dataset_id.")
@@ -382,7 +382,7 @@ def register(mcp: MCPServer) -> None:
 
         Without this, training draws on whatever the dataset holds — including items whose
         annotations nobody has reviewed, and items a PII scan flagged. Filtering on a review
-        marker written through `item_update` is what makes a review step actually bind;
+        marker in item metadata is what makes a review step actually bind;
         `exclude_pii` is what keeps flagged data out of a training run.
         """
         if metadata_field is None and annotated_only is None and directory is None and exclude_pii is None:

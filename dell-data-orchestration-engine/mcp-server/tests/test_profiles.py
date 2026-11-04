@@ -131,12 +131,13 @@ def test_plugin_v1_profile_is_exact_and_closes_feedback_gaps():
     offered = tool_names(["plugin-v1"])
 
     assert offered == PLUGIN_V1_TOOLS
-    assert len(offered) == 42
+    assert len(offered) == 43
     assert {
         "item_get",
         "annotation_get",
         "pipeline_list",
         "model_delete_subset",
+        "model_list",
         "pipeline_pause",
         "pipeline_delete",
     } <= offered
