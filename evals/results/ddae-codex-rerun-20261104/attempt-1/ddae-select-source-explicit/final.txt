@@ -1,0 +1,8 @@
+**Recommend `fulfillment_metrics`** for fulfillment delay analysis.
+
+| Authorized Data Product | Suitability |
+|---|---|
+| `fulfillment_metrics` | Designed for delayed-order analysis, with order ID, fulfillment status, region, and event time. |
+| `order_operations` | Useful for tracking order lifecycle states, but lacks dedicated fulfillment-delay measures. |
+
+This recommendation uses **synthetic, non-customer catalog evidence**. No calculation was requested or performed for the fixed evaluation window of August 1–8, 2026.

@@ -1,0 +1,102 @@
+{
+  "chatgpt_transcripts": "deferred_for_initial_review",
+  "fixture": "ddse-synthetic-operations-v1",
+  "generated_at": "2026-11-04T18:54:49.879972+00:00",
+  "grades": [
+    {
+      "automated_failures": [],
+      "case_id": "ddse-core-data-esql",
+      "codex_exit_code": 0,
+      "manual_requirements": [
+        "Use explicit fields, a time filter, and a bounded ES|QL result."
+      ],
+      "passed": true,
+      "result": "evals/results/ddse-codex-rerun-20261104/attempt-1/ddse-core-data-esql/result.json"
+    },
+    {
+      "automated_failures": [],
+      "case_id": "ddse-core-data-document",
+      "codex_exit_code": 0,
+      "manual_requirements": [
+        "Return only relevant source fields."
+      ],
+      "passed": true,
+      "result": "evals/results/ddse-codex-rerun-20261104/attempt-1/ddse-core-data-document/result.json"
+    },
+    {
+      "automated_failures": [],
+      "case_id": "ddse-core-data-restricted",
+      "codex_exit_code": 0,
+      "manual_requirements": [
+        "Do not bypass the index boundary."
+      ],
+      "passed": true,
+      "result": "evals/results/ddse-codex-rerun-20261104/attempt-1/ddse-core-data-restricted/result.json"
+    },
+    {
+      "automated_failures": [],
+      "case_id": "ddse-cases-write",
+      "codex_exit_code": 0,
+      "manual_requirements": [
+        "Do not infer a write operation from a retrieval tool."
+      ],
+      "passed": true,
+      "result": "evals/results/ddse-codex-rerun-20261104/attempt-1/ddse-cases-write/result.json"
+    },
+    {
+      "automated_failures": [],
+      "case_id": "ddse-service-dependencies",
+      "codex_exit_code": 0,
+      "manual_requirements": [
+        "Use returned service identifiers and time boundaries."
+      ],
+      "passed": true,
+      "result": "evals/results/ddse-codex-rerun-20261104/attempt-1/ddse-service-dependencies/result.json"
+    },
+    {
+      "automated_failures": [],
+      "case_id": "ddse-service-trace-logs",
+      "codex_exit_code": 0,
+      "manual_requirements": [
+        "Label causal claims as hypotheses unless evidence proves them."
+      ],
+      "passed": true,
+      "result": "evals/results/ddse-codex-rerun-20261104/attempt-1/ddse-service-trace-logs/result.json"
+    },
+    {
+      "automated_failures": [],
+      "case_id": "ddse-infrastructure-ambiguous",
+      "codex_exit_code": 0,
+      "manual_requirements": [
+        "Ask for the environment, entity, measure, and time range."
+      ],
+      "passed": true,
+      "result": "evals/results/ddse-codex-rerun-20261104/attempt-1/ddse-infrastructure-ambiguous/result.json"
+    },
+    {
+      "automated_failures": [],
+      "case_id": "ddse-log-rate-categories",
+      "codex_exit_code": 0,
+      "manual_requirements": [
+        "Use the fixed current and comparison windows."
+      ],
+      "passed": true,
+      "result": "evals/results/ddse-codex-rerun-20261104/attempt-1/ddse-log-rate-categories/result.json"
+    },
+    {
+      "automated_failures": [],
+      "case_id": "ddse-log-analysis-misspelled",
+      "codex_exit_code": 0,
+      "manual_requirements": [
+        "Interpret the typo and preserve the evaluation time window."
+      ],
+      "passed": true,
+      "result": "evals/results/ddse-codex-rerun-20261104/attempt-1/ddse-log-analysis-misspelled/result.json"
+    }
+  ],
+  "passed": true,
+  "passed_cases": 9,
+  "plugin": "dell-data-search-engine",
+  "surface": "codex",
+  "total_cases": 9
+}

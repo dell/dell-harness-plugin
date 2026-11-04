@@ -1,0 +1,3 @@
+Synthetic DDSE evidence confirms `checkout-api` is present and has one downstream dependency: **`payments-api`**.
+
+Window: `2026-08-01T00:00:00Z` through `2026-08-01T01:00:00Z`.

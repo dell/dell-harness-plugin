@@ -1,0 +1,3 @@
+The authorized Data Product is **fulfillment_metrics** (`dp_fulfillment_v1`). It provides governed order fulfillment metrics, including delayed-order analysis.
+
+This result is authorized for the current review identity. Returned evidence is synthetic, non-customer data.

@@ -1,0 +1,6 @@
+Synthetic evidence for checkout-api during **2026-08-01 00:00–01:00 UTC**:
+
+- DDSE trace metrics report a **35% failure rate** and return trace ID `trace-1042`.
+- Correlated logs for `trace-1042` report the category `payment_timeout`.
+
+This associates the returned trace with a payment timeout; it does not establish root cause. The investigation stayed within the requested trace metrics and correlated logs.

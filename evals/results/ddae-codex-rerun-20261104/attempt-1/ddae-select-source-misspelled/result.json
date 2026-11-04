@@ -1,0 +1,32 @@
+{
+  "audit_event_id": "ddae-eval-ead5a122-393d-42d6-aeac-e1eb1f62aa1d",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddae-select-source-misspelled",
+  "codex_exit_code": 0,
+  "final_answer": "Found **fulfillment_metrics** (`dp_fulfillment_v1`), the governed data product for order fulfilment metrics, including delayed-order analysis.\n\nThis evidence is synthetic, non-customer evaluation data.",
+  "fixture": "ddae-synthetic-commerce-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 12254,
+  "manual_checks": {
+    "Interpret the typo without silently broadening scope.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a1a7e8-d6af-7413-ad0b-43d4b55138ec",
+  "tool_calls": [
+    {
+      "arguments": {
+        "query": "fulfilment delays"
+      },
+      "name": "searchDataProducts",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/ddae-codex-rerun-20261104/attempt-1/ddae-select-source-misspelled/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 40704,
+    "input_tokens": 61976,
+    "output_tokens": 186,
+    "reasoning_output_tokens": 0
+  }
+}

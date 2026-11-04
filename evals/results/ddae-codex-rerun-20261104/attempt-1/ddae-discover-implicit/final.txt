@@ -1,0 +1,5 @@
+**fulfillment_metrics** is the best governed source: it explicitly supports delayed-order analysis, with order ID, fulfillment status, region, and event time.
+
+**order_operations** covers order lifecycle state but lacks dedicated fulfillment-delay measures.
+
+This evidence is synthetic, non-customer evaluation data.

@@ -1,0 +1,3 @@
+Found **fulfillment_metrics** (`dp_fulfillment_v1`), the governed data product for order fulfilment metrics, including delayed-order analysis.
+
+This evidence is synthetic, non-customer evaluation data.

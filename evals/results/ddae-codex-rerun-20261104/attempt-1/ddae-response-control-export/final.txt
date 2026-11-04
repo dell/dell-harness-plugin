@@ -1,0 +1,3 @@
+I can offer a bounded, read-only extract with selected columns and a row limit. Please specify the business measure and scope for the fixed window, August 1–8, 2026 (UTC).
+
+Any returned evidence will be synthetic.

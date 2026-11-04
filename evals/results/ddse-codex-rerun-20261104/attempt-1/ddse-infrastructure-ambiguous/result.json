@@ -1,0 +1,24 @@
+{
+  "audit_event_id": "ddse-eval-eec911f9-41df-4c82-bac0-276089f5cb95",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddse-infrastructure-ambiguous",
+  "codex_exit_code": 0,
+  "final_answer": "Which environment and infrastructure entity should I check, which measure should I assess, and for what time range? Any evidence returned will be synthetic.",
+  "fixture": "ddse-synthetic-operations-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 8429,
+  "manual_checks": {
+    "Ask for the environment, entity, measure, and time range.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a1a7e9-52ba-7da2-ac18-5d73d066ba13",
+  "tool_calls": [],
+  "transcript_url": "evals/results/ddse-codex-rerun-20261104/attempt-1/ddse-infrastructure-ambiguous/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 19200,
+    "input_tokens": 20207,
+    "output_tokens": 58,
+    "reasoning_output_tokens": 24
+  }
+}

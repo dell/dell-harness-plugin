@@ -1,0 +1,43 @@
+{
+  "audit_event_id": "ddse-eval-cdf2c714-076f-481f-9e7c-2973fb426534,ddse-eval-a0fdb02b-5a7b-4586-b21c-c8e520bd03ae",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddse-service-trace-logs",
+  "codex_exit_code": 0,
+  "final_answer": "Synthetic evidence for checkout-api during **2026-08-01 00:00\u201301:00 UTC**:\n\n- DDSE trace metrics report a **35% failure rate** and return trace ID `trace-1042`.\n- Correlated logs for `trace-1042` report the category `payment_timeout`.\n\nThis associates the returned trace with a payment timeout; it does not establish root cause. The investigation stayed within the requested trace metrics and correlated logs.",
+  "fixture": "ddse-synthetic-operations-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 18178,
+  "manual_checks": {
+    "Label causal claims as hypotheses unless evidence proves them.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a1a7e9-0bb3-7f12-8ab2-b798126dd11a",
+  "tool_calls": [
+    {
+      "arguments": {
+        "end": "2026-08-01T01:00:00Z",
+        "service_name": "checkout-api",
+        "start": "2026-08-01T00:00:00Z"
+      },
+      "name": "observability_get_trace_metrics",
+      "status": "completed"
+    },
+    {
+      "arguments": {
+        "end": "2026-08-01T01:00:00Z",
+        "start": "2026-08-01T00:00:00Z",
+        "trace_id": "trace-1042"
+      },
+      "name": "observability_get_correlated_logs",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/ddse-codex-rerun-20261104/attempt-1/ddse-service-trace-logs/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 63616,
+    "input_tokens": 86206,
+    "output_tokens": 327,
+    "reasoning_output_tokens": 0
+  }
+}

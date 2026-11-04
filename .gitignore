@@ -35,3 +35,9 @@ evals/results/ddse-codex-initial-review-20260910/*
 evals/results/doe-initial-review-20260911/*
 !evals/results/doe-initial-review-20260911/REVIEW.md
 !evals/results/doe-initial-review-20260911/contract.json
+!evals/results/doe-live-20261104/
+!evals/results/doe-live-20261104/**
+!evals/results/ddae-codex-rerun-20261104/
+!evals/results/ddae-codex-rerun-20261104/**
+!evals/results/ddse-codex-rerun-20261104/
+!evals/results/ddse-codex-rerun-20261104/**
