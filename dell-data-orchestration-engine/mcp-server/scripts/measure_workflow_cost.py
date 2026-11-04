@@ -4,7 +4,7 @@
 
 """Measure real per-workflow turn and token counts for the three `docs/guides/*.md` walkthroughs.
 
-Phase 0 exit criterion (docs/plans/AGENT_OPTIMIZATION_HARNESS_SLM_PLAN.md §4): every number used
+Phase 0 exit criterion of the upstream doe-mcp optimisation plan: every number used
 to justify a later phase must be measured, not estimated. This drives one representative
 happy-path tool-call sequence per guide through the real in-memory MCP client — the same
 `Client(mcp)` a host uses — with dtlpy mocked at the seams (`dl.projects.get/list`,
@@ -205,6 +205,10 @@ class FakeAppsRepo:
 class FakeModelsRepo:
     def list(self, filters=None) -> SimpleNamespace:
         return _page([])
+
+    def get(self, model_id: str) -> SimpleNamespace:
+        # The embedding node verifies its model belongs to the project before writing (R04).
+        return SimpleNamespace(id=model_id, project_id="proj-1")
 
 
 class FakeDpksRepo:

@@ -10,21 +10,13 @@ from typing import Annotated, Any, Literal
 import dtlpy as dl
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
-from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import outputs, paging, serialize
 from ..context import get_pipeline, get_project, marketplace_dpks
 from ..guards import confirm_or_elicit
 from ..progress import report_progress
-
-READ_ONLY = ToolAnnotations(
-    read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
-)
-MUTATING = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=False)
-DESTRUCTIVE = ToolAnnotations(
-    read_only_hint=False, destructive_hint=True, idempotent_hint=False, open_world_hint=False
-)
+from ..safety import ADDITIVE, ADDITIVE_MARKETPLACE, DELETE, IDEMPOTENT_WRITE, OVERWRITE, READ_ONLY
 
 ResumeOption = Literal["terminateExistingCycles", "resumeExistingCycles"]
 
@@ -149,7 +141,7 @@ def register(mcp: MCPServer) -> None:
         pipeline = get_pipeline(project_id, pipeline_id)
         return serialize.pipeline(pipeline, include_graph=include_graph)
 
-    @mcp.tool(title="Create pipeline", annotations=MUTATING)
+    @mcp.tool(title="Create pipeline", annotations=ADDITIVE)
     def pipeline_create(
         project_id: Annotated[str, Field(description="Project to create the pipeline in.")],
         name: Annotated[str, Field(min_length=1, description="Name for the new pipeline.")],
@@ -167,7 +159,7 @@ def register(mcp: MCPServer) -> None:
             pipeline = project.pipelines.update(pipeline=pipeline)
         return serialize.pipeline(pipeline)
 
-    @mcp.tool(title="Create pipeline from marketplace template", annotations=MUTATING)
+    @mcp.tool(title="Create pipeline from marketplace template", annotations=ADDITIVE_MARKETPLACE)
     def pipeline_create_from_template(
         project_id: Annotated[str, Field(description="Project to create the pipeline in.")],
         dpk_id: Annotated[str | None, Field(description="Id of the DPK. Provide this or dpk_name.")] = None,
@@ -238,7 +230,7 @@ def register(mcp: MCPServer) -> None:
         result["validation"] = serialize.json_safe(validation)
         return result
 
-    @mcp.tool(title="Delete pipeline", annotations=DESTRUCTIVE)
+    @mcp.tool(title="Delete pipeline", annotations=DELETE)
     def pipeline_delete(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Id of the pipeline to delete.")],
@@ -257,7 +249,7 @@ def register(mcp: MCPServer) -> None:
         pipeline.project.pipelines.delete(pipeline_id=pipeline_id)
         return {"deleted": True, "id": pipeline_id, "name": name}
 
-    @mcp.tool(title="Install pipeline", annotations=MUTATING)
+    @mcp.tool(title="Install pipeline", annotations=ADDITIVE)
     def pipeline_install(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Id of the pipeline to start.")],
@@ -284,7 +276,7 @@ def register(mcp: MCPServer) -> None:
         report_progress(ctx, 100, 100, "Pipeline installed.")
         return serialize.pipeline(installed or pipeline)
 
-    @mcp.tool(title="Pause pipeline", annotations=MUTATING)
+    @mcp.tool(title="Pause pipeline", annotations=IDEMPOTENT_WRITE)
     def pipeline_pause(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Id of the pipeline to pause.")],
@@ -298,7 +290,7 @@ def register(mcp: MCPServer) -> None:
         pipeline.project.pipelines.pause(pipeline=pipeline, keep_triggers_active=keep_triggers_active)
         return serialize.pipeline(get_pipeline(project_id, pipeline_id))
 
-    @mcp.tool(title="Reset pipeline counters", annotations=MUTATING)
+    @mcp.tool(title="Reset pipeline counters", annotations=OVERWRITE)
     def pipeline_reset(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Id of the pipeline to reset.")],
@@ -320,7 +312,7 @@ def register(mcp: MCPServer) -> None:
         pipeline = get_pipeline(project_id, pipeline_id)
         return _stats(pipeline.project.pipelines.stats(pipeline=pipeline))
 
-    @mcp.tool(title="Update pipeline settings", annotations=MUTATING)
+    @mcp.tool(title="Update pipeline settings", annotations=OVERWRITE)
     def pipeline_update_settings(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Id of the pipeline.")],

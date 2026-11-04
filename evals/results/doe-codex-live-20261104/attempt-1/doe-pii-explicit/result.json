@@ -1,0 +1,14 @@
+{
+  "case_id": "doe-pii-explicit",
+  "passed": true,
+  "failures": [],
+  "tool_path": [
+    "project_list",
+    "dataset_list",
+    "pii_report",
+    "pii_report",
+    "pii_report"
+  ],
+  "latency_s": 23.8,
+  "codex_exit_code": 0
+}

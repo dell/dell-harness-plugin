@@ -1,0 +1,1 @@
+{"arguments": {"query": "fulfilment delays"}, "case_id": "ddae-select-source-misspelled", "event_id": "ddae-eval-ead5a122-393d-42d6-aeac-e1eb1f62aa1d", "event_type": "mcp_tool_call", "sequence": 1, "source": "codex_jsonl_transcript", "status": "completed", "timestamp": "2026-11-04T18:53:48.944525+00:00", "tool": "searchDataProducts"}

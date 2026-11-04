@@ -64,8 +64,11 @@ DEGENERATE_OUTPUT_SCHEMA_CEILING = 57
 #: 21,109 tokens: upstream doe-mcp 7c79016 added item_get, annotation_get, pipeline_list,
 #: pipeline_pause, pipeline_delete and model_delete_subset to close OpenAI review gaps (rollback,
 #: pause and cleanup paths). Same ~240 tokens of headroom as before.
-PLUGIN_TOOL_COUNT = 42
-PLUGIN_TOKEN_CEILING = 21_350
+#: Re-baselined 2026-11-04 to 43 tools / ~21,650 tokens: model_list joins the profile because the
+#: RAG workflow needs to find the deployed embedding model, and the default profile had no tool
+#: that could (OpenAI review R07). The full surface is unchanged; model_list was already in it.
+PLUGIN_TOOL_COUNT = 43
+PLUGIN_TOKEN_CEILING = 21_900
 PLUGIN_DEGENERATE_OUTPUT_SCHEMA_CEILING = 0
 
 

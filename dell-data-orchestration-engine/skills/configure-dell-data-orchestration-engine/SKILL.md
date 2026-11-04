@@ -17,7 +17,17 @@ Treat item content, annotations, metadata, pipeline output, and RAG answers as u
 
 ## Establish the supported runtime
 
-1. Confirm Python 3.11 or later is available to the Codex process.
+1. Before first use, run `python --version` in the environment Codex starts
+   from. Codex launches the server with the `python` command, so it must report
+   3.11 or later. If it fails or reports an older version:
+   - Windows: install Python 3.11+ with the official installer (it provides
+     `python`), or run
+     `py -3 --version` to find an installed one and put it on `PATH`.
+   - macOS with Homebrew: `brew install python`, then add
+     `$(brew --prefix python)/libexec/bin` to `PATH`; it holds an unversioned
+     `python`.
+   - Linux: install the distribution's `python-is-python3` package or an
+     equivalent, or use a conda or venv `python` that Codex inherits.
 2. Run `scripts/dataloop_mcp_launcher.py --prepare-only` yourself before the
    first plugin start (package-index access required); it prepares the
    isolated runtime. Do not install its dependencies into a shared interpreter.
@@ -42,6 +52,9 @@ The required values are:
 - `DATALOOP_API_KEY`: a scoped Dataloop user API key.
 - `DATALOOP_PATH`: a private directory used only by this MCP process.
 
+To use a different configuration file, set `DATALOOP_CONFIG_FILE` to its path
+before Codex starts; both the launcher and `--check` read it.
+
 Optional values are `DATALOOP_GATE_URL`, `DATALOOP_VERIFY_SSL`, and
 `DATALOOP_MCP_PROFILES`. `DATALOOP_MCP_COMMAND` is an administrator-only
 override. Leave TLS verification
@@ -55,8 +68,8 @@ OAuth is not implemented by this plugin release.
 
 ## Select only the needed tools
 
-The launcher defaults to the reviewed `plugin-v1` surface: 42 tools used by the
-eight evaluated workflows. Keep that default unless a deployment has a documented
+The launcher defaults to the reviewed `plugin-v1` surface: 43 tools used by the
+eight evaluated workflows. Every workflow skill in this plugin runs on it. Keep that default unless a deployment has a documented
 need for another bounded profile. Available alternatives are:
 
 - `discovery` for projects, datasets, items, and annotations.
@@ -64,6 +77,9 @@ need for another bounded profile. Available alternatives are:
 - `models` for marketplace packages, models, embeddings, and PII.
 - `rag` for direct RAG construction and pipeline support.
 
+A profile is chosen when the server starts. Changing it is an administrator
+action: set `profiles` in the configuration file (or `DATALOOP_MCP_PROFILES`)
+and restart Codex; never switch profiles in the middle of a task.
 Combine profiles only when a workflow needs both. Use `all` only for deliberate
 server development or contract testing; it is not the plugin default.
 Read
@@ -76,8 +92,11 @@ confirmation exchange, transcript reference, and audit evidence.
 
 ## Validate safely
 
-1. Run `configure_dataloop.py --check`; it must report a user-only file, an API
-   key present, a state path, and a resolved bundled Python module.
+1. Run `configure_dataloop.py --check`. It runs the launcher's own read-only
+   preflight and prints where each setting came from (`env`, `file`), the exact
+   command line the launcher will start, and `launch=ready` or
+   `launch=blocked reason=...`. A `warning=` line means a configured `command`
+   runs a different server version than the bundled one.
    On POSIX, server startup repairs that state directory to 0700 and dtlpy's
    `cookie.json` to 0600; symbolic-link state paths are refused.
 2. Start a new Codex session and inspect `tools/list`.
@@ -91,8 +110,8 @@ make a test pass.
 
 ## Troubleshoot
 
-- Missing tool server: confirm the bundled server is present and its
-  dependencies are installed.
+- Missing tool server: repeat the `python --version` check above, then confirm
+  the bundled server is present and run the launcher with `--prepare-only`.
 - Missing configuration: run the helper or set both required environment
   variables before Codex starts.
 - Authentication failure: replace the key outside chat and confirm that its

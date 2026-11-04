@@ -67,6 +67,11 @@ def check_skill(skill_dir: Path):
                 problems.append(f"agents/openai.yaml missing interface.{key}")
         if interface.get("default_prompt") and f"${skill_dir.name}" not in interface["default_prompt"]:
             problems.append(f"agents/openai.yaml default_prompt must mention ${skill_dir.name}")
+        if re.match(r"\s*use\s+\$", str(interface.get("default_prompt", "")), re.IGNORECASE):
+            problems.append(
+                "agents/openai.yaml default_prompt is the 'Use $skill to ...' template; "
+                "write a concrete user request instead"
+            )
     for ref in re.findall(r"\]\((references/[^)#]+)", body):
         if not (skill_dir / ref).is_file():
             problems.append(f"broken reference link {ref}")

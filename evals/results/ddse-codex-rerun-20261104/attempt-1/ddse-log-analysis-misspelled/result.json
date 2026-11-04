@@ -1,0 +1,45 @@
+{
+  "audit_event_id": "ddse-eval-db56e2bc-7f05-498f-9726-5054cce8cfdc,ddse-eval-14295401-ca3e-4fba-a497-0546c282e765",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddse-log-analysis-misspelled",
+  "codex_exit_code": 0,
+  "final_answer": "The synthetic DDSE evidence points to payment timeouts as the likely contributor to checkout\u2019s log spike:\n\n- Log volume rose from **10 to 34** (**+240%**) between the comparison hour and 2026-08-01 00:00\u201301:00 UTC.\n- The current window contains **24 `payment_timeout` logs**, about **71%** of its total.\n\nThose 24 timeout logs numerically match the increase of 24 logs. However, without comparison-window categories, this supports a likely explanation rather than proving which category increased or why the timeouts occurred.",
+  "fixture": "ddse-synthetic-operations-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 17208,
+  "manual_checks": {
+    "Interpret the typo and preserve the evaluation time window.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a1a7e9-b15e-7641-bbb7-b23f0d91c27a",
+  "tool_calls": [
+    {
+      "arguments": {
+        "end": "2026-08-01T01:00:00Z",
+        "service_name": "checkout",
+        "start": "2026-08-01T00:00:00Z"
+      },
+      "name": "observability_get_log_categories",
+      "status": "completed"
+    },
+    {
+      "arguments": {
+        "comparison_end": "2026-08-01T00:00:00Z",
+        "comparison_start": "2026-07-31T23:00:00Z",
+        "current_end": "2026-08-01T01:00:00Z",
+        "current_start": "2026-08-01T00:00:00Z",
+        "service_name": "checkout"
+      },
+      "name": "observability_run_log_rate_analysis",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/ddse-codex-rerun-20261104/attempt-1/ddse-log-analysis-misspelled/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 41856,
+    "input_tokens": 64273,
+    "output_tokens": 442,
+    "reasoning_output_tokens": 41
+  }
+}

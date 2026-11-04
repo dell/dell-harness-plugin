@@ -486,6 +486,15 @@ def test_agentic_rag_outcome_check_requires_graph_and_install_evidence():
     assert "does not contain five nodes" in trace.outcome_check(choreography_only)
     assert trace.outcome_check(working) == ""
 
+    def query(cleanup):
+        return ToolCall(name="rag_query", payload={"results": [], "query_cleanup": cleanup})
+
+    clean = {"vector": {"status": "verified_absent"}, "item": {"status": "verified_absent"}}
+    residual = {"vector": {"status": "residual"}, "item": {"status": "verified_absent"}}
+    assert trace.outcome_check([*working, query(clean)]) == ""
+    assert "rag_query left its temporary vector" in trace.outcome_check([*working, query(residual)])
+    assert "no query_cleanup" in trace.outcome_check([*working, query(None)])
+
 
 # --- operator replies --------------------------------------------------------------------
 

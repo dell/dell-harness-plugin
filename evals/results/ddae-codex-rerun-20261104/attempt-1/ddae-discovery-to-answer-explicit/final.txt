@@ -1,0 +1,7 @@
+DDAE returned **17 distinct delayed orders** in the synthetic evaluation data.
+
+- **Governed source:** `fulfillment_metrics` (`dp_fulfillment_v1`), which explicitly supports delayed-order analysis. The other authorized match, `order_operations`, lacks dedicated fulfillment-delay measures.
+- **Calculation:** Count distinct `order_id` values where `fulfillment_status = 'delayed'`, with `event_time` ≥ `2026-08-01T00:00:00Z` and < `2026-08-08T00:00:00Z`.
+- **Evidence:** Query `ddae-synthetic-delayed-orders-v1` returned one aggregate row without truncation. Audit event: `ddae-fixture-27322d09-2141-410f-a19a-12333ddfe299`.
+
+This evidence is **synthetic, non-customer data**.

@@ -64,6 +64,49 @@ def _no_platform_network(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(type(dl.client_api), method, refuse)
 
 
+@pytest.fixture(autouse=True)
+def _undeclared_mock_owners_are_not_under_test(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Let a bare ``MagicMock`` resource pass the project-ownership check.
+
+    Most tool tests fake platform entities with ``MagicMock``, whose ``project_id`` is an
+    auto-created child mock: the fake never declared an owner, so the ownership check is not
+    what that test is about. Any fake that *does* declare one (a string ``project_id`` or a
+    ``project.id``) is still checked strictly, which is how ``test_context`` and the R04 tests
+    exercise rejection. Production code never sees this fixture.
+    """
+    from unittest.mock import Base
+
+    from doe_mcp import context
+
+    strict = context._verify_resource_project
+
+    def verify(resource: Any, project_id: str, resource_name: str) -> Any:
+        owner = getattr(resource, "project_id", None)
+        if owner is None and getattr(resource, "project", None) is not None:
+            owner = getattr(resource.project, "id", None)
+        if isinstance(owner, Base):
+            return resource
+        return strict(resource, project_id, resource_name)
+
+    monkeypatch.setattr(context, "_verify_resource_project", verify)
+
+
+class OwnedRepo:
+    """A repository whose ``get`` returns a resource owned by ``project_id``.
+
+    For fakes that only need the project-ownership check (R04) to pass; tests about rejection
+    build their own mismatching resources.
+    """
+
+    def __init__(self, project_id: str) -> None:
+        self.project_id = project_id
+
+    def get(self, **lookup: Any) -> Any:
+        from types import SimpleNamespace
+
+        return SimpleNamespace(id=next(iter(lookup.values())), project_id=self.project_id)
+
+
 class FakeRepo:
     """Records calls and returns canned entities."""
 

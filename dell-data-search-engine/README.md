@@ -6,6 +6,15 @@ Streamable HTTP MCP endpoint in a customer-managed Dell Data Search Engine
 package contains no endpoint, API key, Kibana space, certificate, or customer
 data.
 
+## Before you install
+
+This plugin contains skills only. It needs a deployed Dell AI Data Platform
+(AIDP) instance whose Data Search Engine release includes the Elastic Kibana
+Agent Builder MCP server, and that MCP endpoint must be registered in Codex
+before the skills can do anything. There is no public or demo endpoint. See the
+[Dell AI Data Platform](https://www.dell.com/en-us/shop/artificial-intelligence/sc/ai-data-platform) documentation for the AIDP and Elastic
+releases that support the MCP server.
+
 ## Customer capabilities
 
 Depending on the Elastic release, license, Kibana space, installed content,

@@ -5,7 +5,46 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/). Each release
 heading lists the plugin versions it ships; plugins are tagged
 `<plugin>/v<version>`.
 
-## Unreleased
+## Unreleased: `dell-data-orchestration-engine` 0.6.0, `dell-data-analytics-engine` 0.2.1, `dell-data-search-engine` 0.2.1, `dell-ai-factory-agentic-workspace` 0.5.1
+
+### Security
+
+- `dell-data-orchestration-engine` 0.6.0: every project-level lookup (models,
+  services, triggers, executions, a model's own dataset, and the datasets and
+  models written into RAG code nodes) now rejects a resource owned by another
+  project before any read or write. Previously only dataset and pipeline lookups
+  were checked. A convention test fails on any new unchecked lookup.
+
+### Changed
+
+- MCP safety labels are corrected and pinned for all 72 DOE tools: deleting an
+  exact target and overwriting state in place are destructive and idempotent,
+  pausing is idempotent, and marketplace reads and installs are open-world. Every
+  profile now advertises all four hints.
+- `model_list` joins the default `plugin-v1` profile (43 tools) so the RAG
+  workflow can find its embedding model.
+- DOE skills and advertised tool text name only tools the default profile has,
+  no longer ask the agent to switch profiles, and teach the pipeline stop path:
+  pause, confirm it is no longer installed, then check for in-flight runs.
+- Every skill's sample prompt is a concrete request instead of the
+  "Use $skill to ..." template; the skill linter rejects the template.
+- DDAE and DDSE READMEs and setup skills state that a deployed Dell AI Data
+  Platform instance with the vendor MCP server is required.
+- Every plugin's square listing icon is now built from the brand-approved Dell
+  Technologies logo (`scripts/make_square_icon.py PATH_TO_LOGO`).
+- The DOE setup skill checks `python --version` before first use and gives the
+  Windows, macOS and Linux fix when `python` is missing or older than 3.11.
+
+### Fixed
+
+- `configure_dataloop.py --check` reports the launcher's own read-only
+  preflight: the same precedence (environment over file), the same errors, the
+  source of every setting, the exact command line, and the server version a
+  configured `command` runs. It previously reported a ready command that the
+  launcher then refused.
+- The DOE package ships `docs/eval.md` and the workflow guides the code cites.
+- The RAG golden trace fails when `rag_query` leaves its temporary item or
+  vector behind.
 
 ### Documentation
 

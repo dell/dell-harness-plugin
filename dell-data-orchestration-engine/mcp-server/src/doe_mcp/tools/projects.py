@@ -7,16 +7,12 @@ from typing import Annotated
 
 import dtlpy as dl
 from mcp.server import MCPServer
-from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import outputs, paging, serialize
 from ..auth import ensure_authenticated
 from ..context import get_project
-
-READ_ONLY = ToolAnnotations(
-    read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
-)
+from ..safety import READ_ONLY
 
 
 def register(mcp: MCPServer) -> None:

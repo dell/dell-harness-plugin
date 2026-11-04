@@ -1,4 +1,4 @@
 interface:
   display_name: "Explore Dataloop Datasets"
   short_description: "Profile and search authorized Dataloop datasets."
-  default_prompt: "Use $explore-dataloop-datasets to help me understand an authorized Dataloop dataset."
+  default_prompt: "What's in my product-images dataset, and how complete are its labels? Use $explore-dataloop-datasets."

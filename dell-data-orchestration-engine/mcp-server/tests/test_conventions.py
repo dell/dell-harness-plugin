@@ -9,6 +9,7 @@ exception, the exception is named explicitly — an unnamed one fails, which is 
 """
 
 import ast
+import re
 import pathlib
 
 import pytest
@@ -104,3 +105,65 @@ def test_every_tool_module_exposes_a_register_function():
 
     for module in (*ALL_MODULES, *PROFILE_ONLY):
         assert callable(getattr(module, "register", None)), f"{module.__name__} has no register()"
+
+
+#: Project-level repositories whose ``get`` returns a resource that names its own project.
+PROJECT_SCOPED_REPOSITORIES = {
+    "datasets",
+    "pipelines",
+    "models",
+    "services",
+    "triggers",
+    "executions",
+    "apps",
+}
+
+# Not checked here, by design: dataset-scoped repositories (`dataset.items`, `dataset.annotations`,
+# `dataset.features`). They are reached only through a dataset that `context` has already
+# verified, and item responses do not reliably carry a project identity to check again.
+
+#: Lookups that are allowed to bypass `context`'s ownership helpers, each with its reason.
+UNVERIFIED_LOOKUP_EXCEPTIONS = {
+    # Looked up by name only to find an id, then re-fetched through context.get_pipeline.
+    ("skills.py", "pipelines"),
+}
+
+
+@pytest.mark.parametrize("path", sorted(SOURCES), ids=lambda p: p.name)
+def test_project_scoped_lookups_go_through_ownership_checks(path):
+    """R04: a `<repo>.get(...)` on a project-level repository must go through `context`, which
+    rejects a response owned by another project before any caller can use it. String literals
+    (code that runs on DOE's runners) are not calls, so the AST walk ignores them.
+    """
+    if path.name == "context.py":
+        return
+    offenders = []
+    for node in ast.walk(ast.parse(SOURCES[path])):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)):
+            continue
+        if node.func.attr != "get" or not isinstance(node.func.value, ast.Attribute):
+            continue
+        repository = node.func.value.attr
+        if (
+            repository in PROJECT_SCOPED_REPOSITORIES
+            and (path.name, repository) not in UNVERIFIED_LOOKUP_EXCEPTIONS
+        ):
+            offenders.append(f"line {node.lineno}: .{repository}.get(...)")
+
+    assert not offenders, f"{path.name} bypasses context ownership checks: {offenders}"
+
+
+def test_every_cited_document_ships_with_the_server():
+    """R08: a `docs/...md` path cited by shipped code must exist.
+
+    Resolved against this server's root, or, when it is bundled in the plugin repository, that
+    repository's root.
+    """
+    root = SRC.parents[1]
+    bases = [root, root.parents[1]]
+    cited = set()
+    for path in [*SRC.rglob("*.py"), *(root / "scripts").glob("*.py")]:
+        cited |= set(re.findall(r"docs/[A-Za-z0-9_./-]+\.md", path.read_text(encoding="utf-8")))
+    missing = sorted(path for path in cited if not any((base / path).is_file() for base in bases))
+
+    assert missing == []

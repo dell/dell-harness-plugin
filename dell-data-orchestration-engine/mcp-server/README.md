@@ -35,7 +35,7 @@ mirror of another repository. It is synchronized with the upstream DOE MCP
 server as of 2026-09-21; upstream changes are merged three-way so the typed
 output contracts above are preserved.
 
-The default plugin launcher exposes 42 tools. The 2026-09-21 upstream sync adds
+The default plugin launcher exposes 43 tools. The 2026-09-21 upstream sync adds
 `item_get`, `annotation_get`, `pipeline_list`, `pipeline_pause`,
 `pipeline_delete`, and `model_delete_subset` for exact inspection and rollback.
 It also deletes and verifies each temporary `rag_query` item and vector,

@@ -1,0 +1,7 @@
+Retrieved `order-1042` from `synthetic-orders-v1`.
+
+- Failure event: `payment_timeout`
+- Service: `checkout-api`
+- Timestamp: `2026-08-01T00:42:00Z`, within the fixed current window.
+
+This is synthetic evidence. The document records a payment timeout but provides no root cause or final order outcome.

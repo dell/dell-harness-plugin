@@ -7,11 +7,21 @@ plugin launcher.
 
 ## Plugin v1 default profile
 
-The default contains the 42 tools listed in `evals/cases/dataloop.json` under
+The default contains the 43 tools listed in `evals/cases/dataloop.json` under
 `declared_tools`. They cover authorization discovery, bounded dataset
-exploration, RAG, pipeline execution and recovery, PII assessment, image-classifier lifecycle, exact cleanup, and inspection and rollback of exact items, annotations, pipelines, and model subsets.
+exploration, RAG (including `model_list` to find the deployed embedding model),
+pipeline execution, pause and deletion, PII assessment and training exclusion,
+image-classifier lifecycle, exact cleanup, and inspection and rollback of exact
+items, annotations, pipelines, and model subsets. Every workflow skill in this
+plugin uses only these tools.
 
-## Discovery profile
+## Administrator-only profiles
+
+The profiles below are for server development and administrator-managed
+deployments. Workflow skills never rely on them. Selecting one means editing the
+configuration file or `DATALOOP_MCP_PROFILES` and restarting Codex.
+
+### Discovery profile
 
 Projects:
 
@@ -29,7 +39,7 @@ Annotations:
   `annotation_create`, `annotation_delete`,
   `annotation_delete_by_model`
 
-## Pipelines profile
+### Pipelines profile
 
 Pipeline lifecycle:
 
@@ -52,7 +62,7 @@ Triggers:
 
 - `trigger_create`, `trigger_list`, `trigger_get`, `trigger_delete`
 
-## Models profile
+### Models profile
 
 Marketplace and application lifecycle:
 
@@ -74,7 +84,7 @@ PII:
 
 - `pii_report`, `pii_set_findings`, `pii_writeback_code`, `pii_filter`
 
-## RAG profile
+### RAG profile
 
 - `rag_pipeline_create`, `rag_add_pdf_filter_node`,
   `rag_add_pdf_to_text_node`, `rag_add_text_to_chunks_node`,
@@ -89,8 +99,11 @@ rename tools merely to repeat the product name in every call.
 
 ## Safety contract
 
-Read-only calls use read-only and idempotent MCP annotations. Mutating and destructive calls
-are distinguished. Open-world access is marked false. The server validates
+Every tool declares all four MCP hints, pinned by `tests/test_tool_safety_labels.py`.
+Read-only calls are read-only and idempotent. Deleting an exact target or
+overwriting state in place is destructive. Marketplace reads and installs are
+open-world because packages come from third-party publishers; everything else is
+not. The server validates
 inputs and raises tool errors rather than returning an error-shaped success.
 
 Long-running, billable, persistent, destructive, and generated-code operations
@@ -105,11 +118,9 @@ confirmation whenever adapter-specific `configuration` overrides are supplied.
 
 - The `dtlpy` SDK uses one authenticated identity per process.
 - The current integration uses API keys, not OAuth.
-- The complete development surface is about 31,500 measured tokens. The
-  focused 42-tool
-  default is about 21,100 measured tokens with typed output contracts; use an
-  even smaller profile when a
-  deployment needs only one functional group.
+- The complete development surface is about 31,600 measured tokens. The
+  focused 43-tool default is about 21,650 measured tokens with typed output
+  contracts.
 - The focused tools have named, typed output contracts. Tools outside that
   surface remain outside the reviewed plugin profile and may still use generic output schemas.
 - Marketplace search may scan a capped result set and locally filter it; inspect

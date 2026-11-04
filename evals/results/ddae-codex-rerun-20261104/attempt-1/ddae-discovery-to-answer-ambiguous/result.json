@@ -1,0 +1,24 @@
+{
+  "audit_event_id": "ddae-eval-7f3d3b12-8994-4489-8778-710c34207254",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddae-discovery-to-answer-ambiguous",
+  "codex_exit_code": 0,
+  "final_answer": "Clarification is required: which business measure should I analyze, and what scope should I use (such as time period, region, or product)?\n\nAny returned evidence will be synthetic.",
+  "fixture": "ddae-synthetic-commerce-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 5927,
+  "manual_checks": {
+    "Ask for the business measure and scope before data access.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a1a7e9-9b5b-7ab0-950d-e7b8f78f9dcb",
+  "tool_calls": [],
+  "transcript_url": "evals/results/ddae-codex-rerun-20261104/attempt-1/ddae-discovery-to-answer-ambiguous/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 0,
+    "input_tokens": 20276,
+    "output_tokens": 57,
+    "reasoning_output_tokens": 15
+  }
+}

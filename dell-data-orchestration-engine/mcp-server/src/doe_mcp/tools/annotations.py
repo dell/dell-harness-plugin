@@ -23,20 +23,12 @@ from typing import Annotated, Any
 import dtlpy as dl
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
-from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import outputs, paging, serialize
 from ..context import dataloop_call, get_dataset
 from ..guards import confirm_or_elicit
-
-READ_ONLY = ToolAnnotations(
-    read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
-)
-MUTATING = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=False)
-DESTRUCTIVE = ToolAnnotations(
-    read_only_hint=False, destructive_hint=True, idempotent_hint=False, open_world_hint=False
-)
+from ..safety import ADDITIVE, DELETE, READ_ONLY
 
 # Where dtlpy records model attribution; see AnnotationCollection.add(model_info=...).
 MODEL_ID_FIELD = "metadata.user.model.model_id"
@@ -143,13 +135,13 @@ def register(mcp: MCPServer) -> None:
     ) -> outputs.AnnotationLabelsResult:
         """List the labels this dataset's recipe defines.
 
-        These are the only labels `annotation_create` will accept, so check here before tagging.
+        Only these labels can be applied to items, so check here before tagging.
         """
         dataset = get_dataset(project_id, dataset_id)
         labels = dataloop_call("ontology read", lambda: ontology_labels(dataset))
         return {"dataset_id": dataset_id, "labels": labels, "count": len(labels)}
 
-    @mcp.tool(title="Create classification annotation", annotations=MUTATING)
+    @mcp.tool(title="Create classification annotation", annotations=ADDITIVE)
     def annotation_create(
         project_id: Annotated[str, Field(description="Project that owns the dataset.")],
         dataset_id: Annotated[str, Field(description="Dataset that holds the item.")],
@@ -194,7 +186,7 @@ def register(mcp: MCPServer) -> None:
             "created": [serialize.annotation(entity) for entity in entities],
         }
 
-    @mcp.tool(title="Delete annotation", annotations=DESTRUCTIVE)
+    @mcp.tool(title="Delete annotation", annotations=DELETE)
     def annotation_delete(
         project_id: Annotated[str, Field(description="Project that owns the dataset.")],
         dataset_id: Annotated[str, Field(description="Dataset that holds the annotation.")],
@@ -210,7 +202,7 @@ def register(mcp: MCPServer) -> None:
         )
         return {"deleted": bool(deleted), "id": annotation_id}
 
-    @mcp.tool(title="Delete a model's annotations", annotations=DESTRUCTIVE)
+    @mcp.tool(title="Delete a model's annotations", annotations=DELETE)
     def annotation_delete_by_model(
         project_id: Annotated[str, Field(description="Project that owns the dataset.")],
         dataset_id: Annotated[str, Field(description="Dataset to clean up.")],

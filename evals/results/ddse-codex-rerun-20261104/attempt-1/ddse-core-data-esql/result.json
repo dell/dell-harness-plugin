@@ -1,0 +1,48 @@
+{
+  "audit_event_id": "ddse-eval-7f5b6c1b-280c-42f0-8a41-957048096414,ddse-eval-0c5fa458-7ff5-44e5-8f69-32aaed45c200,ddse-eval-e0637436-b0df-4950-88a0-d172531d66b5",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddse-core-data-esql",
+  "codex_exit_code": 0,
+  "final_answer": "Synthetic evidence: **17 `payment_timeout` events** in authorized index `synthetic-orders-v1`.\n\nMapping inspected: `@timestamp` is `date`; `event_type` and `service_name` are `keyword`.\n\nExecuted query with inclusive start and exclusive end:\n\n```esql\nFROM synthetic-orders-v1\n| WHERE @timestamp >= TO_DATETIME(\"2026-08-01T00:00:00Z\")\n    AND @timestamp < TO_DATETIME(\"2026-08-01T01:00:00Z\")\n    AND event_type == \"payment_timeout\"\n| STATS count = COUNT(*)\n| LIMIT 1\n```",
+  "fixture": "ddse-synthetic-operations-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 18545,
+  "manual_checks": {
+    "Use explicit fields, a time filter, and a bounded ES|QL result.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a1a7e8-3664-7033-b5e9-86bb13ae8efb",
+  "tool_calls": [
+    {
+      "arguments": {
+        "pattern": "*orders*"
+      },
+      "name": "platform_core_list_indices",
+      "status": "completed"
+    },
+    {
+      "arguments": {
+        "indices": [
+          "synthetic-orders-v1"
+        ]
+      },
+      "name": "platform_core_get_index_mapping",
+      "status": "completed"
+    },
+    {
+      "arguments": {
+        "query": "FROM synthetic-orders-v1 | WHERE @timestamp >= TO_DATETIME(\"2026-08-01T00:00:00Z\") AND @timestamp < TO_DATETIME(\"2026-08-01T01:00:00Z\") AND event_type == \"payment_timeout\" | STATS count = COUNT(*) | LIMIT 1"
+      },
+      "name": "platform_core_execute_esql",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/ddse-codex-rerun-20261104/attempt-1/ddse-core-data-esql/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 65408,
+    "input_tokens": 108608,
+    "output_tokens": 394,
+    "reasoning_output_tokens": 0
+  }
+}

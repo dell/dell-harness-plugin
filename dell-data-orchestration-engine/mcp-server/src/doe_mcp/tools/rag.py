@@ -39,20 +39,15 @@ import dtlpy as dl
 import numpy as np
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
-from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import outputs, paging, serialize
-from ..context import dataloop_call, get_dataset, get_project
+from ..context import dataloop_call, get_dataset, get_project, owned
 from ..guards import elicit_or_refuse, gate_local_compute
+from ..safety import ADDITIVE
 from ..schemas import CodeNodeSpec, DatasetNodeSpec
 from . import pipeline_nodes
 from .embeddings import cosine_similarity, read_vectors
-
-READ_ONLY = ToolAnnotations(
-    read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
-)
-MUTATING = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=False)
 
 # Where derived items live in the output dataset. Fixed rather than configurable so the DQL in
 # the embedding node and the provenance the query tool reports describe the same layout.
@@ -497,7 +492,7 @@ def chunk_text(item: Any, limit: int = MAX_CHUNK_TEXT_CHARS) -> str | None:
 def register(mcp: MCPServer) -> None:
     """Register RAG pipeline tools with the MCP server."""
 
-    @mcp.tool(title="Create RAG pipeline", annotations=MUTATING)
+    @mcp.tool(title="Create RAG pipeline", annotations=ADDITIVE)
     def rag_pipeline_create(
         project_id: Annotated[str, Field(description="Project to create the RAG pipeline in.")],
         name: Annotated[str, Field(min_length=1, description="Name for the RAG pipeline.")],
@@ -513,6 +508,8 @@ def register(mcp: MCPServer) -> None:
         Add stages with rag_add_*, wire with pipeline_connect_nodes, then pipeline_install.
         """
         project = get_project(project_id)
+        owned(project, "datasets", "dataset", dataset_id=source_dataset_id)
+        owned(project, "datasets", "dataset", dataset_id=output_dataset_id)
 
         # Create the pipeline
         pipeline = project.pipelines.create(name=name, project_id=project_id)
@@ -528,7 +525,10 @@ def register(mcp: MCPServer) -> None:
         return serialize.pipeline(pipeline)
 
     def add_node(
-        project_id: str, pipeline_id: str, spec: CodeNodeSpec | DatasetNodeSpec
+        project_id: str,
+        pipeline_id: str,
+        spec: CodeNodeSpec | DatasetNodeSpec,
+        references: tuple[tuple[str, str], ...] = (),
     ) -> outputs.PipelineNodeResult:
         """Add one built node to a pipeline. Delegates to pipeline_nodes.add_node.
 
@@ -536,9 +536,9 @@ def register(mcp: MCPServer) -> None:
         read-modify-write race (see pipeline_nodes._retry_until_visible) covers every
         rag_add_*_node tool too, not just pipeline_node_add.
         """
-        return pipeline_nodes.add_node(project_id, pipeline_id, spec)
+        return pipeline_nodes.add_node(project_id, pipeline_id, spec, references)
 
-    @mcp.tool(title="Add PDF filter node to RAG pipeline", annotations=MUTATING)
+    @mcp.tool(title="Add PDF filter node to RAG pipeline", annotations=ADDITIVE)
     def rag_add_pdf_filter_node(
         project_id: Annotated[str, Field(description="Project owning the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to add the node to.")],
@@ -566,7 +566,7 @@ def register(mcp: MCPServer) -> None:
             ),
         )
 
-    @mcp.tool(title="Add PDF-to-text conversion node", annotations=MUTATING)
+    @mcp.tool(title="Add PDF-to-text conversion node", annotations=ADDITIVE)
     def rag_add_pdf_to_text_node(
         project_id: Annotated[str, Field(description="Project owning the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to add the node to.")],
@@ -586,9 +586,10 @@ def register(mcp: MCPServer) -> None:
             project_id,
             pipeline_id,
             CodeNodeSpec(node_type="code", name=node_name, code=code, position=position or (2, 1)),
+            (("dataset", output_dataset_id),),
         )
 
-    @mcp.tool(title="Add text-to-chunks node", annotations=MUTATING)
+    @mcp.tool(title="Add text-to-chunks node", annotations=ADDITIVE)
     def rag_add_text_to_chunks_node(
         project_id: Annotated[str, Field(description="Project owning the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to add the node to.")],
@@ -618,9 +619,10 @@ def register(mcp: MCPServer) -> None:
             project_id,
             pipeline_id,
             CodeNodeSpec(node_type="code", name=node_name, code=code, position=position or (3, 1)),
+            (("dataset", output_dataset_id),),
         )
 
-    @mcp.tool(title="Add embedding generation node", annotations=MUTATING)
+    @mcp.tool(title="Add embedding generation node", annotations=ADDITIVE)
     def rag_add_embedding_node(
         project_id: Annotated[str, Field(description="Project owning the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to add the node to.")],
@@ -649,9 +651,10 @@ def register(mcp: MCPServer) -> None:
             project_id,
             pipeline_id,
             CodeNodeSpec(node_type="code", name=node_name, code=code, position=position or (4, 1)),
+            (("dataset", output_dataset_id), ("model", model_id)),
         )
 
-    @mcp.tool(title="Add output storage node", annotations=MUTATING)
+    @mcp.tool(title="Add output storage node", annotations=ADDITIVE)
     def rag_add_output_node(
         project_id: Annotated[str, Field(description="Project owning the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to add the node to.")],
@@ -674,7 +677,7 @@ def register(mcp: MCPServer) -> None:
             ),
         )
 
-    @mcp.tool(title="Query RAG dataset", annotations=MUTATING)
+    @mcp.tool(title="Query RAG dataset", annotations=ADDITIVE)
     def rag_query(
         project_id: Annotated[str, Field(description="Project owning the dataset.")],
         dataset_id: Annotated[str, Field(description="Dataset holding the chunk items.")],
@@ -701,8 +704,7 @@ def register(mcp: MCPServer) -> None:
         absent. Ranking is local over a bounded sample: check `scan_truncated`.
         """
         dataset = get_dataset(project_id, dataset_id)
-        project = get_project(project_id)
-        model = dataloop_call("model lookup", lambda: project.models.get(model_id=model_id))
+        model = owned(get_project(project_id), "models", "model", model_id=model_id)
         resolved_set = resolve_feature_set(dataset, model_id, feature_set_id)
 
         # Ranking happens here, not on the platform (dtlpy has no vector-distance query), so the
@@ -717,9 +719,7 @@ def register(mcp: MCPServer) -> None:
                 "the query text is written to the dataset and sent to the model for inference; "
                 "the server will then delete and verify both its item and feature vector"
             ),
-            remedy=(
-                "Use dataset_visual_search with a precomputed query_vector to avoid writing a temporary item"
-            ),
+            remedy=("Ask the user to approve the query in an MCP client that supports elicitation"),
         )
         query_vector, _, cleanup = embed_query(dataset, model, query, resolved_set)
         features, truncated = dataloop_call(
@@ -729,7 +729,7 @@ def register(mcp: MCPServer) -> None:
         if not usable:
             raise ValueError(
                 f"No usable vectors in feature set {resolved_set}. Embedding may still be running "
-                "— check dataset_embeddings_status."
+                "— check the embedding node's runs with execution_list."
             )
 
         scores = cosine_similarity(np.asarray([f.value for f in usable], dtype=float), query_vector)

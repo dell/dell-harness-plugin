@@ -1,0 +1,33 @@
+{
+  "audit_event_id": "ddse-eval-06768741-5c67-44c7-96d5-711845bb3059",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddse-core-data-document",
+  "codex_exit_code": 0,
+  "final_answer": "Retrieved `order-1042` from `synthetic-orders-v1`.\n\n- Failure event: `payment_timeout`\n- Service: `checkout-api`\n- Timestamp: `2026-08-01T00:42:00Z`, within the fixed current window.\n\nThis is synthetic evidence. The document records a payment timeout but provides no root cause or final order outcome.",
+  "fixture": "ddse-synthetic-operations-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 13138,
+  "manual_checks": {
+    "Return only relevant source fields.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a1a7e8-7eb9-7ea2-86d4-b419f8992bc1",
+  "tool_calls": [
+    {
+      "arguments": {
+        "document_id": "order-1042",
+        "index": "synthetic-orders-v1"
+      },
+      "name": "platform_core_get_document_by_id",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/ddse-codex-rerun-20261104/attempt-1/ddse-core-data-document/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 49536,
+    "input_tokens": 79590,
+    "output_tokens": 207,
+    "reasoning_output_tokens": 0
+  }
+}

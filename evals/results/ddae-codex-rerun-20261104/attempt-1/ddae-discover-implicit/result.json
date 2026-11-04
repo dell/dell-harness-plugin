@@ -1,0 +1,32 @@
+{
+  "audit_event_id": "ddae-eval-1760a2ae-4006-4872-ae33-f6fb5e037483",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddae-discover-implicit",
+  "codex_exit_code": 0,
+  "final_answer": "**fulfillment_metrics** is the best governed source: it explicitly supports delayed-order analysis, with order ID, fulfillment status, region, and event time.\n\n**order_operations** covers order lifecycle state but lacks dedicated fulfillment-delay measures.\n\nThis evidence is synthetic, non-customer evaluation data.",
+  "fixture": "ddae-synthetic-commerce-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 10658,
+  "manual_checks": {
+    "Select a source based on returned metadata.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a1a7e8-64bf-7e60-b4ca-c73236839530",
+  "tool_calls": [
+    {
+      "arguments": {
+        "query": "delayed order fulfillment"
+      },
+      "name": "searchDataProducts",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/ddae-codex-rerun-20261104/attempt-1/ddae-discover-implicit/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 40704,
+    "input_tokens": 61967,
+    "output_tokens": 198,
+    "reasoning_output_tokens": 0
+  }
+}

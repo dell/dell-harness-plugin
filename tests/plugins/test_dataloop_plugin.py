@@ -34,7 +34,7 @@ def load_launcher():
 def test_manifest_mcp_marketplace_and_governance_are_registered():
     manifest = load_json(PLUGIN / ".codex-plugin" / "plugin.json")
     assert manifest["name"] == "dell-data-orchestration-engine"
-    assert manifest["version"] == "0.5.0"
+    assert manifest["version"] == "0.6.0"
     assert manifest["skills"] == "./skills/"
     assert manifest["mcpServers"] == "./.mcp.json"
     assert manifest["homepage"].startswith("https://")
@@ -184,7 +184,7 @@ def test_dataloop_evaluation_definition_and_contract_inventory_validate():
     assert summary["submission_cases"]["negative"] >= 3
 
     definition = load_json(ROOT / "evals" / "cases" / "dataloop.json")
-    assert len(definition["contract_tools"]) == 42
+    assert len(definition["contract_tools"]) == 43
     assert definition["contract_tools"] == definition["declared_tools"]
     assert len(definition["upstream_tools"]) == 70
     assert len(set(definition["upstream_tools"])) == 70
@@ -212,7 +212,7 @@ def test_configuration_check_does_not_print_api_key(tmp_path):
             {
                 "api_key": api_key,
                 "state_path": str(tmp_path / "state"),
-                "command": sys.executable,
+                "command": str(_echo_command(tmp_path / "bin")),
             }
         ),
         encoding="utf-8",
@@ -441,3 +441,183 @@ def test_interrupted_preparation_reports_lock_path(tmp_path, monkeypatch):
         assert f"{identity}.lock" in str(exc) and "--prepare-only" in str(exc)
     else:
         raise AssertionError("a leftover lock must be reported")
+
+
+# --- R07: the configuration check reports exactly what the launcher will run ---------------
+
+
+def _private_config(tmp_path, **values):
+    config = tmp_path / "dataloop.json"
+    payload = {"api_key": secrets.token_urlsafe(16), "state_path": str(tmp_path / "state"), **values}
+    config.write_text(json.dumps(payload), encoding="utf-8")
+    config.chmod(0o600)
+    return config
+
+
+def _echo_command(directory, name="doe-mcp"):
+    """A stand-in MCP server that prints the argv it was launched with, then exits."""
+    directory.mkdir(parents=True, exist_ok=True)
+    directory.chmod(0o755)
+    executable = directory / name
+    executable.write_text('#!/bin/sh\necho "LAUNCHED $0 $*"\n', encoding="utf-8")
+    executable.chmod(0o755)
+    return executable
+
+
+def _isolated_environ(tmp_path, **extra):
+    environ = {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith("DATALOOP_") and key not in {"PYTHONPATH"}
+    }
+    environ["HOME"] = str(tmp_path / "home")
+    environ.update(extra)
+    return environ
+
+
+def _check(config, environ):
+    return subprocess.run(
+        [sys.executable, str(PLUGIN / "scripts" / "configure_dataloop.py"), "--check", "--config", str(config)],
+        env=environ, capture_output=True, text=True,
+    )
+
+
+def _launch(config, environ):
+    return subprocess.run(
+        [sys.executable, str(PLUGIN / "scripts" / "dataloop_mcp_launcher.py")],
+        env={**environ, "DATALOOP_CONFIG_FILE": str(config)}, capture_output=True, text=True,
+        stdin=subprocess.DEVNULL, timeout=60,
+    )
+
+
+def _reported(stdout, key):
+    return next(line for line in stdout.splitlines() if line.startswith(f"{key}="))
+
+
+def _assert_same_outcome(config, environ):
+    check, launch = _check(config, environ), _launch(config, environ)
+    if launch.returncode == 0:
+        assert check.returncode == 0, check.stdout + check.stderr
+        launched = launch.stdout.strip().removeprefix("LAUNCHED ")
+        assert _reported(check.stdout, "command_line") == f"command_line={launched}"
+    else:
+        assert launch.returncode == 2
+        reason = launch.stderr.strip().removeprefix("dell-dataloop configuration error: ")
+        assert check.returncode == 1
+        assert _reported(check.stdout, "launch") == f"launch=blocked reason={reason}"
+    return check
+
+
+def test_check_reports_the_environment_command_that_launch_runs(tmp_path):
+    if os.name != "posix":
+        return
+    from_file = _echo_command(tmp_path / "file-bin")
+    from_env = _echo_command(tmp_path / "env-bin")
+    config = _private_config(tmp_path, command=str(from_file))
+
+    check = _assert_same_outcome(config, _isolated_environ(tmp_path, DATALOOP_MCP_COMMAND=str(from_env)))
+
+    assert f"command={from_env} source=env" in check.stdout
+
+
+def test_check_reports_the_environment_profiles_that_launch_uses(tmp_path):
+    if os.name != "posix":
+        return
+    command = _echo_command(tmp_path / "bin")
+    config = _private_config(tmp_path, command=str(command), profiles="plugin-v1")
+
+    check = _assert_same_outcome(config, _isolated_environ(tmp_path, DATALOOP_MCP_PROFILES="rag,discovery"))
+
+    assert "profiles=rag,discovery source=env" in check.stdout
+
+
+def test_check_blocks_a_command_in_a_group_writable_directory_like_launch(tmp_path):
+    if os.name != "posix":
+        return
+    command = _echo_command(tmp_path / "shared")
+    (tmp_path / "shared").chmod(0o775)
+    config = _private_config(tmp_path, command=str(command))
+
+    _assert_same_outcome(config, _isolated_environ(tmp_path))
+
+
+def test_check_blocks_an_unresolved_command_like_launch(tmp_path):
+    config = _private_config(tmp_path, command=str(tmp_path / "missing" / "doe-mcp"))
+
+    _assert_same_outcome(config, _isolated_environ(tmp_path))
+
+
+def test_check_blocks_a_symlinked_configuration_like_launch(tmp_path):
+    if os.name != "posix":
+        return
+    real = _private_config(tmp_path, command=str(_echo_command(tmp_path / "bin")))
+    link = tmp_path / "linked.json"
+    link.symlink_to(real)
+
+    _assert_same_outcome(link, _isolated_environ(tmp_path))
+
+
+def test_check_blocks_missing_credentials_like_launch(tmp_path):
+    config = tmp_path / "dataloop.json"
+    config.write_text(json.dumps({"state_path": str(tmp_path / "state")}), encoding="utf-8")
+    config.chmod(0o600)
+
+    _assert_same_outcome(config, _isolated_environ(tmp_path))
+
+
+def test_check_honours_environment_credentials_like_launch(tmp_path):
+    if os.name != "posix":
+        return
+    config = tmp_path / "dataloop.json"
+    config.write_text(json.dumps({"command": str(_echo_command(tmp_path / "bin"))}), encoding="utf-8")
+    config.chmod(0o600)
+    environ = _isolated_environ(
+        tmp_path, DATALOOP_API_KEY=secrets.token_urlsafe(16), DATALOOP_PATH=str(tmp_path / "env-state")
+    )
+
+    check = _assert_same_outcome(config, environ)
+
+    assert "api_key=present source=env" in check.stdout
+    assert f"state_path={tmp_path / 'env-state'} source=env" in check.stdout
+
+
+def test_check_does_not_create_or_repair_anything(tmp_path):
+    config = _private_config(tmp_path, command=str(tmp_path / "missing"))
+
+    _check(config, _isolated_environ(tmp_path))
+
+    assert not (tmp_path / "state").exists()
+
+
+def test_check_blocks_an_uncreatable_state_directory_like_launch(tmp_path):
+    if os.name != "posix" or os.geteuid() == 0:
+        return
+    locked = tmp_path / "locked"
+    locked.mkdir()
+    config = _private_config(tmp_path, command=str(_echo_command(tmp_path / "bin")), state_path=str(locked / "state"))
+    locked.chmod(0o500)
+    try:
+        check = _assert_same_outcome(config, _isolated_environ(tmp_path))
+    finally:
+        locked.chmod(0o700)
+
+    assert "launch=blocked" in check.stdout
+
+
+def test_check_never_runs_a_configured_command(tmp_path):
+    if os.name != "posix":
+        return
+    marker = tmp_path / "ran"
+    interpreter = tmp_path / "interp-bin"
+    interpreter.mkdir(mode=0o755)
+    fake = interpreter / "python"
+    fake.write_text(f"#!/bin/sh\ntouch {marker}\n", encoding="utf-8")
+    fake.chmod(0o755)
+    command = _echo_command(tmp_path / "bin")
+    command.write_text(f"#!{fake}\n", encoding="utf-8")
+    config = _private_config(tmp_path, command=str(command))
+
+    check = _check(config, _isolated_environ(tmp_path))
+
+    assert "launch=ready" in check.stdout
+    assert not marker.exists()

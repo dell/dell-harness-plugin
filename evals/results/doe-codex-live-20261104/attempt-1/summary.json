@@ -1,0 +1,43 @@
+{
+  "passed_cases": 3,
+  "total_cases": 3,
+  "results": [
+    {
+      "case_id": "doe-explore-explicit",
+      "passed": true,
+      "failures": [],
+      "tool_path": [
+        "project_list",
+        "project_get",
+        "dataset_list",
+        "dataset_get",
+        "dataset_profile",
+        "item_list"
+      ],
+      "latency_s": 30.7,
+      "codex_exit_code": 0
+    },
+    {
+      "case_id": "doe-pii-explicit",
+      "passed": true,
+      "failures": [],
+      "tool_path": [
+        "project_list",
+        "dataset_list",
+        "pii_report",
+        "pii_report",
+        "pii_report"
+      ],
+      "latency_s": 23.8,
+      "codex_exit_code": 0
+    },
+    {
+      "case_id": "doe-explore-write-refused",
+      "passed": true,
+      "failures": [],
+      "tool_path": [],
+      "latency_s": 5.3,
+      "codex_exit_code": 0
+    }
+  ]
+}

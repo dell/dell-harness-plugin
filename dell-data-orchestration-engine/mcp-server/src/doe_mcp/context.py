@@ -10,7 +10,7 @@ project explicitly and works through ``project.<repository>``.
 """
 
 from collections.abc import Callable
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import dtlpy as dl
 from mcp import MCPError
@@ -85,6 +85,36 @@ def get_pipeline(project_id: str, pipeline_id: str) -> dl.entities.Pipeline:
             get_project(project_id).pipelines.get(pipeline_id=pipeline_id), project_id, "pipeline"
         ),
     )
+
+
+def owned(project: dl.entities.Project, repository: str, resource_name: str, **lookup: str) -> Any:
+    """Fetch one resource through an already-resolved ``project.<repository>`` and verify it.
+
+    For tool bodies that resolved the project once and look up several resources in it; the
+    response is checked against that project, since repository scoping alone is not proof.
+    """
+    return dataloop_call(
+        f"{resource_name} lookup",
+        lambda: _verify_resource_project(
+            getattr(project, repository).get(**lookup), str(project.id), resource_name
+        ),
+    )
+
+
+def get_execution(project: dl.entities.Project, execution_id: str) -> dl.entities.Execution:
+    """Fetch an execution and verify the response belongs to the resolved project.
+
+    ``Executions`` has no ``project.<repository>`` accessor, so the repository is built with the
+    project as its scope; the response is still checked, since scoping is not proof.
+    """
+
+    def lookup() -> dl.entities.Execution:
+        repository = dl.repositories.Executions(client_api=dl.client_api, project=project)
+        return _verify_resource_project(
+            repository.get(execution_id=execution_id), str(project.id), "execution"
+        )
+
+    return dataloop_call("execution lookup", lookup)
 
 
 def marketplace_dpks() -> dl.repositories.Dpks:

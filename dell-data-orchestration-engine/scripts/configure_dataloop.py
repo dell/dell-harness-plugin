@@ -8,11 +8,13 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import importlib.util
 import json
 import os
 import stat
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
 
 
@@ -25,32 +27,91 @@ def default_config_path() -> Path:
     )
 
 
-def check(path: Path) -> int:
-    if not path.is_file():
-        print(f"configuration=missing path={path}")
-        return 1
+def _launcher():
+    path = Path(__file__).resolve().with_name("dataloop_mcp_launcher.py")
+    spec = importlib.util.spec_from_file_location("dataloop_mcp_launcher", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def _bundled_version() -> str:
+    pyproject = Path(__file__).resolve().parents[1] / "mcp-server" / "pyproject.toml"
+    return tomllib.loads(pyproject.read_text(encoding="utf-8"))["project"]["version"]
+
+
+def _command_version(executable: str) -> str | None:
+    """The DOE server version an external console script would run, read from package metadata.
+
+    Never executes the command or its interpreter: the shebang only locates the environment,
+    whose installed ``*.dist-info/METADATA`` is read as text.
+    """
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        print(f"configuration=invalid path={path} error={exc}")
-        return 1
-    mode = stat.S_IMODE(path.stat().st_mode)
-    command = value.get("command") or os.environ.get("DATALOOP_MCP_COMMAND")
-    profiles = value.get("profiles") or "plugin-v1"
-    print(f"configuration=present path={path} mode={mode:04o}")
-    print(f"api_key={'present' if value.get('api_key') else 'missing'}")
-    print(f"state_path={value.get('state_path', 'missing')}")
-    print(f"gate_url={value.get('gate_url', 'Dataloop cloud default')}")
-    print(f"verify_ssl={value.get('verify_ssl', 'true')}")
-    print(f"profiles={profiles}")
-    if command:
-        usable = os.path.isabs(str(command)) and os.access(str(command), os.X_OK)
-        print(f"command={command} absolute_executable={'yes' if usable else 'no'}")
+        shebang = Path(executable).read_bytes()[:256].split(b"\n", 1)[0].decode("utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+    interpreter = shebang[2:].strip().split()[0] if shebang.startswith("#!") else ""
+    if not os.path.isabs(interpreter):
+        return None
+    environment = Path(interpreter).parent.parent
+    patterns = (
+        "lib/python*/site-packages/dell_data_orchestration_engine_mcp-*.dist-info/METADATA",
+        "Lib/site-packages/dell_data_orchestration_engine_mcp-*.dist-info/METADATA",
+    )
+    for pattern in patterns:
+        for metadata in sorted(environment.glob(pattern)):
+            for line in metadata.read_text(encoding="utf-8", errors="replace").splitlines():
+                if line.startswith("Version:"):
+                    return line.split(":", 1)[1].strip() or None
+    return None
+
+
+def check(path: Path) -> int:
+    """Report what the launcher would start, using the launcher's own resolution.
+
+    Changes nothing: no file is created, repaired or prepared, and a configured command is
+    never run. When no command is configured, the launcher's own import probe of the bundled
+    server runs, as it would at launch. Exit 0 only when launch would start.
+    """
+    launcher = _launcher()
+    environ = {**os.environ, "DATALOOP_CONFIG_FILE": str(path)}
+    if path.is_file() and not path.is_symlink():
+        print(f"configuration=present path={path} mode={stat.S_IMODE(path.stat().st_mode):04o}")
     else:
-        bundled = Path(__file__).resolve().parents[1] / "mcp-server" / "src"
-        print(f"command=bundled-python-module resolved={'yes' if bundled.is_dir() else 'no'}")
-    private = os.name != "posix" or mode & 0o077 == 0
-    return 0 if value.get("api_key") and value.get("state_path") and private else 1
+        print(f"configuration={'symlink' if path.is_symlink() else 'missing'} path={path}")
+    try:
+        plan = launcher.preflight(environ)
+    except launcher.ConfigurationError as exc:
+        print(f"launch=blocked reason={exc}")
+        return 1
+    env, sources = plan["environment"], plan["sources"]
+
+    def source(key: str) -> str:
+        return sources[launcher.CONFIG_KEYS[key]]
+
+    print(f"api_key=present source={source('api_key')}")
+    print(f"state_path={plan['state_path']} source={source('state_path')}")
+    print(f"gate_url={env.get('DATALOOP_GATE_URL', 'Dataloop cloud default')} source={source('gate_url')}")
+    print(f"verify_ssl={env.get('DATALOOP_VERIFY_SSL', 'true')} source={source('verify_ssl')}")
+    print(f"profiles={','.join(plan['profiles']) or 'all'} source={source('profiles')}")
+    command = plan["command"]
+    bundled = _bundled_version()
+    if env.get("DATALOOP_MCP_COMMAND"):
+        print(f"command={command[0]} source={source('command')}")
+        running = _command_version(command[0])
+        print(f"server_version={running or 'unknown'} bundled_version={bundled}")
+        if running and running != bundled:
+            print(
+                f"warning=the configured command runs server {running}, not the bundled {bundled}; "
+                "remove 'command' from the configuration to use the bundled server"
+            )
+    else:
+        state = "ready" if plan["runtime_ready"] else "prepared on first start"
+        print(f"command=bundled-python-module runtime={state} server_version={bundled}")
+    print(f"command_line={' '.join(command)}")
+    print("launch=ready")
+    return 0
 
 
 def configure(path: Path, args: argparse.Namespace) -> int:

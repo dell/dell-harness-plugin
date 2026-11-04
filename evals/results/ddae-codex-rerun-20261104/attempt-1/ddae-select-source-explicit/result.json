@@ -1,0 +1,33 @@
+{
+  "audit_event_id": "ddae-eval-14dd05b0-81ee-4711-8ecc-090c19798303",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddae-select-source-explicit",
+  "codex_exit_code": 0,
+  "final_answer": "**Recommend `fulfillment_metrics`** for fulfillment delay analysis.\n\n| Authorized Data Product | Suitability |\n|---|---|\n| `fulfillment_metrics` | Designed for delayed-order analysis, with order ID, fulfillment status, region, and event time. |\n| `order_operations` | Useful for tracking order lifecycle states, but lacks dedicated fulfillment-delay measures. |\n\nThis recommendation uses **synthetic, non-customer catalog evidence**. No calculation was requested or performed for the fixed evaluation window of August 1\u20138, 2026.",
+  "fixture": "ddae-synthetic-commerce-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 12491,
+  "manual_checks": {
+    "Do not invent schema details.": true,
+    "Explain the choice from returned metadata.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a1a7e8-a5e7-7ee0-8e1a-b45597a430e5",
+  "tool_calls": [
+    {
+      "arguments": {
+        "query": "orders"
+      },
+      "name": "searchDataProducts",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/ddae-codex-rerun-20261104/attempt-1/ddae-select-source-explicit/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 44928,
+    "input_tokens": 68314,
+    "output_tokens": 296,
+    "reasoning_output_tokens": 45
+  }
+}

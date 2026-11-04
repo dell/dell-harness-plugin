@@ -1,0 +1,8 @@
+{
+  "case_id": "doe-explore-write-refused",
+  "passed": true,
+  "failures": [],
+  "tool_path": [],
+  "latency_s": 5.3,
+  "codex_exit_code": 0
+}

@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from tests.conftest import OwnedRepo
 from doe_mcp.tools import triggers
 
 
@@ -59,7 +60,9 @@ def mock_get_dataset(monkeypatch):
 @pytest.fixture
 def project(monkeypatch):
     fake = FakeTriggers()
-    proj = SimpleNamespace(id="proj-1", name="proj", triggers=fake)
+    proj = SimpleNamespace(
+        id="proj-1", name="proj", pipelines=OwnedRepo("proj-1"), services=OwnedRepo("proj-1"), triggers=fake
+    )
     monkeypatch.setattr(triggers, "get_project", lambda project_id: proj)
     return proj
 
@@ -107,7 +110,9 @@ def test_create_reports_deferred_creation_when_pipeline_is_not_installed(monkeyp
     """
     fake = FakeTriggers()
     fake.create = lambda **kwargs: True
-    proj = SimpleNamespace(id="proj-1", name="proj", triggers=fake)
+    proj = SimpleNamespace(
+        id="proj-1", name="proj", pipelines=OwnedRepo("proj-1"), services=OwnedRepo("proj-1"), triggers=fake
+    )
     monkeypatch.setattr(triggers, "get_project", lambda project_id: proj)
 
     result = call_tool("trigger_create", {**CREATE, "confirm": True})
@@ -120,7 +125,9 @@ def test_create_reports_deferred_creation_when_pipeline_is_not_installed(monkeyp
 
 def test_create_refuses_a_duplicate_of_an_existing_trigger(monkeypatch, call_tool):
     fake = FakeTriggers(existing=[fake_trigger()])
-    proj = SimpleNamespace(id="proj-1", name="proj", triggers=fake)
+    proj = SimpleNamespace(
+        id="proj-1", name="proj", pipelines=OwnedRepo("proj-1"), services=OwnedRepo("proj-1"), triggers=fake
+    )
     monkeypatch.setattr(triggers, "get_project", lambda project_id: proj)
 
     result = call_tool("trigger_create", {**CREATE, "confirm": True})
@@ -132,7 +139,9 @@ def test_create_refuses_a_duplicate_of_an_existing_trigger(monkeypatch, call_too
 
 def test_list_returns_all_project_triggers(monkeypatch, call_tool):
     fake = FakeTriggers(existing=[fake_trigger(), fake_trigger("trg-2", "pipe-2")])
-    proj = SimpleNamespace(id="proj-1", name="proj", triggers=fake)
+    proj = SimpleNamespace(
+        id="proj-1", name="proj", pipelines=OwnedRepo("proj-1"), services=OwnedRepo("proj-1"), triggers=fake
+    )
     monkeypatch.setattr(triggers, "get_project", lambda project_id: proj)
 
     result = call_tool("trigger_list", {"project_id": "proj-1"})
@@ -155,7 +164,9 @@ def test_list_pages_through_more_triggers_than_fit_one_page(monkeypatch, call_to
             )
 
     fake = ServerPagedTriggers()
-    proj = SimpleNamespace(id="proj-1", name="proj", triggers=fake)
+    proj = SimpleNamespace(
+        id="proj-1", name="proj", pipelines=OwnedRepo("proj-1"), services=OwnedRepo("proj-1"), triggers=fake
+    )
     monkeypatch.setattr(triggers, "get_project", lambda project_id: proj)
 
     first = call_tool("trigger_list", {"project_id": "proj-1", "page": 0, "page_size": 1})
@@ -181,7 +192,13 @@ def test_list_stays_scoped_to_the_project(monkeypatch, call_tool):
             prepared.update(filters.prepare())
             return super().list()
 
-    proj = SimpleNamespace(id="proj-1", name="proj", triggers=RecordingTriggers(existing=[fake_trigger()]))
+    proj = SimpleNamespace(
+        id="proj-1",
+        name="proj",
+        pipelines=OwnedRepo("proj-1"),
+        services=OwnedRepo("proj-1"),
+        triggers=RecordingTriggers(existing=[fake_trigger()]),
+    )
     monkeypatch.setattr(triggers, "get_project", lambda project_id: proj)
 
     call_tool("trigger_list", {"project_id": "proj-1"})
@@ -199,7 +216,9 @@ def test_list_threads_page_and_page_size_into_the_filters(monkeypatch, call_tool
             return super().list()
 
     fake = RecordingTriggers(existing=[fake_trigger()])
-    proj = SimpleNamespace(id="proj-1", name="proj", triggers=fake)
+    proj = SimpleNamespace(
+        id="proj-1", name="proj", pipelines=OwnedRepo("proj-1"), services=OwnedRepo("proj-1"), triggers=fake
+    )
     monkeypatch.setattr(triggers, "get_project", lambda project_id: proj)
 
     call_tool("trigger_list", {"project_id": "proj-1", "page": 2, "page_size": 25})

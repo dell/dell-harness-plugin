@@ -24,12 +24,12 @@ from typing import Annotated, Any
 import dtlpy as dl
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
-from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import code_node, outputs, serialize
-from ..context import dataloop_call, get_pipeline
+from ..context import dataloop_call, get_pipeline, owned
 from ..guards import confirm_or_elicit
+from ..safety import ADDITIVE, DELETE, OVERWRITE
 from ..schemas import (
     CodeNodeSpec,
     DatasetNodeSpec,
@@ -38,10 +38,6 @@ from ..schemas import (
     TaskNodeSpec,
 )
 
-MUTATING = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=False)
-DESTRUCTIVE = ToolAnnotations(
-    read_only_hint=False, destructive_hint=True, idempotent_hint=False, open_world_hint=False
-)
 _locks_guard = threading.Lock()
 _pipeline_locks: dict[str, threading.Lock] = {}
 
@@ -153,7 +149,12 @@ def _resolve_recipe(dataset: dl.entities.Dataset, spec: TaskNodeSpec) -> tuple[s
 
 
 def build_node(pipeline: dl.entities.Pipeline, spec: NodeSpec) -> dl.entities.PipelineNode:
-    """Turn a validated node spec into a dtlpy node entity."""
+    """Turn a validated node spec into a dtlpy node entity.
+
+    Pure for dataset and code nodes, so blueprints can derive an expected graph offline;
+    `add_node` verifies the resources those nodes name before writing. Function and task nodes
+    must fetch their service or dataset here, and verify it as they do.
+    """
     project = pipeline.project
     if isinstance(spec, DatasetNodeSpec):
         data_filters = (
@@ -179,7 +180,7 @@ def build_node(pipeline: dl.entities.Pipeline, spec: NodeSpec) -> dl.entities.Pi
             position=spec.position,
         )
     if isinstance(spec, FunctionNodeSpec):
-        service = project.services.get(service_id=spec.service_id)
+        service = owned(project, "services", "service", service_id=spec.service_id)
         return dl.FunctionNode(
             name=spec.name,
             service=service,
@@ -187,7 +188,7 @@ def build_node(pipeline: dl.entities.Pipeline, spec: NodeSpec) -> dl.entities.Pi
             position=spec.position,
         )
     if isinstance(spec, TaskNodeSpec):
-        dataset = project.datasets.get(dataset_id=spec.dataset_id)
+        dataset = owned(project, "datasets", "dataset", dataset_id=spec.dataset_id)
         recipe_id, recipe_title = _resolve_recipe(dataset, spec)
         return dl.TaskNode(
             name=spec.name,
@@ -316,13 +317,24 @@ def _connection_state(
     )
 
 
-def add_node(project_id: str, pipeline_id: str, spec: NodeSpec) -> outputs.PipelineNodeResult:
+def add_node(
+    project_id: str,
+    pipeline_id: str,
+    spec: NodeSpec,
+    references: tuple[tuple[str, str], ...] = (),
+) -> outputs.PipelineNodeResult:
     """Add one built node to a pipeline, refusing a name already in the graph.
 
     Shared by ``pipeline_node_add`` and every ``rag_add_*_node`` tool in ``tools/rag.py``, so
     the retry-until-visible fix (see ``_retry_until_visible``) applies everywhere a node gets
     added, not just here.
+
+    ``references`` names resources a generated code node will touch once installed, as
+    ``(kind, id)`` pairs with kind ``"dataset"`` or ``"model"``. Each, and a dataset node's own
+    dataset, must belong to the pipeline's project before anything is written.
     """
+    if isinstance(spec, DatasetNodeSpec):
+        references = (("dataset", spec.dataset_id), *references)
 
     # Built at most once and reused on every retry. `build_node` mints a fresh `node_id` per call,
     # so rebuilding would re-send the same node under a different id -- dangling any connection the
@@ -337,6 +349,8 @@ def add_node(project_id: str, pipeline_id: str, spec: NodeSpec) -> outputs.Pipel
                 raise ValueError(f"Pipeline already has a node named {spec.name!r}; pick another name.")
             return  # a previous attempt's write already landed; nothing left to do
         if built is None:
+            for kind, resource_id in references:
+                owned(pipeline.project, f"{kind}s", kind, **{f"{kind}_id": resource_id})
             built = build_node(pipeline, spec)
         pipeline.nodes.add(node=built)
         dataloop_call("pipeline graph update", pipeline.update)
@@ -352,7 +366,7 @@ def add_node(project_id: str, pipeline_id: str, spec: NodeSpec) -> outputs.Pipel
 
 
 def register(mcp: MCPServer) -> None:
-    @mcp.tool(title="Add pipeline node", annotations=MUTATING)
+    @mcp.tool(title="Add pipeline node", annotations=ADDITIVE)
     def pipeline_node_add(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to add the node to.")],
@@ -370,7 +384,7 @@ def register(mcp: MCPServer) -> None:
             raise ValueError("Refusing to add code node: set confirm_code=true after reviewing the code.")
         return add_node(project_id, pipeline_id, node)
 
-    @mcp.tool(title="Update pipeline node", annotations=MUTATING)
+    @mcp.tool(title="Update pipeline node", annotations=OVERWRITE)
     def pipeline_node_update(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline containing the node.")],
@@ -452,7 +466,7 @@ def register(mcp: MCPServer) -> None:
             "node": serialize.node(_require_node(verified, final_name)),
         }
 
-    @mcp.tool(title="Remove pipeline node", annotations=DESTRUCTIVE)
+    @mcp.tool(title="Remove pipeline node", annotations=DELETE)
     def pipeline_node_remove(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline containing the node.")],
@@ -482,7 +496,7 @@ def register(mcp: MCPServer) -> None:
         verified = _retry_until_visible(project_id, pipeline_id, mutate, verify)
         return {"removed": True, "node_name": node_name, "pipeline": serialize.pipeline(verified)}
 
-    @mcp.tool(title="Connect pipeline nodes", annotations=MUTATING)
+    @mcp.tool(title="Connect pipeline nodes", annotations=ADDITIVE)
     def pipeline_connect_nodes(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to wire up.")],
@@ -535,7 +549,7 @@ def register(mcp: MCPServer) -> None:
         verified = _retry_until_visible(project_id, pipeline_id, mutate, lambda p: state(p) is True)
         return serialize.pipeline(verified, include_graph=True)
 
-    @mcp.tool(title="Disconnect pipeline nodes", annotations=DESTRUCTIVE)
+    @mcp.tool(title="Disconnect pipeline nodes", annotations=DELETE)
     def pipeline_disconnect_nodes(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to edit.")],

@@ -137,6 +137,15 @@ def server_importable(python: Path, environ: dict[str, str]) -> bool:
         return False
 
 
+def runtime_python_path(environ: dict[str, str]) -> Path:
+    """Where the isolated runtime's interpreter lives, keyed to this Python and pyproject."""
+    pyproject = (BUNDLED_SERVER_SRC.parent / "pyproject.toml").read_bytes()
+    identity = hashlib.sha256(sys.executable.encode() + sys.version.encode() + pyproject).hexdigest()[:16]
+    base = Path(environ.get("DATALOOP_RUNTIME_DIR") or
+                Path(environ.get("LOCALAPPDATA", str(Path.home() / ".cache"))) / "Dell" / "Dataloop" / "runtimes")
+    return base / identity / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+
+
 def runtime_python(environ: dict[str, str]) -> Path:
     """Return an interpreter that can run the bundled server.
 
@@ -150,11 +159,8 @@ def runtime_python(environ: dict[str, str]) -> Path:
         return Path(sys.executable)
     pyproject = (BUNDLED_SERVER_SRC.parent / "pyproject.toml").read_bytes()
     requirements = tomllib.loads(pyproject.decode("utf-8"))["project"]["dependencies"]
-    identity = hashlib.sha256(sys.executable.encode() + sys.version.encode() + pyproject).hexdigest()[:16]
-    base = Path(environ.get("DATALOOP_RUNTIME_DIR") or
-                Path(environ.get("LOCALAPPDATA", str(Path.home() / ".cache"))) / "Dell" / "Dataloop" / "runtimes")
-    target = base / identity
-    python = target / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    python = runtime_python_path(environ)
+    target = python.parents[1]
     if server_importable(python, environ):
         return python
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -213,7 +219,8 @@ def build_command(environ: dict[str, str], python: Path | str = sys.executable) 
     return command
 
 
-def validate_environment(environ: dict[str, str]) -> None:
+def require_settings(environ: dict[str, str]) -> Path:
+    """Check the required settings without changing anything; return the state path."""
     missing = [
         name for name in ("DATALOOP_API_KEY", "DATALOOP_PATH") if not environ.get(name)
     ]
@@ -228,19 +235,87 @@ def validate_environment(environ: dict[str, str]) -> None:
         raise ConfigurationError(
             f"DATALOOP_PATH cannot be a symbolic link: {state_path}"
         )
-    state_path.mkdir(parents=True, exist_ok=True, mode=0o700)
-    if not state_path.is_dir():
+    if state_path.exists() and not state_path.is_dir():
         raise ConfigurationError(f"DATALOOP_PATH is not a directory: {state_path}")
-    if os.name == "posix":
-        # Repair state directories created by an older or more permissive
-        # setup. mkdir(mode=...) does not affect an existing directory.
-        state_path.chmod(0o700)
+    if os.name == "posix" and state_path.exists() and state_path.stat().st_uid != os.getuid():
+        raise ConfigurationError(f"DATALOOP_PATH must be owned by the current user: {state_path}")
+    if not state_path.exists():
+        parent = next(p for p in state_path.parents if p.exists())
+        if not os.access(parent, os.W_OK | os.X_OK):
+            raise ConfigurationError(f"Cannot create DATALOOP_PATH {state_path}: {parent} is not writable")
+    return state_path
+
+
+def validate_environment(environ: dict[str, str]) -> None:
+    state_path = require_settings(environ)
+    try:
+        state_path.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if os.name == "posix":
+            # Repair state directories created by an older or more permissive
+            # setup. mkdir(mode=...) does not affect an existing directory.
+            state_path.chmod(0o700)
+    except OSError as exc:
+        raise ConfigurationError(f"Cannot prepare DATALOOP_PATH {state_path}: {exc.strerror}") from exc
     state_mode = stat.S_IMODE(state_path.stat().st_mode)
     if os.name == "posix" and state_mode & 0o077:
         raise ConfigurationError(
             f"DATALOOP_PATH must be user-only (chmod 700): {state_path}"
         )
     environ["DATALOOP_PATH"] = str(state_path)
+
+
+def effective_settings(environ: dict[str, str]) -> tuple[Path, dict[str, str], dict[str, str]]:
+    """Resolve the configuration exactly as launch does.
+
+    Returns the configuration path, the merged environment (process environment wins over the
+    file), and where each setting came from: ``env``, ``file`` or ``missing``.
+    """
+    path = config_path(environ)
+    merged = merged_environment(environ, load_config(path))
+    sources = {
+        name: "env" if environ.get(name) else "file" if merged.get(name) else "missing"
+        for name in CONFIG_KEYS.values()
+    }
+    return path, merged, sources
+
+
+def planned_runtime(environ: dict[str, str]) -> tuple[Path, bool]:
+    """The interpreter launch would run the bundled server with, and whether it is ready.
+
+    Same choice as `runtime_python`, without preparing anything.
+    """
+    if server_importable(Path(sys.executable), environ):
+        return Path(sys.executable), True
+    python = runtime_python_path(environ)
+    return python, server_importable(python, environ)
+
+
+def preflight(environ: dict[str, str]) -> dict[str, object]:
+    """Everything launch would decide, in launch's order, without changing anything.
+
+    Nothing is created, repaired or prepared and a configured command is never run; without
+    one, the same import probe launch uses checks the bundled server.
+
+    Raises the same `ConfigurationError` launch would. `configure_dataloop.py --check` reports
+    this, so the check cannot disagree with what actually starts.
+    """
+    path, merged, sources = effective_settings(environ)
+    state_path = require_settings(merged)
+    runtime_ready = True
+    if merged.get("DATALOOP_MCP_COMMAND"):
+        command = build_command(dict(merged))
+    else:
+        python, runtime_ready = planned_runtime(merged)
+        command = build_command(dict(merged), python)
+    return {
+        "config_path": path,
+        "environment": merged,
+        "sources": sources,
+        "state_path": state_path,
+        "profiles": profiles_from(merged.get("DATALOOP_MCP_PROFILES")),
+        "command": command,
+        "runtime_ready": runtime_ready,
+    }
 
 
 def main() -> int:
@@ -257,9 +332,7 @@ def main() -> int:
             return 1
         return 0
     try:
-        path = config_path(os.environ)
-        config = load_config(path)
-        environment = merged_environment(dict(os.environ), config)
+        environment = effective_settings(dict(os.environ))[1]
         validate_environment(environment)
         if environment.get("DATALOOP_MCP_COMMAND"):
             command = build_command(environment)

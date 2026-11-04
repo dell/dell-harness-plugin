@@ -1,0 +1,7 @@
+Synthetic DDSE evidence shows checkout logs increased from **10 to 34 per hour**, a **240% increase** (+24 logs).
+
+- Prior: July 31, 23:00–August 1, 00:00 UTC.
+- Current: August 1, 00:00–01:00 UTC, 2026.
+- Current-window categories report **24 `payment_timeout` logs**, about **71%** of current logs.
+
+Payment timeouts are the leading explanation suggested by these results: their current count equals the total increase. However, without prior-window category counts, this does **not prove** that timeouts account for all 24 additional logs or establish their underlying cause.

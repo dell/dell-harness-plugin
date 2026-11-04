@@ -1,4 +1,4 @@
 interface:
   display_name: "Analyze Governed Data Products"
   short_description: "Discover and analyze governed DDAE data"
-  default_prompt: "Use $analyze-governed-data-products to find an authorized Data Product and answer my business question."
+  default_prompt: "Which Data Products show order fulfillment time by region for last quarter? Answer with $analyze-governed-data-products."

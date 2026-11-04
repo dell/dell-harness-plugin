@@ -133,6 +133,7 @@ PLUGIN_V1_TOOLS = frozenset(
         "model_deploy",
         "model_predict",
         "model_get",
+        "model_list",
         "model_delete",
         "app_uninstall",
     }
@@ -175,7 +176,8 @@ Start with `project_list`. Inspect data through `dataset_list`, `dataset_get`,
 `dataset_profile`, `item_list`, and `item_get`; inspect labels and exact annotations through
 `annotation_labels`, `annotation_list`, and `annotation_get`.
 
-Use `pipeline_list` before creating another workflow. Build RAG in order:
+Use `pipeline_list` before creating another workflow, and `model_list` to find a deployed
+embedding model. Build RAG in order:
 `rag_pipeline_create` -> `rag_add_pdf_filter_node` -> `rag_add_pdf_to_text_node` ->
 `rag_add_text_to_chunks_node` -> `rag_add_embedding_node` -> `rag_add_output_node` ->
 `pipeline_connect_nodes` -> `pipeline_validate` -> `pipeline_install`. Use
@@ -255,7 +257,7 @@ def strip_schema_titles(mcp: MCPServer) -> None:
 
 
 def make_tool_annotations_explicit(mcp: MCPServer) -> None:
-    """Materialize every optional MCP behavior hint for a stable plugin contract."""
+    """Materialize every optional MCP behavior hint, on every profile, for a stable contract."""
     for tool in mcp._tool_manager._tools.values():
         current = tool.annotations or ToolAnnotations()
         read_only = current.read_only_hint is True
@@ -290,7 +292,7 @@ def build_server(profiles: list[str] | None = None) -> MCPServer:
             raise RuntimeError(f"Plugin profile references missing tools: {sorted(missing)}")
         for tool_name in registered - PLUGIN_V1_TOOLS:
             mcp.remove_tool(tool_name)
-        make_tool_annotations_explicit(mcp)
+    make_tool_annotations_explicit(mcp)
     prompts.register(mcp)
     strip_schema_titles(mcp)
     return mcp

@@ -31,28 +31,16 @@ from typing import Annotated, Any
 import dtlpy as dl
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
-from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .. import outputs, paging, serialize
-from ..context import dataloop_call, get_pipeline, get_project
+from ..context import dataloop_call, get_execution, get_pipeline, get_project, owned
 from ..guards import confirm_or_elicit
-
-READ_ONLY = ToolAnnotations(
-    read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
-)
-MUTATING = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=False)
-DESTRUCTIVE = ToolAnnotations(read_only_hint=False, destructive_hint=True, open_world_hint=False)
-
-
-def _execution_of(project: Any, execution_id: str) -> Any:
-    """Fetch one execution. `Executions` needs a project or a service to scope the lookup."""
-    repo = dl.repositories.Executions(client_api=dl.client_api, project=project)
-    return dataloop_call("execution lookup", lambda: repo.get(execution_id=execution_id))
+from ..safety import ADDITIVE, DELETE, READ_ONLY
 
 
 def register(mcp: MCPServer) -> None:
-    @mcp.tool(title="Run a pipeline once", annotations=MUTATING)
+    @mcp.tool(title="Run a pipeline once", annotations=ADDITIVE)
     def pipeline_execute(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to run.")],
@@ -106,14 +94,17 @@ def register(mcp: MCPServer) -> None:
         filters = dl.Filters(resource=dl.FiltersResource.EXECUTION)
         filters.page = page
         filters.page_size = page_size
+        # An explicit filter can replace the repository's implicit project scope, so state it.
+        filters.add(field="projectId", values=project_id)
         if pipeline_id is not None:
+            owned(project, "pipelines", "pipeline", pipeline_id=pipeline_id)
             filters.add(field="pipelineId", values=pipeline_id)
         if in_progress_only:
             filters.add(field="latestStatus.status", values="in-progress")
         listed = dataloop_call("execution list", lambda: repo.list(filters=filters))
         return paging.from_paged(listed, lambda entity: dict(serialize.execution(entity)), limit=page_size)
 
-    @mcp.tool(title="Terminate a running execution", annotations=DESTRUCTIVE)
+    @mcp.tool(title="Terminate a running execution", annotations=DELETE)
     def execution_terminate(
         project_id: Annotated[str, Field(description="Project that owns the execution.")],
         execution_id: Annotated[str, Field(description="Execution to stop.")],
@@ -134,11 +125,11 @@ def register(mcp: MCPServer) -> None:
             "its work is abandoned mid-flight and partial writes are not rolled back",
         )
         project = get_project(project_id)
-        execution = _execution_of(project, execution_id)
+        execution = get_execution(project, execution_id)
         dataloop_call("execution terminate", lambda: execution.terminate())
         # Re-read rather than trusting terminate()'s return, the same discipline as the graph
         # mutations: the caller needs the platform's view of the status, not ours.
-        return {"terminated": True, "execution": serialize.execution(_execution_of(project, execution_id))}
+        return {"terminated": True, "execution": serialize.execution(get_execution(project, execution_id))}
 
     @mcp.tool(title="Validate a pipeline graph", annotations=READ_ONLY)
     def pipeline_validate(

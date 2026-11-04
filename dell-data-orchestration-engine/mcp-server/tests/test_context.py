@@ -103,6 +103,76 @@ def test_scoped_resource_lookup_rejects_cross_project_response(monkeypatch, help
         getattr(context, helper_name)("proj-1", "resource-1")
 
 
+OWNED_KINDS = [
+    ("datasets", "dataset"),
+    ("pipelines", "pipeline"),
+    ("models", "model"),
+    ("services", "service"),
+    ("triggers", "trigger"),
+]
+
+
+def _project_with(repo_name, resource):
+    repository = MagicMock()
+    repository.get.return_value = resource
+    return SimpleNamespace(id="proj-1", **{repo_name: repository}), repository
+
+
+@pytest.mark.parametrize(("repo_name", "kind"), OWNED_KINDS)
+def test_owned_returns_a_resource_of_the_resolved_project(repo_name, kind):
+    resource = SimpleNamespace(project_id="proj-1")
+    project, repository = _project_with(repo_name, resource)
+
+    assert context.owned(project, repo_name, kind, **{f"{kind}_id": "r-1"}) is resource
+    repository.get.assert_called_once_with(**{f"{kind}_id": "r-1"})
+
+
+@pytest.mark.parametrize(("repo_name", "kind"), OWNED_KINDS)
+def test_owned_rejects_another_projects_resource(repo_name, kind):
+    project, _ = _project_with(repo_name, SimpleNamespace(project_id="proj-other"))
+
+    with pytest.raises(context.DoeError, match=f"{kind} lookup failed.*belongs to project 'proj-other'"):
+        context.owned(project, repo_name, kind, **{f"{kind}_id": "r-1"})
+
+
+@pytest.mark.parametrize(("repo_name", "kind"), OWNED_KINDS)
+def test_owned_fails_closed_when_ownership_is_missing(repo_name, kind):
+    project, _ = _project_with(repo_name, SimpleNamespace())
+
+    with pytest.raises(context.DoeError, match="ownership.*could not be verified"):
+        context.owned(project, repo_name, kind, **{f"{kind}_id": "r-1"})
+
+
+def _executions(monkeypatch, execution):
+    repository = MagicMock()
+    repository.get.return_value = execution
+    scopes = []
+
+    def factory(client_api, project):
+        scopes.append(project)
+        return repository
+
+    monkeypatch.setattr(context.dl.repositories, "Executions", factory)
+    return repository, scopes
+
+
+def test_get_execution_accepts_matching_project(monkeypatch):
+    execution = SimpleNamespace(project_id="proj-1")
+    repository, scopes = _executions(monkeypatch, execution)
+    project = SimpleNamespace(id="proj-1")
+
+    assert context.get_execution(project, "exec-1") is execution
+    repository.get.assert_called_once_with(execution_id="exec-1")
+    assert scopes == [project]
+
+
+def test_get_execution_rejects_cross_project_response(monkeypatch):
+    _executions(monkeypatch, SimpleNamespace(project_id="proj-other"))
+
+    with pytest.raises(context.DoeError, match="belongs to project 'proj-other'"):
+        context.get_execution(SimpleNamespace(id="proj-1"), "exec-1")
+
+
 def test_scoped_resource_lookup_accepts_nested_project_identity(monkeypatch):
     resource = SimpleNamespace(project=SimpleNamespace(id="proj-1"))
     project = SimpleNamespace(datasets=SimpleNamespace(get=lambda **_: resource))

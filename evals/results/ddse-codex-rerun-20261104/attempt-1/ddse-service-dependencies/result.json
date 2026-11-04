@@ -1,0 +1,42 @@
+{
+  "audit_event_id": "ddse-eval-aa22a266-b383-4fd4-908f-d3a5f1cfbe43,ddse-eval-9a60bf6d-ad69-4427-986c-a4aa7fb69cc9",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddse-service-dependencies",
+  "codex_exit_code": 0,
+  "final_answer": "Synthetic DDSE evidence confirms `checkout-api` is present and has one downstream dependency: **`payments-api`**.\n\nWindow: `2026-08-01T00:00:00Z` through `2026-08-01T01:00:00Z`.",
+  "fixture": "ddse-synthetic-operations-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 13867,
+  "manual_checks": {
+    "Use returned service identifiers and time boundaries.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a1a7e8-d587-7c91-8c2c-b9be83aee4d5",
+  "tool_calls": [
+    {
+      "arguments": {
+        "end": "2026-08-01T01:00:00Z",
+        "start": "2026-08-01T00:00:00Z"
+      },
+      "name": "observability_get_services",
+      "status": "completed"
+    },
+    {
+      "arguments": {
+        "end": "2026-08-01T01:00:00Z",
+        "service_name": "checkout-api",
+        "start": "2026-08-01T00:00:00Z"
+      },
+      "name": "observability_get_downstream_dependencies",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/ddse-codex-rerun-20261104/attempt-1/ddse-service-dependencies/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 43264,
+    "input_tokens": 86113,
+    "output_tokens": 284,
+    "reasoning_output_tokens": 0
+  }
+}

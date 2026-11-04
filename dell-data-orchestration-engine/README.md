@@ -73,9 +73,16 @@ python dell-data-orchestration-engine/scripts/configure_dataloop.py \
 The alias is bound to its first recorded gate URL, preventing two deployments
 from silently sharing one dtlpy cookie and selected-environment pointer.
 
+## Python requirement
+
+Codex starts the bundled server with the `python` command, which must be Python 3.11 or
+later. Every official Windows installer provides `python`. On macOS, Homebrew's Python ships
+an unversioned `python` in `$(brew --prefix python)/libexec/bin`; add that directory to
+`PATH`. Check with `python --version` before first use.
+
 ## Limit the tool surface
 
-The launcher defaults to the reviewed `plugin-v1` profile: the 42 tools used by
+The launcher defaults to the reviewed `plugin-v1` profile: the 43 tools used by
 the plugin's eight evaluated workflows. This keeps tool-selection context bounded
 while retaining the complete bundled server for deliberate development use.
 

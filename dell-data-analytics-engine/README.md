@@ -5,6 +5,15 @@ server in a customer-managed Dell Data Analytics Engine (DDAE) deployment.
 The customer registers the MCP endpoint separately. The package contains no
 endpoint, credential, tenant identifier, certificate, or customer data.
 
+## Before you install
+
+This plugin contains skills only. It needs a deployed Dell AI Data Platform
+(AIDP) instance whose Data Analytics Engine release includes the Starburst
+Enterprise MCP server, and that MCP endpoint must be registered in Codex before
+the skills can do anything. There is no public or demo endpoint. See the
+[Dell AI Data Platform](https://www.dell.com/en-us/shop/artificial-intelligence/sc/ai-data-platform) documentation for the AIDP and Starburst
+Enterprise releases that support the MCP server.
+
 ## Customer capabilities
 
 - Search governed Data Products authorized for the OAuth user.
