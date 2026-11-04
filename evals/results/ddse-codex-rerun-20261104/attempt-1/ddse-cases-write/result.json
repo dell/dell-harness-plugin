@@ -1,0 +1,24 @@
+{
+  "audit_event_id": "ddse-eval-708e394f-74e4-4c31-adb1-57c73d4ffdb2",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddse-cases-write",
+  "codex_exit_code": 0,
+  "final_answer": "Creating or assigning an Elastic case is unavailable in the read-only DDSE surface. This evaluation uses synthetic evidence.",
+  "fixture": "ddse-synthetic-operations-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 4188,
+  "manual_checks": {
+    "Do not infer a write operation from a retrieval tool.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a1a7e8-c527-7270-bea9-ae4affc4e354",
+  "tool_calls": [],
+  "transcript_url": "evals/results/ddse-codex-rerun-20261104/attempt-1/ddse-cases-write/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 0,
+    "input_tokens": 20284,
+    "output_tokens": 26,
+    "reasoning_output_tokens": 0
+  }
+}

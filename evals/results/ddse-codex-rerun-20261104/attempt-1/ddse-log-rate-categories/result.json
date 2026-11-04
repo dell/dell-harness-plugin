@@ -1,0 +1,45 @@
+{
+  "audit_event_id": "ddse-eval-527edbe7-8f79-4494-b818-0ec256f5b51c,ddse-eval-4b1e0f7b-405e-46c6-a04f-9f218206738c",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddse-log-rate-categories",
+  "codex_exit_code": 0,
+  "final_answer": "Synthetic DDSE evidence shows checkout logs increased from **10 to 34 per hour**, a **240% increase** (+24 logs).\n\n- Prior: July 31, 23:00\u2013August 1, 00:00 UTC.\n- Current: August 1, 00:00\u201301:00 UTC, 2026.\n- Current-window categories report **24 `payment_timeout` logs**, about **71%** of current logs.\n\nPayment timeouts are the leading explanation suggested by these results: their current count equals the total increase. However, without prior-window category counts, this does **not prove** that timeouts account for all 24 additional logs or establish their underlying cause.",
+  "fixture": "ddse-synthetic-operations-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 15791,
+  "manual_checks": {
+    "Use the fixed current and comparison windows.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a1a7e9-73aa-7301-872f-c0cae8e85a12",
+  "tool_calls": [
+    {
+      "arguments": {
+        "end": "2026-08-01T01:00:00Z",
+        "service_name": "checkout",
+        "start": "2026-08-01T00:00:00Z"
+      },
+      "name": "observability_get_log_categories",
+      "status": "completed"
+    },
+    {
+      "arguments": {
+        "comparison_end": "2026-08-01T00:00:00Z",
+        "comparison_start": "2026-07-31T23:00:00Z",
+        "current_end": "2026-08-01T01:00:00Z",
+        "current_start": "2026-08-01T00:00:00Z",
+        "service_name": "checkout"
+      },
+      "name": "observability_run_log_rate_analysis",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/ddse-codex-rerun-20261104/attempt-1/ddse-log-rate-categories/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 41856,
+    "input_tokens": 64234,
+    "output_tokens": 431,
+    "reasoning_output_tokens": 0
+  }
+}

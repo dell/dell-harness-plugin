@@ -1,0 +1,25 @@
+{
+  "chatgpt_transcripts": "deferred_for_initial_review",
+  "fixture": "ddae-synthetic-commerce-v1",
+  "generated_at": "2026-11-04T19:00:45.426166+00:00",
+  "grades": [
+    {
+      "automated_failures": [
+        "tool path must be ['queryReadOnly'], got ['searchDataProducts', 'queryReadOnly']"
+      ],
+      "case_id": "ddae-bounded-analysis-explicit",
+      "codex_exit_code": 0,
+      "manual_requirements": [
+        "Use one read-only statement.",
+        "Report the query ID when returned."
+      ],
+      "passed": false,
+      "result": "evals/results/ddae-codex-rerun-20261104/attempt-2/ddae-bounded-analysis-explicit/result.json"
+    }
+  ],
+  "passed": false,
+  "passed_cases": 0,
+  "plugin": "dell-data-analytics-engine",
+  "surface": "codex",
+  "total_cases": 1
+}

@@ -1,0 +1,6 @@
+The synthetic DDSE evidence points to payment timeouts as the likely contributor to checkout’s log spike:
+
+- Log volume rose from **10 to 34** (**+240%**) between the comparison hour and 2026-08-01 00:00–01:00 UTC.
+- The current window contains **24 `payment_timeout` logs**, about **71%** of its total.
+
+Those 24 timeout logs numerically match the increase of 24 logs. However, without comparison-window categories, this supports a likely explanation rather than proving which category increased or why the timeouts occurred.

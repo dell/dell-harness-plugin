@@ -1,0 +1,33 @@
+{
+  "audit_event_id": "ddae-eval-475eb4e2-25c3-406c-82bd-b40fe68e8fd8",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddae-discover-explicit",
+  "codex_exit_code": 0,
+  "final_answer": "The authorized Data Product is **fulfillment_metrics** (`dp_fulfillment_v1`). It provides governed order fulfillment metrics, including delayed-order analysis.\n\nThis result is authorized for the current review identity. Returned evidence is synthetic, non-customer data.",
+  "fixture": "ddae-synthetic-commerce-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 11888,
+  "manual_checks": {
+    "Cite only returned product metadata.": true,
+    "Do not enumerate unrelated products.": true
+  },
+  "surface": "codex",
+  "thread_id": "01a1a7e8-3664-7290-a783-af7dfe4fb921",
+  "tool_calls": [
+    {
+      "arguments": {
+        "query": "fulfillment performance"
+      },
+      "name": "searchDataProducts",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/ddae-codex-rerun-20261104/attempt-1/ddae-discover-explicit/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 40832,
+    "input_tokens": 62008,
+    "output_tokens": 218,
+    "reasoning_output_tokens": 19
+  }
+}

@@ -1,0 +1,271 @@
+{
+  "run": "doe-live-20261104",
+  "plugin": "dell-data-orchestration-engine",
+  "server_version": "0.5.0 + fix/openai-r04-r07-r08",
+  "profile": "plugin-v1",
+  "client": "in-memory MCP client (mcp 2.0.1), elicitation auto-accepted by the harness",
+  "environment": "self-hosted DOE lab instance, two disposable projects created for this run and left empty",
+  "data_classification": "synthetic_non_customer",
+  "results": [
+    {
+      "family": 6,
+      "case": "dataset_get rejects another project's dataset",
+      "passed": true,
+      "evidence": "Error executing tool dataset_get: DOE dataset lookup failed: the returned resource belongs to project '<project-id>', not requested project '490048b5-8d57-4fee-8ec6-497f04bfd90"
+    },
+    {
+      "family": 6,
+      "case": "pii_report rejects another project's dataset before reading",
+      "passed": true,
+      "evidence": "Error executing tool pii_report: DOE dataset lookup failed: the returned resource belongs to project '<project-id>', not requested project '<project-id>"
+    },
+    {
+      "family": 6,
+      "case": "rag_pipeline_create rejects a foreign output dataset and creates nothing",
+      "passed": true,
+      "evidence": {
+        "error": "Error executing tool rag_pipeline_create: DOE dataset lookup failed: the returned resource belongs to project '<project-id>', not reques",
+        "pipelines_created": 0
+      }
+    },
+    {
+      "family": 3,
+      "case": "rag_pipeline_create with valid ids",
+      "passed": true,
+      "evidence": {
+        "pipeline": "<resource-id>"
+      }
+    },
+    {
+      "family": 6,
+      "case": "code node rejects a foreign output dataset before writing",
+      "passed": true,
+      "evidence": {
+        "error": "Error executing tool rag_add_text_to_chunks_node: DOE dataset lookup failed: the returned resource belongs to project '<project-id>', no",
+        "nodes": 0
+      }
+    },
+    {
+      "family": 6,
+      "case": "pipeline_get under the wrong project is rejected",
+      "passed": true,
+      "evidence": "Error executing tool pipeline_get: DOE pipeline lookup failed: the returned resource belongs to project '<project-id>', not requested project 'b2331175-23a0-4b2e-9396-134c333e2"
+    },
+    {
+      "family": 3,
+      "case": "hostile output_dataset_id is rejected before any node is written",
+      "passed": true,
+      "evidence": {
+        "error": "Error executing tool rag_add_pdf_to_text_node: DOE dataset lookup failed: ('404', 'Dataset not found')",
+        "nodes": 0
+      }
+    },
+    {
+      "family": 3,
+      "case": "rag_add_pdf_filter_node with valid ids",
+      "passed": true,
+      "evidence": "ok"
+    },
+    {
+      "family": 3,
+      "case": "rag_add_pdf_to_text_node with valid ids",
+      "passed": true,
+      "evidence": "ok"
+    },
+    {
+      "family": 3,
+      "case": "rag_add_text_to_chunks_node with valid ids",
+      "passed": true,
+      "evidence": "ok"
+    },
+    {
+      "family": 3,
+      "case": "rag_add_output_node with valid ids",
+      "passed": true,
+      "evidence": "ok"
+    },
+    {
+      "family": 3,
+      "case": "pdf_to_text: dataset id is an inert string literal in parseable code",
+      "passed": true,
+      "evidence": {
+        "literal": "\"<resource-id>\""
+      }
+    },
+    {
+      "family": 3,
+      "case": "text_to_chunks: dataset id is an inert string literal in parseable code",
+      "passed": true,
+      "evidence": {
+        "literal": "\"<resource-id>\""
+      }
+    },
+    {
+      "family": 4,
+      "case": "default pii_report counts flagged items",
+      "passed": true,
+      "evidence": {
+        "flagged_items": 2,
+        "exact": true
+      }
+    },
+    {
+      "family": 4,
+      "case": "no nested PII or unrelated sensitive metadata in the report",
+      "passed": true,
+      "evidence": {
+        "leaked": [],
+        "sample_fields": [
+          "item_id",
+          "matched_entity_types"
+        ]
+      }
+    },
+    {
+      "family": 5,
+      "case": "model_install (resnet app, no compute)",
+      "passed": true,
+      "evidence": {
+        "app": "<resource-id>"
+      }
+    },
+    {
+      "family": 5,
+      "case": "model_create from the installed app",
+      "passed": true,
+      "evidence": {
+        "model": "<resource-id>"
+      }
+    },
+    {
+      "family": 5,
+      "case": "exclude ['US_SSN']: backend subset membership matches the report",
+      "passed": true,
+      "evidence": {
+        "members": [
+          "clean.txt",
+          "email.txt"
+        ],
+        "expected": [
+          "clean.txt",
+          "email.txt"
+        ],
+        "matched_items": 2,
+        "error": null
+      }
+    },
+    {
+      "family": 5,
+      "case": "exclude ['US_SSN', 'EMAIL_ADDRESS']: backend subset membership matches the report",
+      "passed": true,
+      "evidence": {
+        "members": [
+          "clean.txt"
+        ],
+        "expected": [
+          "clean.txt"
+        ],
+        "matched_items": 1,
+        "error": null
+      }
+    },
+    {
+      "family": 6,
+      "case": "model_get under the wrong project is rejected",
+      "passed": true,
+      "evidence": "Error executing tool model_get: DOE model lookup failed: the returned resource belongs to project '<project-id>', not requested project '<project-id>'."
+    },
+    {
+      "family": 6,
+      "case": "model_get in the owning project works (model.project_id is populated)",
+      "passed": true,
+      "evidence": {
+        "project_id": "<project-id>"
+      }
+    },
+    {
+      "family": 9,
+      "case": "two-node pipeline wired",
+      "passed": true,
+      "evidence": "ok"
+    },
+    {
+      "family": 9,
+      "case": "pipeline_install",
+      "passed": true,
+      "evidence": {
+        "status": "Installed"
+      }
+    },
+    {
+      "family": 9,
+      "case": "pipeline_pause returns the re-read status",
+      "passed": true,
+      "evidence": {
+        "status": "Uninstalled"
+      }
+    },
+    {
+      "family": 9,
+      "case": "pipeline is still paused after 60s with nothing in progress",
+      "passed": true,
+      "evidence": {
+        "status": "Uninstalled",
+        "in_progress": 0
+      }
+    },
+    {
+      "family": 10,
+      "case": "pipeline_list shows existing pipelines to resume from, no duplicates",
+      "passed": true,
+      "evidence": {
+        "names": [
+          "val-b2e4e9-rag",
+          "val-b2e4e9-stop"
+        ]
+      }
+    },
+    {
+      "family": 10,
+      "case": "re-adding an existing node is refused, graph unchanged",
+      "passed": true,
+      "evidence": {
+        "error": "Error executing tool rag_add_output_node: Pipeline already has a node named 'output_storage'; pick another name.",
+        "nodes": [
+          "pdf_filter",
+          "pdf_to_text",
+          "text_to_chunks",
+          "output_storage"
+        ]
+      }
+    },
+    {
+      "family": "cleanup",
+      "case": "pipeline_delete <resource-id>",
+      "passed": true,
+      "evidence": "ok"
+    },
+    {
+      "family": "cleanup",
+      "case": "model_delete <resource-id>",
+      "passed": true,
+      "evidence": "ok"
+    },
+    {
+      "family": "cleanup",
+      "case": "app_uninstall <resource-id>",
+      "passed": true,
+      "evidence": "ok"
+    },
+    {
+      "family": "cleanup",
+      "case": "pipeline_delete <resource-id>",
+      "passed": true,
+      "evidence": "ok"
+    }
+  ],
+  "summary": {
+    "passed": 31,
+    "total": 31
+  }
+}

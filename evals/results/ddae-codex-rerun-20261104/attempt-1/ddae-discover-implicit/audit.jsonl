@@ -1,0 +1,1 @@
+{"arguments": {"query": "delayed order fulfillment"}, "case_id": "ddae-discover-implicit", "event_id": "ddae-eval-1760a2ae-4006-4872-ae33-f6fb5e037483", "event_type": "mcp_tool_call", "sequence": 1, "source": "codex_jsonl_transcript", "status": "completed", "timestamp": "2026-11-04T18:53:18.172535+00:00", "tool": "searchDataProducts"}

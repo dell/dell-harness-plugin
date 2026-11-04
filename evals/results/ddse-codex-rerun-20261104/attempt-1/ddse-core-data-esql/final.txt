@@ -1,0 +1,14 @@
+Synthetic evidence: **17 `payment_timeout` events** in authorized index `synthetic-orders-v1`.
+
+Mapping inspected: `@timestamp` is `date`; `event_type` and `service_name` are `keyword`.
+
+Executed query with inclusive start and exclusive end:
+
+```esql
+FROM synthetic-orders-v1
+| WHERE @timestamp >= TO_DATETIME("2026-08-01T00:00:00Z")
+    AND @timestamp < TO_DATETIME("2026-08-01T01:00:00Z")
+    AND event_type == "payment_timeout"
+| STATS count = COUNT(*)
+| LIMIT 1
+```

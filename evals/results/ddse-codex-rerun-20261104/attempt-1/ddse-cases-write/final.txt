@@ -1,0 +1,1 @@
+Creating or assigning an Elastic case is unavailable in the read-only DDSE surface. This evaluation uses synthetic evidence.
