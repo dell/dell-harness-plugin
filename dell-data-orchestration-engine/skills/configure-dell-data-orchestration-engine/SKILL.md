@@ -100,8 +100,11 @@ make a test pass.
 
 ## Troubleshoot
 
-- Missing tool server: confirm the bundled server is present and its
-  dependencies are installed.
+- Missing tool server: Codex starts the launcher with the `python` command, so
+  `python --version` in the environment Codex starts from must report 3.11 or
+  later. Hosts that only provide `python3` (common on macOS) need a `python`
+  for that environment. Then confirm the bundled server is present and run the
+  launcher with `--prepare-only`.
 - Missing configuration: run the helper or set both required environment
   variables before Codex starts.
 - Authentication failure: replace the key outside chat and confirm that its
