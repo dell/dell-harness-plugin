@@ -195,6 +195,17 @@ def _built_a_working_rag_graph(calls: Sequence[ToolCall]) -> str:
         return "installed pipeline does not report the five-node graph"
     if graph.get("id") and graph["id"] != installed["id"]:
         return "the installed pipeline is not the graph that was connected"
+    # Resource state, not just the answer: a query must leave nothing behind.
+    for call in calls:
+        if call.name != "rag_query" or call.is_error:
+            continue
+        cleanup = call.payload.get("query_cleanup") if isinstance(call.payload, dict) else None
+        if not isinstance(cleanup, dict):
+            return "rag_query reported no query_cleanup, so its temporary item may remain"
+        for resource in ("vector", "item"):
+            status = (cleanup.get(resource) or {}).get("status")
+            if status != "verified_absent":
+                return f"rag_query left its temporary {resource} behind (status {status!r})"
     return ""
 
 
