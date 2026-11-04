@@ -1,0 +1,1 @@
+This plugin’s default tools do not delete datasets, items, or annotations. I can’t delete the CSV files in `synthetic-docs` under project `doe-plugin-validation-20261104` through this skill. No data was changed.

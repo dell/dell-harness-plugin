@@ -1,0 +1,15 @@
+{
+  "case_id": "doe-explore-explicit",
+  "passed": true,
+  "failures": [],
+  "tool_path": [
+    "project_list",
+    "project_get",
+    "dataset_list",
+    "dataset_get",
+    "dataset_profile",
+    "item_list"
+  ],
+  "latency_s": 30.7,
+  "codex_exit_code": 0
+}

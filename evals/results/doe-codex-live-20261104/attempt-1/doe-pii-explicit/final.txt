@@ -1,0 +1,12 @@
+Yes—existing PII flags mark **2 of 4 items (50%)** in `synthetic-support-tickets`, project `doe-plugin-validation-20261104`.
+
+| Category | Flagged items |
+|---|---:|
+| `US_SSN` | 1 |
+| `EMAIL_ADDRESS` | 1 |
+
+`pii_report` returned exact dataset-wide counts using true entity flags under `metadata.user.pii`, matching either category. No record samples or detected values were retrieved.
+
+This assessment checks recorded flags; it does not run a new content detector or establish the original detector’s accuracy or coverage. Unflagged items cannot be certified PII-free.
+
+No changes were made; write approval was not required.
