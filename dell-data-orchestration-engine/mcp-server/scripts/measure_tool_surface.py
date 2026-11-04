@@ -4,7 +4,7 @@
 
 """Measure the advertised tool surface: chars and approximate tokens, broken down by component.
 
-Reproduces the numbers in `docs/plans/AGENT_OPTIMIZATION_HARNESS_SLM_PLAN.md` §1 so they stay
+Reproduces the tool-surface numbers of the upstream doe-mcp optimisation plan so they stay
 verifiable rather than becoming stale prose. Tokens are approximated as chars/4 — the same method
 the plan document uses, since `tiktoken` is not a project dependency (see plan §1: "Token figures
 are chars/4 approximations").

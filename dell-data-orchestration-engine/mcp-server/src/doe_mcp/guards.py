@@ -17,8 +17,8 @@ started a paid job with ``confirm=False``.
 
 ``confirm_or_elicit`` closes a real hole in ``require_confirmation`` alone: a model satisfies
 ``confirm=true`` by setting its own argument, so nothing here proves a human actually agreed. Where
-the connected client declares elicitation support (verified usable —
-docs/plans/AGENT_OPTIMIZATION_HARNESS_SLM_PLAN.md §2), it asks the human directly instead, and
+the connected client declares elicitation support (verified usable in the upstream doe-mcp
+optimisation plan), it asks the human directly instead, and
 falls back to the ``confirm=true`` parameter for clients that do not.
 """
 
