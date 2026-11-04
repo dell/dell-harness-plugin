@@ -1,4 +1,4 @@
 interface:
   display_name: "Build Dataloop Image Classifiers"
   short_description: "Build reviewed image classification workflows."
-  default_prompt: "Use $build-dataloop-image-classifiers to plan an image classification workflow in Dataloop."
+  default_prompt: "Train an image classifier on my labeled product photos with $build-dataloop-image-classifiers."
