@@ -20,8 +20,11 @@ allowed_sandbox_modes = ["workspace-write", "read-only"]
 
 # Plugin-bundled stdio servers are keyed by plugin and server name. The
 # structured command form also matches the bundled launcher argument; the string
-# form (command = "python") would accept any arguments. Replace "python" with
-# the absolute interpreter path if your manifests use one.
+# form (command = "python") would accept any arguments. These entries match a
+# source install, which launches "python". The desktop ZIPs built by
+# scripts/build_plugin_bundle.py launch their own interpreter instead
+# (<plugin cache>/runtime/python.exe on Windows, runtime/bin/python3.12 on Linux);
+# set executable to that installed absolute path when you deploy a bundle.
 
 # Dell AI Factory Agentic Workspace (plugin-bundled stdio adapter)
 [plugins.dell-ai-factory-agentic-workspace.mcp_servers.dell_devspaces.identity]

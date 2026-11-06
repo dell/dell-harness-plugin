@@ -1,0 +1,22 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "dell-ai-factory-agentic-workspace",
+  "version": "0.5.1",
+  "description": "Connect to and manage Dell AI Factory Agentic Workspace (built on Red Hat OpenShift Dev Spaces) using the Devspaces CLI connector.",
+  "author": {
+    "name": "Dell Technologies",
+    "url": "https://www.dell.com/"
+  },
+  "homepage": "https://github.com/dell/dell-harness-plugin/tree/main/dell-ai-factory-agentic-workspace",
+  "repository": "https://github.com/dell/dell-harness-plugin",
+  "license": "Apache-2.0",
+  "keywords": [
+    "dell",
+    "openshift",
+    "dev-spaces",
+    "eclipse-che",
+    "devworkspace",
+    "ai-factory",
+    "agentic-workspace"
+  ]
+}

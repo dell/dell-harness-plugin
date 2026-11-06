@@ -38,7 +38,10 @@ def test_manifest_mcp_marketplace_and_governance_are_registered():
     assert manifest["name"] == "dell-data-orchestration-engine"
     assert manifest["version"] == "0.6.0"
     assert manifest["skills"] == "./skills/"
-    assert manifest["mcpServers"] == "./.mcp.json"
+    assert "mcpServers" not in manifest
+    assert not (PLUGIN / ".mcp.json").exists()
+    portable = load_json(PLUGIN / "plugin.json")
+    assert (portable["name"], portable["version"]) == (manifest["name"], manifest["version"])
     assert manifest["homepage"].startswith("https://")
     assert manifest["author"]["url"].startswith("https://")
     for field in ("websiteURL", "privacyPolicyURL", "termsOfServiceURL"):
@@ -48,7 +51,8 @@ def test_manifest_mcp_marketplace_and_governance_are_registered():
     assert manifest["interface"]["capabilities"] == ["Read", "Write"]
     assert len(manifest["interface"]["defaultPrompt"]) == 3
 
-    mcp = load_json(PLUGIN / ".mcp.json")["mcpServers"]["dell_dataloop"]
+    mcp = load_json(PLUGIN / "mcp.json")["mcpServers"]["dell_dataloop"]
+    assert mcp["type"] == "stdio" and mcp["cwd"] == "${PLUGIN_ROOT}"
     assert mcp["command"] == "python"
     assert mcp["args"] == ["${PLUGIN_ROOT}/scripts/dataloop_mcp_launcher.py"]
     assert "DATALOOP_API_KEY" not in json.dumps(mcp)
@@ -121,7 +125,7 @@ def test_launcher_requires_private_config_and_never_serializes_secret(tmp_path):
     ]
     assert launcher.profiles_from(None) == ["plugin-v1"]
     assert launcher.profiles_from("all") == []
-    assert api_key not in json.dumps(load_json(PLUGIN / ".mcp.json"))
+    assert api_key not in json.dumps(load_json(PLUGIN / "mcp.json"))
 
     config.chmod(0o644)
     try:

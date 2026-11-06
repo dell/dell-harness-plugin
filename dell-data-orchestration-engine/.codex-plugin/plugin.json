@@ -17,7 +17,6 @@
     "rag"
   ],
   "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Dell Data Orchestration Engine",
     "shortDescription": "Build governed Dataloop data and ML workflows.",

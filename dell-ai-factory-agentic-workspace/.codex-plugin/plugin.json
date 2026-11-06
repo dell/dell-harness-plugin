@@ -30,8 +30,7 @@
     "defaultPrompt": [
       "Authenticate to Dell AI Factory Agentic Workspace and list my workspaces.",
       "Check the status of my Dev Spaces workspace.",
-      "Connect my workspace to Codex.",
-      "Restart my Dev Spaces workspace and verify its status."
+      "Connect my workspace to Codex."
     ],
     "websiteURL": "https://github.com/dell/dell-harness-plugin/tree/main/dell-ai-factory-agentic-workspace",
     "privacyPolicyURL": "https://www.dell.com/en-us/lp/legal/policies-privacy",
@@ -40,7 +39,6 @@
     "composerIcon": "./assets/dell-technologies-icon-square.png",
     "logo": "./assets/dell-technologies-icon-square.png"
   },
-  "mcpServers": "./.mcp.json",
   "repository": "https://github.com/dell/dell-harness-plugin",
   "homepage": "https://github.com/dell/dell-harness-plugin/tree/main/dell-ai-factory-agentic-workspace"
 }

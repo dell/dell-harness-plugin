@@ -43,3 +43,7 @@ evals/results/doe-initial-review-20260911/*
 !evals/results/ddse-codex-rerun-20261104/**
 !evals/results/doe-codex-live-20261104/
 !evals/results/doe-codex-live-20261104/**
+
+# Plugin bundle builds
+dist/
+.bundle-cache/

@@ -44,6 +44,8 @@ ALLOWED_DOMAINS = (
     "keepachangelog.com",
     "semver.org",
     "conventionalcommits.org",
+    # Agent Plugins manifest schema URIs used by the portable plugin.json and mcp.json.
+    "agent-plugins.org",
     # Kubernetes / Eclipse Che API groups used by the legacy Dev Spaces backend.
     "k8s.io",
     "devfile.io",
