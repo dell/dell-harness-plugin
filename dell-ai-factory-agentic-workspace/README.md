@@ -26,15 +26,15 @@ $env:DEVSPACES_ENABLE_WRITES = 'true'
 # $env:DEVSPACES_ENABLE_DELETE = 'true'
 ```
 
-Use a trusted CA when available. On a diagnosed certificate failure, `DEVSPACES_AUTO_TLS_RETRY=true` (default) retries read-only `--list` once with certificate verification disabled. After that retry, the rest of the connector session runs without certificate verification, including later start, stop, restart, connect, and delete calls and SSH tunnels. This can permit interception; a sanitized warning and runtime `tls_verification_enabled=false` expose the exception. Set `DEVSPACES_AUTO_TLS_RETRY=false` when verified TLS is required. The native authentication helper also retries an auth-specific certificate failure once when the list preflight was inconclusive. The exception never changes persistent settings, and workspace mutations are never automatically replayed. An already selected session exception can be carried with `DEVSPACES_ALLOW_INSECURE_TLS=true`; ambient `NODE_TLS_REJECT_UNAUTHORIZED` is ignored. See [troubleshooting](skills/manage-agentic-workspace/references/troubleshooting.md) for scope and stopping conditions.
+Certificate verification is always on. A certificate failure during listing, sign-in, a lifecycle action, or a tunnel launch is reported as a failure and is never retried with verification disabled; a failed or cancelled sign-in cannot change TLS settings for later calls. Point `NODE_EXTRA_CA_CERTS` at your organization's CA bundle. For an isolated lab cluster only, an administrator can set `DEVSPACES_ALLOW_INSECURE_TLS=true` in the environment that launches Codex. The server reads it once at startup, reports it as `tls_verification_enabled=false`, and nothing at runtime turns it on or off. `DEVSPACES_AUTO_TLS_RETRY` is no longer read (removed in 0.6.0), and ambient `NODE_TLS_REJECT_UNAUTHORIZED` is ignored. See [troubleshooting](skills/manage-agentic-workspace/references/troubleshooting.md).
 
-A configure/connect request includes beginning native login when CLI access is unverified; no second user request is needed. The agent monitors structured authentication progress itself, then checks CLI access. It does not ask the user to validate terminal text. An empty inventory gets a bounded differential TLS probe when automatic retry is enabled; retain the exception only if it verifies the intended cluster. If both modes remain empty, restore the prior mode and finish native authentication before account-assignment clarification. The agent runs local commands and diagnostics itself. User participation is limited to SSO/MFA, credentials, and private terminal input. Authentication uses the machine's default browser through the native CLI; workspace status and validation always use the CLI, not dashboard browsing. Browser sign-in alone never proves CLI access.
+A configure/connect request includes beginning native login when CLI access is unverified; no second user request is needed. The agent monitors structured authentication progress itself, then checks CLI access. It does not ask the user to validate terminal text. An empty inventory is inconclusive; finish native authentication before asking about account or workspace assignment. The agent runs local commands and diagnostics itself. User participation is limited to SSO/MFA, credentials, and private terminal input. Authentication uses the machine's default browser through the native CLI; workspace status and validation always use the CLI, not dashboard browsing. Browser sign-in alone never proves CLI access.
 
 Bundled helpers are part of the plugin:
 
 | Helper | Purpose |
 | --- | --- |
-| `scripts/authenticate_devspaces.py` | Standard-library-only native console launcher, CLI preflight, scoped TLS retry, interactive auth, post-login verification; `--check` never starts login |
+| `scripts/authenticate_devspaces.py` | Standard-library-only native console launcher, CLI preflight, interactive auth, post-login verification; certificate failures fail closed; `--check` never starts login |
 | `scripts/authenticate_devspaces.ps1` | Repeatable PowerShell wrapper around the same Python workflow |
 | `scripts/launch-auth.cmd` | Explorer/native-terminal launcher that calls Python directly, including when `.ps1` execution is blocked |
 | `scripts/prepare_runtime.py` | Reusable isolated Python/MCP runtime preparation and server launcher |
@@ -69,15 +69,14 @@ codex plugin add dell-ai-factory-agentic-workspace@dell-harness-plugin
 The manifest launches `python` with `scripts/prepare_runtime.py`. The bootstrap verifies MCP stdio imports and the pinned MCP version, reuses a working interpreter, or prepares a reusable isolated venv outside the plugin cache. `DEVSPACES_RUNTIME_DIR` can select the cache parent. Package installation uses normal verified TLS and writes logs only to stderr, preserving MCP stdout. If the `python` command is unavailable, resolve an installed interpreter and configure its absolute path. Run `prepare_runtime.py --prepare-only` for installation diagnostics or before restarting a client with a short server-startup timeout. Install `requirements.txt` for both backends, or `mcp==1.30.0` for the default connector backend. Installation does not provision the external connector or credentials.
 
 
-## SSH configuration ownership (0.4.1)
+## SSH configuration ownership
 
 The CLI owns `devspaces.conf`, its `Include` entries, and generated SSH settings.
-The plugin no longer inserts strict host-key overrides, adds Includes, or edits
-CLI-generated endpoints. On connection, it removes only complete legacy
-`Dell Devspaces pinned trust` blocks for the selected workspace from the main
-SSH config (or `DEVSPACES_SSH_CONFIG`). User-written policies, other workspace
-guards, and known-host keys remain unchanged. Modified or incomplete marked
-blocks require manual inspection; they are not deleted automatically.
+The plugin does not read, write, or migrate any SSH configuration or known-hosts
+file. Existing host-key pins, including legacy `Dell Devspaces pinned trust`
+blocks written by 0.4.0, stay exactly as they are through successful, failed,
+and repeated connects. Since 0.6.0 the plugin no longer removes those legacy
+blocks; delete one by hand if you no longer want it.
 
 The inspected CLI writes `StrictHostKeyChecking no` and `UserKnownHostsFile nul`
 on Windows. Honoring that policy skips server identity verification. The plugin
@@ -92,7 +91,7 @@ the CLI refreshes the local port. Keep the owning MCP session alive.
 
 | Capability | Utility behavior |
 | --- | --- |
-| Authenticate | `begin_devspaces_authentication` launches native SSO; `get_devspaces_authentication_progress` reports sanitized completion and transfers effective TLS state |
+| Authenticate | `begin_devspaces_authentication` launches native SSO; `get_devspaces_authentication_progress` reports sanitized completion and never changes TLS verification |
 | List / status | Parse `--list` JSON; distinguish phase from desired started state |
 | Start / stop | `--start <name>` / `--stop <name>`, then bounded verification |
 | Restart | Stop, verify Stopped, start, verify Running; no native restart flag |

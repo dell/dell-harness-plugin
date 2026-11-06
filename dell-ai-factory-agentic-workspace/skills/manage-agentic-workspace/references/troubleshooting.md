@@ -14,15 +14,15 @@ If the launched console is absent, inspect only the owned process and check CLI 
 
 If the machine browser has completed SSO but the native terminal is still waiting at `Please enter the Developer Workspace URI:`, the user may press **Enter once** with the field empty to let this connector attempt finish without supplying a URI. This is a completion attempt, not proof that the prompt is optional or that authentication succeeded; connector versions can differ and an empty entry may cancel the attempt. Do not loop blank submissions or fabricate a URI. If a URI is actually required, enter it privately in the native terminal.
 
-After Enter, the agent must immediately recheck CLI authentication and workspace inventory using the session's effective TLS setting. Proceed only when the intended cluster and workspace access are verified. An empty list, zero exit status, or completed browser SSO alone is insufficient. Do not hard-code automatic newline injection into the authentication helper.
+After Enter, the agent must immediately recheck CLI authentication and workspace inventory. Proceed only when the intended cluster and workspace access are verified. An empty list, zero exit status, or completed browser SSO alone is insufficient. Do not hard-code automatic newline injection into the authentication helper.
 
-## Certificate retry
+## Certificate failures
 
-Prefer `NODE_EXTRA_CA_CERTS` with an approved CA PEM. The default `DEVSPACES_AUTO_TLS_RETRY=true` automatically retries a failed CLI `--list` once only when stderr identifies a certificate-verification error. The retry disables verification for connector children in that same cluster session and prints a sanitized warning. This can permit interception of authentication traffic. Runtime reports `automatic_tls_retry` and the effective `tls_verification_enabled`; re-read runtime after preflight because the retry can change the effective state.
+Certificate verification is never disabled automatically. When the CLI reports a certificate-verification error during `--list`, `--auth`, a lifecycle action, or `--connect`, the call fails with `certificate verification failed` and nothing is retried. Fix trust by pointing `NODE_EXTRA_CA_CERTS` at the organization's approved CA PEM in the environment that launches Codex, then restart the plugin. A failed or cancelled sign-in leaves TLS exactly as it was.
 
-Set `DEVSPACES_AUTO_TLS_RETRY=false` or use `--no-auto-tls-retry` on the authentication helper when verified TLS is required. An explicit `DEVSPACES_ALLOW_INSECURE_TLS=true` or helper `--allow-insecure-tls` carries an already selected session exception. Ambient `NODE_TLS_REJECT_UNAUTHORIZED=0` is ignored. No user/machine environment, plugin manifest, SSH policy, or certificate store is changed. A connector tunnel retains its launch environment for its lifetime. Reconfigure trusted TLS on the next planned reconnect; do not tear down active tunnels unexpectedly.
+`DEVSPACES_ALLOW_INSECURE_TLS=true` (helper `--allow-insecure-tls`) is an administrator setting for isolated lab clusters. It is read once when the server starts and shows as `tls_verification_enabled=false` in runtime configuration. Do not set or recommend it. `DEVSPACES_AUTO_TLS_RETRY` and `--no-auto-tls-retry` were removed in 0.6.0. Ambient `NODE_TLS_REJECT_UNAUTHORIZED=0` is ignored. No user/machine environment, plugin manifest, SSH policy, or certificate store is changed.
 
-Run the read-only check before any authentication. If it verifies access, skip login. The native auth helper performs the same bounded preflight and passes its effective child environment to `--auth`. Some CLI builds return an empty list without surfacing a certificate error. If interactive authentication then fails specifically on certificate verification, the helper retries authentication once with the scoped exception. Standard input and output stay attached to the native terminal; stderr is forwarded immediately there while checking only the certificate-error category, without retaining or logging it. Never invoke interactive foreground authentication through a tool that captures terminal output; use a native console. A failed retry stops; no loop, generic-error downgrade, or lifecycle/delete replay is allowed. An explicitly configured verified-TLS requirement always wins.
+Run the read-only check before any authentication. If it verifies access, skip login. Standard input and output stay attached to the native terminal; stderr is forwarded immediately there while checking only the certificate-error category, without retaining or logging it. Never invoke interactive foreground authentication through a tool that captures terminal output; use a native console. No loop, generic-error downgrade, or lifecycle/delete replay is allowed.
 
 ## Runtime and workspace checks
 
@@ -33,19 +33,17 @@ Run the read-only check before any authentication. If it verifies access, skip l
 - **Writes blocked:** start/stop/restart require `DEVSPACES_ENABLE_WRITES`; deletion also requires `DEVSPACES_ENABLE_DELETE`. Do not silently enable gates.
 - **Timeout:** inspect workspace phase and identity before retrying an uncertain mutation. Do not replay start/stop/delete automatically.
 - **Tunnel pending/exited:** check `get_connection_status` for up to 30 seconds. Ready means setup was reported and the owned process is alive; run a separate SSH login check using the effective CLI/user policy.
-- **Unknown SSH host key:** reconnect with the updated backend to remove a complete legacy plugin-owned guard for that alias. The CLI owns generated host-key settings; do not edit Includes or add another override. If user or organization policy still requires strict checking, use its approved enrollment process. TLS exceptions do not establish SSH identity.
+- **Unknown or changed SSH host key:** stop and report it; do not accept, replace, or remove the pinned key and do not reconnect to bypass it. The plugin never edits SSH configuration. Verify the new key through the user's or organization's approved process before anyone updates known hosts. TLS settings do not establish SSH identity.
 - **Connection refused after workspace restart:** a Running workspace does not recreate a local tunnel. Recheck identity and invoke `connect_devspace`; use its refreshed alias/port rather than a stale localhost port.
 - **Not managed:** other manually launched tunnels may exist. Disconnect only this server's owned tunnel; keep the owning MCP process alive while connected.
 
 
 ## Silent empty inventory and Python recovery
 
-An empty `--list` is not evidence that certificate trust passed. With automatic
-TLS retry enabled, one differential read with verification disabled can reveal
-workspaces hidden by the connector's silent-empty behavior. Keep that mode only
-when it verifies the configured cluster; otherwise restore the prior mode.
-Authentication progress transfers its effective TLS mode into the owning MCP
-session, preventing login/list/tunnel processes from accidentally mixing modes.
+An empty `--list` is not evidence that certificate trust passed or that the
+account has no workspaces. Check the configured CA bundle and cluster origin,
+complete native login, and report the empty result; never retry the list with
+certificate verification disabled.
 
 Use the bundled bootstrap and retained client instead of writing new runtime or
 MCP-client scripts in each chat. The bootstrap checks real stdio imports, installs

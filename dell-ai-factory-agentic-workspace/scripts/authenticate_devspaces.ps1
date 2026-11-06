@@ -8,7 +8,6 @@ param(
     [Parameter(Mandatory = $true)] [string] $ClusterUrl,
     [string] $PythonPath = 'python',
     [switch] $AllowInsecureTls,
-    [switch] $NoAutoTlsRetry,
     [switch] $PauseOnCompletion
 )
 $devspacesArguments = @(
@@ -16,7 +15,6 @@ $devspacesArguments = @(
     '--foreground', '--connector', $ConnectorPath, '--cluster', $ClusterUrl
 )
 if ($AllowInsecureTls) { $devspacesArguments += '--allow-insecure-tls' }
-if ($NoAutoTlsRetry) { $devspacesArguments += '--no-auto-tls-retry' }
 if ($PauseOnCompletion) { $devspacesArguments += '--pause' }
 & $PythonPath @devspacesArguments
 exit $LASTEXITCODE

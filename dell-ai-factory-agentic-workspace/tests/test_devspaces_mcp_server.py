@@ -200,3 +200,90 @@ def test_workspace_pod_discovery_uses_only_workspace_labels():
     assert calls == [
         ("team-a", f"{label}=sample") for label in SERVER.WORKSPACE_POD_LABELS
     ]
+
+
+class Kubeconfig:
+    """Synthetic kubeconfig whose active context can change, as `oc login` does."""
+
+    def __init__(self, active, names=("approved", "other")):
+        self.active = active
+        self.names = names
+        self.loaded = []
+
+    def list_kube_config_contexts(self, config_file=None):
+        return [{"name": name} for name in self.names], {"name": self.active}
+
+    def load_kube_config(self, config_file=None, context=None):
+        self.loaded.append(context)
+
+
+def install_kubeconfig(monkeypatch, kubeconfig, **overrides):
+    monkeypatch.setattr(SERVER, "config", kubeconfig)
+    monkeypatch.setattr(SERVER, "SETTINGS", settings(**overrides))
+    monkeypatch.setattr(SERVER, "_client", None)
+    monkeypatch.setattr(SERVER, "_session_context", None)
+    monkeypatch.setattr(SERVER, "_startup_contexts", None)
+    monkeypatch.setattr(SERVER.DevSpacesClient, "__init__", lambda self, effective: setattr(self, "settings", effective))
+
+
+@pytest.mark.parametrize("configured", [(), ("approved",)])
+def test_login_context_outside_allowlist_is_blocked(monkeypatch, configured):
+    kubeconfig = Kubeconfig(active="approved")
+    install_kubeconfig(monkeypatch, kubeconfig, allowed_contexts=configured)
+    assert SERVER.allowed_contexts() == ("approved",)
+    # `oc login` to another cluster switches the active kubeconfig context.
+    kubeconfig.active = "other"
+    SERVER.activate_context("other")
+    with pytest.raises(PermissionError, match="outside the allowed contexts"):
+        SERVER.get_client()
+    assert SERVER.allowed_contexts() == ("approved",)
+
+
+def test_login_context_inside_allowlist_is_used(monkeypatch):
+    install_kubeconfig(monkeypatch, Kubeconfig(active="other"), allowed_contexts=("approved", "other"))
+    SERVER.activate_context("approved")
+    adapter = SERVER.get_client()
+    assert adapter.settings.requested_context == "approved"
+    assert adapter.settings.allowed_contexts == ("approved", "other")
+
+
+def test_authentication_status_flags_disallowed_context(monkeypatch):
+    install_kubeconfig(monkeypatch, Kubeconfig(active="approved"))
+    monkeypatch.setattr(SERVER.AUTHENTICATION, "status", lambda instance_name=None: {
+        "authenticated": True, "context": "other"})
+    result = SERVER.get_authentication_status()
+    assert result["context_allowed"] is False
+    assert "outside the allowed contexts" in result["reason"]
+    with pytest.raises(PermissionError):
+        SERVER.get_client()
+
+
+def test_client_constructor_never_widens_explicit_allowlist(monkeypatch):
+    kubeconfig = Kubeconfig(active="other")
+    monkeypatch.setattr(SERVER, "config", kubeconfig)
+    with pytest.raises(PermissionError, match="outside"):
+        SERVER.DevSpacesClient(settings(allowed_contexts=("approved",)))
+    assert kubeconfig.loaded == []
+
+
+def test_allowlist_is_captured_at_startup_not_after_login(monkeypatch, tmp_path):
+    kubeconfig = tmp_path / "kubeconfig"
+    kubeconfig.write_text(
+        "apiVersion: v1\nkind: Config\ncurrent-context: approved\n"
+        "clusters: [{name: c, cluster: {server: 'https://api.approved.example:6443'}}]\n"
+        "users: [{name: u, user: {}}]\n"
+        "contexts: [{name: approved, context: {cluster: c, user: u}},"
+        " {name: other, context: {cluster: c, user: u}}]\n"
+    )
+    monkeypatch.setenv("DEVSPACES_KUBECONFIG", str(kubeconfig))
+    monkeypatch.delenv("DEVSPACES_ALLOWED_CONTEXTS", raising=False)
+    spec = importlib.util.spec_from_file_location("devspaces_startup", SERVER_PATH)
+    fresh = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, spec.name, fresh)
+    spec.loader.exec_module(fresh)
+    # A background `oc login` later switches the active context before any tool call.
+    kubeconfig.write_text(kubeconfig.read_text().replace("current-context: approved", "current-context: other"))
+    assert fresh.allowed_contexts() == ("approved",)
+    fresh.activate_context("other")
+    with pytest.raises(PermissionError, match="outside the allowed contexts"):
+        fresh.get_client()

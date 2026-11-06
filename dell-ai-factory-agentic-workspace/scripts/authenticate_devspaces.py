@@ -39,42 +39,31 @@ def child_environment(insecure):
     return env
 
 
-def probe(connector, cluster_id, insecure=False, automatic=True, empty_retry=False):
-    """Return sanitized access evidence and the effective child-only TLS setting."""
-    original_insecure = insecure
-    empty_diagnostic = False
-    for attempt in range(2):
-        result = subprocess.run([connector, '--list'], stdin=subprocess.DEVNULL,
-                                capture_output=True, text=True, encoding='utf-8', errors='replace',
-                                timeout=30, env=child_environment(insecure))
-        if result.returncode == 0:
-            try:
-                rows = json.loads(result.stdout)
-            except (ValueError, TypeError):
-                raise RuntimeError('Connector list returned invalid JSON; authentication not verified.') from None
-            if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
-                raise RuntimeError('Connector list returned an invalid workspace list.')
-            verified = bool(rows) and all(row.get('clusterId') == cluster_id for row in rows)
-            if not rows and empty_retry and automatic and not insecure and attempt == 0:
-                print('Empty CLI inventory is inconclusive. Checking once with certificate verification disabled; this can permit interception.', file=sys.stderr, flush=True)
-                empty_diagnostic = True
-                insecure = True
-                continue
-            if empty_diagnostic and not verified:
-                insecure = original_insecure
-            return {'list_accessible': True, 'cluster_verified': verified,
-                    'workspace_count': len(rows), 'tls_verification_enabled': not insecure}, insecure
-        certificate_failure = any(marker in (result.stderr or '').lower() for marker in CERTIFICATE_ERRORS)
-        if certificate_failure:
-            if automatic and not insecure and attempt == 0:
-                insecure = True
-                print('Certificate verification failed. Retrying once with verification disabled for this connector session; this can permit interception.', file=sys.stderr, flush=True)
-                continue
-            raise RuntimeError('Certificate verification failed; automatic retry unavailable or exhausted.')
-        # No raw output: the CLI can include credential-bearing URIs in errors.
-        return {'list_accessible': False, 'cluster_verified': False,
-                'reason': 'CLI list failed; local authentication or connectivity needs attention.'}, insecure
-    raise RuntimeError('CLI access could not be verified.')
+def probe(connector, cluster_id, insecure=False):
+    """Return sanitized access evidence from one CLI list.
+
+    Certificate verification is never relaxed here. Only an explicit, administrator-set
+    --allow-insecure-tls (passed in as insecure) runs unverified, and a certificate failure
+    is reported as a failure rather than retried.
+    """
+    result = subprocess.run([connector, '--list'], stdin=subprocess.DEVNULL,
+                            capture_output=True, text=True, encoding='utf-8', errors='replace',
+                            timeout=30, env=child_environment(insecure))
+    if result.returncode == 0:
+        try:
+            rows = json.loads(result.stdout)
+        except (ValueError, TypeError):
+            raise RuntimeError('Connector list returned invalid JSON; authentication not verified.') from None
+        if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+            raise RuntimeError('Connector list returned an invalid workspace list.')
+        verified = bool(rows) and all(row.get('clusterId') == cluster_id for row in rows)
+        return {'list_accessible': True, 'cluster_verified': verified,
+                'workspace_count': len(rows), 'tls_verification_enabled': not insecure}
+    if any(marker in (result.stderr or '').lower() for marker in CERTIFICATE_ERRORS):
+        raise RuntimeError('Certificate verification failed; configure a trusted CA with NODE_EXTRA_CA_CERTS.')
+    # No raw output: the CLI can include credential-bearing URIs in errors.
+    return {'list_accessible': False, 'cluster_verified': False, 'tls_verification_enabled': not insecure,
+            'reason': 'CLI list failed; local authentication or connectivity needs attention.'}
 
 
 def interactive_auth(connector, cluster, insecure):
@@ -109,32 +98,27 @@ def interactive_auth(connector, cluster, insecure):
     return code, certificate.is_set()
 
 
-def authenticate(connector, cluster, cluster_id, insecure=False, automatic=True, report=None):
+def authenticate(connector, cluster, cluster_id, insecure=False, report=None):
     report = report or (lambda state, **fields: None)
     report('checking_access', tls_verification_enabled=not insecure)
-    status, insecure = probe(connector, cluster_id, insecure, automatic, empty_retry=True)
+    status = probe(connector, cluster_id, insecure)
     if status['cluster_verified']:
         print('Existing authentication verified; login skipped.', flush=True)
         print(json.dumps(status), flush=True)
         report('verified', **status)
         return 0
     print('Complete SSO in your machine browser and private authentication prompts in this terminal. Do not paste authentication URIs into chat.', flush=True)
-    # Auth is not a workspace mutation. Retry only an observed certificate failure,
-    # including CLI builds whose --list silently returns [] when TLS validation fails.
-    for attempt in range(2):
-        report('waiting_for_sso', tls_verification_enabled=not insecure)
-        code, certificate_failure = interactive_auth(connector, cluster, insecure)
-        if code and certificate_failure and automatic and not insecure and attempt == 0:
-            insecure = True
-            print('Authentication certificate verification failed. Retrying once with verification disabled for this connector session; this can permit interception.', flush=True)
-            continue
-        break
+    report('waiting_for_sso', tls_verification_enabled=not insecure)
+    code, certificate_failure = interactive_auth(connector, cluster, insecure)
     if code:
-        print('Authentication command failed or was interrupted; login not verified.', flush=True)
+        if certificate_failure:
+            print('Authentication failed certificate verification. Configure a trusted CA with NODE_EXTRA_CA_CERTS; verification stays enabled.', flush=True)
+        else:
+            print('Authentication command failed or was interrupted; login not verified.', flush=True)
         report('failed', tls_verification_enabled=not insecure)
         return 1
     report('checking_access', tls_verification_enabled=not insecure)
-    status, _ = probe(connector, cluster_id, insecure, automatic, empty_retry=True)
+    status = probe(connector, cluster_id, insecure)
     print(json.dumps(status), flush=True)
     if status['cluster_verified']:
         print('CLI authentication and cluster verified.', flush=True)
@@ -171,15 +155,14 @@ def main(argv=None):
     parser.add_argument('--check', action='store_true', help='Read-only CLI access check; never launch authentication')
     parser.add_argument('--pause', action='store_true', help='Keep the native terminal visible after completion')
     parser.add_argument('--status-file', type=Path, help='Private sanitized progress file for the owning MCP session')
-    parser.add_argument('--allow-insecure-tls', action='store_true', help='Reuse the current session TLS exception')
-    parser.add_argument('--no-auto-tls-retry', action='store_true', help='Require a trusted certificate')
+    parser.add_argument('--allow-insecure-tls', action='store_true',
+                        help='Administrator opt-in mirrored from DEVSPACES_ALLOW_INSECURE_TLS')
     args = parser.parse_args(argv)
     code = 1
     try:
         connector, cluster, cluster_id = validate(args.connector, args.cluster)
-        automatic = not args.no_auto_tls_retry and os.getenv('DEVSPACES_AUTO_TLS_RETRY', 'true').lower() in {'1', 'true', 'yes'}
         if args.check:
-            status, _ = probe(connector, cluster_id, args.allow_insecure_tls, automatic, empty_retry=True)
+            status = probe(connector, cluster_id, args.allow_insecure_tls)
             print(json.dumps(status), flush=True)
             return 0 if status['cluster_verified'] else 2
         if not args.foreground:
@@ -189,8 +172,6 @@ def main(argv=None):
                        '--connector', connector, '--cluster', cluster]
             if args.allow_insecure_tls:
                 command.append('--allow-insecure-tls')
-            if not automatic:
-                command.append('--no-auto-tls-retry')
             if args.status_file:
                 command.extend(['--status-file', str(args.status_file.resolve())])
             process = subprocess.Popen(command, creationflags=subprocess.CREATE_NEW_CONSOLE,
@@ -198,7 +179,7 @@ def main(argv=None):
             print(json.dumps({'state': 'launched', 'pid': process.pid, 'browser': 'machine-default',
                               'authentication_verified': False}), flush=True)
             return 0
-        code = authenticate(connector, cluster, cluster_id, args.allow_insecure_tls, automatic,
+        code = authenticate(connector, cluster, cluster_id, args.allow_insecure_tls,
                             report=lambda state, **fields: publish_status(args.status_file, cluster, state, **fields))
     except KeyboardInterrupt:
         publish_status(args.status_file, args.cluster, 'cancelled')
