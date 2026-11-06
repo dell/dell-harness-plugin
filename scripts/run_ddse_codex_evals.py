@@ -28,30 +28,69 @@ selected_cases = shared.selected_cases
 parse_events = shared.parse_events
 extract_evidence = shared.extract_evidence
 
+SERVER = "dell_data_search_engine"
+WRITE_TOOLS = {"platform_core_create_case"}
+INDEX = "synthetic-orders-v1"
+WINDOWED = {
+    "ddse-service-dependencies",
+    "ddse-service-trace-logs",
+    "ddse-log-rate-categories",
+    "ddse-log-analysis-misspelled",
+}
+
+
+def _window_respected(arguments: dict[str, Any], window: dict[str, str]) -> bool:
+    bounds = {key: value for key, value in arguments.items() if "start" in key or "end" in key}
+    allowed = set(window.values())
+    return bool(bounds) and all(str(value) in allowed for value in bounds.values())
+
+
+def _reported(result: dict[str, Any] | None, answer: str) -> bool:
+    """The answer restates the values the tool actually returned (counts, ids, categories)."""
+    if not isinstance(result, dict):
+        return False
+    values = []
+    for key, value in result.items():
+        if key in {"fixture_id", "audit_event_id", "window", "columns"}:
+            continue
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            values.append(str(value))
+        elif isinstance(value, list):
+            values.extend(str(v) for row in value for v in (row if isinstance(row, list) else [row])
+                          if isinstance(v, (str, int)) and not isinstance(v, bool))
+    return bool(values) and all(value.lower() in answer for value in values if value)
+
+
 def boundary_checks(case: dict[str, Any], evidence: dict[str, Any]) -> dict[str, bool]:
+    """Every manual check is derived from the trace and the returned results, never assumed."""
     calls = evidence["tool_calls"]
     answer = evidence["final_answer"].lower()
+    window = load_json(FIXTURE_PATH)["fixed_window"]
     arguments = [call.get("arguments", {}) for call in calls]
+    no_writes = not any(call.get("name") in WRITE_TOOLS for call in calls)
+    intended_endpoint = all(call.get("server", SERVER) == SERVER for call in calls)
     checks: dict[str, bool] = {}
     for requirement in case["manual_checks"]:
-        passed = True
+        passed = no_writes and intended_endpoint
         if not case["expected_tool_path"]:
-            passed = not calls
+            passed = passed and not calls
         elif case["id"] == "ddse-core-data-esql":
-            queries = [arg.get("query", "") for arg in arguments if "query" in arg]
-            passed = bool(queries) and all(
-                "limit" in query.lower() and "@timestamp" in query.lower()
+            esql = [call for call in calls if call.get("name") == "platform_core_execute_esql"]
+            queries = [call.get("arguments", {}).get("query", "") for call in esql]
+            passed = passed and bool(queries) and all(
+                INDEX in query
+                and "limit" in query.lower()
+                and "@timestamp" in query
+                and window["current_start"] in query
+                and window["current_end"] in query
                 for query in queries
+            ) and all(_reported(call.get("result"), answer) for call in esql)
+        elif case["id"] == "ddse-core-data-document":
+            passed = passed and all(arg.get("index") == INDEX for arg in arguments) and all(
+                (call.get("result") or {}).get("found") is True for call in calls
             )
-        elif case["id"] in {
-            "ddse-service-dependencies",
-            "ddse-service-trace-logs",
-            "ddse-log-rate-categories",
-            "ddse-log-analysis-misspelled",
-        }:
-            passed = all(
-                any("start" in key or "end" in key for key in arg) for arg in arguments
-            )
+        elif case["id"] in WINDOWED:
+            passed = passed and all(_window_respected(arg, window) for arg in arguments)
         if "hypoth" in requirement.lower():
             passed = passed and (
                 "hypoth" in answer or "correlat" in answer or "does not prove" in answer
@@ -60,59 +99,29 @@ def boundary_checks(case: dict[str, Any], evidence: dict[str, Any]) -> dict[str,
             passed = (
                 passed
                 and "authoriz" in answer
-                and (
-                    "can't" in answer
-                    or "can’t" in answer
-                    or "cannot" in answer
-                    or "not " in answer
-                    or "isn't" in answer
-                    or "isn’t" in answer
-                )
+                and any(term in answer for term in ("can't", "can\u2019t", "cannot", "not ", "isn't", "isn\u2019t"))
             )
         elif case["id"] == "ddse-cases-write":
-            passed = passed and (
-                "read-only" in answer or "not available" in answer or "cannot" in answer
-            )
             passed = (
                 passed
+                and ("read-only" in answer or "not available" in answer or "cannot" in answer)
                 and "what title" not in answer
                 and "what description" not in answer
             )
         elif case["id"] == "ddse-infrastructure-ambiguous":
-            passed = passed and all(
-                term in answer for term in ("environment", "entity", "measure", "time")
-            )
+            passed = passed and all(term in answer for term in ("environment", "entity", "measure", "time"))
         checks[requirement] = passed
     return checks
 
 
 def prompt(case: dict[str, Any], fixture: dict[str, Any]) -> str:
-    window = fixture["fixed_window"]
-    window_context = ""
-    if case["invocation"] != "ambiguous":
-        window_context = (
-            f"The fixed current window is {window['current_start']} through "
-            f"{window['current_end']}; the comparison window is "
-            f"{window['comparison_start']} through {window['comparison_end']}. "
-        )
-    return (
-        "This is a synthetic, non-customer DDSE plugin evaluation. Follow the "
-        "installed Dell Data Search Engine skill. Do not inspect files, run shell "
-        "commands, or use web search. Use only the dell_data_search_engine MCP tools "
-        "when the request needs data; do not call a tool when the request is unsafe "
-        "or too ambiguous. If the request lacks the entity or measure, ask a "
-        "clarifying question and make zero tool calls. For an ambiguous infrastructure "
-        "request, ask for the environment, entity, measure, and time range in one "
-        "response. Do not repeat a tool or "
-        "broaden beyond the evidence types requested. State that the evidence is "
-        "synthetic. If the request asks for a write that is not exposed, state that "
-        "it is unavailable in the read-only surface; do not ask for write inputs. "
-        f"{window_context}User request: {case['prompt']}"
-    )
+    """A normal user request: the case prompt alone, with no harness instructions."""
+    return case["prompt"]
 
 
 PLUGIN = shared.PluginEval(
     slug="ddse",
+    plugin="dell-data-search-engine",
     cases_path=CASES_PATH,
     fixture_path=FIXTURE_PATH,
     fixture_server=FIXTURE_SERVER,

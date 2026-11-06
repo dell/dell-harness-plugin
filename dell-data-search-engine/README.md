@@ -116,8 +116,9 @@ when they do not require the Agent Builder chat model.
   changes. Do not publish all-index or non-expiring credentials.
 - Require trusted HTTPS certificates and allowlist the exact customer Kibana
   origin. Do not disable verification or package customer CA certificates.
-- Review live tools for writes to cases, workflows, or stored state and disable
-  or approval-gate them before a read-only deployment.
+- The plugin's skills never call write tools. Still disable any live tool that
+  writes to cases, workflows, or stored state, so the endpoint itself stays
+  read-only.
 
 See the bundled `configure-dell-data-search-engine` skill for validation and
 safe-use guidance. The bundled `investigate-dell-search-data` skill routes

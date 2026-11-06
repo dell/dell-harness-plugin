@@ -14,8 +14,10 @@ import argparse
 import importlib.util
 import json
 import os
+import shutil
 import stat
 import subprocess
+import tempfile
 import time
 import uuid
 from collections.abc import Callable
@@ -45,6 +47,7 @@ SAFETY = _load("eval_case_safety", SAFETY_SCRIPT)
 @dataclass(frozen=True)
 class PluginEval:
     slug: str
+    plugin: str
     cases_path: Path
     fixture_path: Path
     fixture_server: Path
@@ -101,13 +104,19 @@ def extract_evidence(events: list[dict[str, Any]]) -> dict[str, Any]:
                 "completed",
                 "failed",
             }:
-                completed_calls.append(
-                    {
-                        "name": item.get("tool"),
-                        "arguments": item.get("arguments", {}),
-                        "status": item.get("status"),
-                    }
-                )
+                call = {
+                    "name": item.get("tool"),
+                    "arguments": item.get("arguments", {}),
+                    "status": item.get("status"),
+                }
+                # Server and result let the grader confirm the intended endpoint was used and
+                # that the answer matches what the tool actually returned.
+                if item.get("server") is not None:
+                    call["server"] = item["server"]
+                result = item.get("result")
+                if isinstance(result, dict):
+                    call["result"] = result.get("structured_content") or result.get("structuredContent")
+                completed_calls.append(call)
             elif item.get("type") == "agent_message":
                 final_answer = item.get("text", "")
         if event.get("type") == "turn.completed" and isinstance(event.get("usage"), dict):
@@ -164,8 +173,41 @@ def transcript_audit_events(
     ]
 
 
+def codex_version() -> str:
+    completed = subprocess.run(
+        [SAFETY.resolve_codex(), "--version"], capture_output=True, text=True, timeout=60
+    )
+    return completed.stdout.strip()
+
+
+def install_plugin_home(plugin: PluginEval, home: Path) -> dict[str, str]:
+    """An isolated CODEX_HOME with this repository's marketplace and the plugin installed.
+
+    Cases then run against the installed plugin (its skills and manifest) exactly as a user would
+    have it, rather than against skill text pasted into the prompt.
+    """
+    home.mkdir(parents=True, exist_ok=True)
+    auth = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "auth.json"
+    if auth.is_file():
+        shutil.copy2(auth, home / "auth.json")
+        (home / "auth.json").chmod(stat.S_IRUSR | stat.S_IWUSR)
+    environment = {**os.environ, "CODEX_HOME": str(home)}
+    codex = SAFETY.resolve_codex()
+    for command in (
+        [codex, "plugin", "marketplace", "add", str(ROOT)],
+        [codex, "plugin", "add", f"{plugin.plugin}@dell-harness-plugin"],
+    ):
+        subprocess.run(command, env=environment, check=True, capture_output=True, text=True, timeout=300)
+    manifest = json.loads((ROOT / plugin.plugin / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    return {"codex_home": str(home), "plugin": plugin.plugin, "plugin_version": manifest["version"]}
+
+
 def run_case(
-    plugin: PluginEval, case: dict[str, Any], output_dir: Path, timeout: float
+    plugin: PluginEval,
+    case: dict[str, Any],
+    output_dir: Path,
+    timeout: float,
+    installation: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     SAFETY.validate_case(case, INVOCATIONS)
     case_dir = SAFETY.case_directory(output_dir, case["id"])
@@ -177,16 +219,19 @@ def run_case(
     audit_path.unlink(missing_ok=True)
     environment = dict(os.environ)
     environment[plugin.audit_env] = str(audit_path)
+    if installation is not None:
+        environment["CODEX_HOME"] = installation["codex_home"]
     fixture = load_json(plugin.fixture_path)
     prompt = plugin.prompt(case, fixture)
     # The prompt is sent on stdin (`-`), never as an argument, so case text cannot become a
     # Codex option. Every argv element below is a constant or a path this script controls.
+    # User config is kept: it is the isolated home that holds the installed plugin. The DDAE and
+    # DDSE servers are customer-registered, so the fixture is registered the same way.
     command = [
         SAFETY.resolve_codex(),
         "exec",
         "--json",
         "--ephemeral",
-        "--ignore-user-config",
         "--sandbox",
         "read-only",
         "--cd",
@@ -243,6 +288,9 @@ def run_case(
         "thread_id": evidence["thread_id"],
         "usage": evidence["usage"],
         "codex_exit_code": completed.returncode,
+        "prompt": prompt,
+        **({"plugin": installation["plugin"], "plugin_version": installation["plugin_version"],
+            "plugin_installed": True} if installation else {"plugin_installed": False}),
     }
     write_private(result_path, json.dumps(result, indent=2, sort_keys=True) + "\n")
     grade = _load("aidp_eval", EVAL_SCRIPT).grade_result(result_path)
@@ -266,11 +314,14 @@ def main(plugin: PluginEval, description: str | None = None) -> int:
             parser.error(f"unknown or unselected case(s): {sorted(unknown)}")
         cases = [case for case in cases if case["id"] in requested]
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    scratch = tempfile.TemporaryDirectory(prefix=f"{plugin.slug}-codex-home-")
+    installation = install_plugin_home(plugin, Path(scratch.name))
+    version = codex_version()
     grades = []
     for index, case in enumerate(cases, start=1):
         print(f"[{index}/{len(cases)}] running {case['id']}", flush=True)
         try:
-            grade = run_case(plugin, case, args.output_dir, args.timeout)
+            grade = run_case(plugin, case, args.output_dir, args.timeout, installation)
         except subprocess.TimeoutExpired:
             grade = {
                 "case_id": case["id"],
@@ -286,6 +337,11 @@ def main(plugin: PluginEval, description: str | None = None) -> int:
         "plugin": document["plugin"],
         "fixture": document["fixture"],
         "surface": "codex",
+        "codex_version": version,
+        "plugin": installation["plugin"],
+        "plugin_version": installation["plugin_version"],
+        "plugin_installed": True,
+        "prompt_style": "user request only; no harness instructions",
         "chatgpt_transcripts": document["submission_policy"]["chatgpt_transcripts"],
         "generated_at": datetime.now(UTC).isoformat(),
         "passed": all(grade["passed"] for grade in grades),
@@ -298,4 +354,5 @@ def main(plugin: PluginEval, description: str | None = None) -> int:
         json.dumps(summary, indent=2, sort_keys=True) + "\n",
     )
     print(json.dumps(summary, indent=2, sort_keys=True))
+    scratch.cleanup()
     return 0 if summary["passed"] else 1

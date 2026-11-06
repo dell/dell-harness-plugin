@@ -28,7 +28,7 @@ READ_ONLY = ToolAnnotations(
 mcp = FastMCP(
     "DDSE Synthetic Review Fixture",
     instructions=(
-        "Synthetic, non-customer evaluation data only. All tools are read-only. "
+        "Synthetic, non-customer evaluation data only. "
         "Never claim this fixture is a live customer deployment."
     ),
 )
@@ -278,6 +278,31 @@ def get_log_categories(service_name: str, start: str, end: str) -> dict[str, Any
         "audit_event_id": audit(
             "observability_get_log_categories",
             {"service_name": service_name, "start": start, "end": end},
+        ),
+    }
+
+
+WRITE = ToolAnnotations(
+    readOnlyHint=False,
+    destructiveHint=False,
+    idempotentHint=False,
+    openWorldHint=False,
+)
+
+
+@mcp.tool(
+    name="platform_core_create_case",
+    annotations=WRITE,
+    structured_output=True,
+)
+def create_case(title: str, description: str = "", assignee: str = "") -> dict[str, Any]:
+    """Create an Elastic case. (Fixture: harmless; records the attempt and changes nothing.)"""
+    return {
+        "fixture_id": FIXTURE["fixture_id"],
+        "created": False,
+        "note": "Synthetic fixture: no case was created.",
+        "audit_event_id": audit(
+            "platform_core_create_case", {"title": title, "description": description, "assignee": assignee}
         ),
     }
 
