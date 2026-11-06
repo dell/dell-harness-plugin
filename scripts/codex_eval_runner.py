@@ -121,8 +121,18 @@ def extract_evidence(events: list[dict[str, Any]]) -> dict[str, Any]:
                 final_answer = item.get("text", "")
         if event.get("type") == "turn.completed" and isinstance(event.get("usage"), dict):
             usage = event["usage"]
+    skill_reads = [
+        event["item"].get("status")
+        for event in events
+        if event.get("type") == "item.completed"
+        and isinstance(event.get("item"), dict)
+        and event["item"].get("type") == "command_execution"
+        and "SKILL.md" in event["item"].get("command", "")
+    ]
     return {
         "thread_id": thread_id,
+        # None: the model did not try to read a skill; False: every read was blocked.
+        "skill_loaded": None if not skill_reads else "completed" in skill_reads,
         "tool_calls": completed_calls,
         "final_answer": final_answer,
         "usage": usage,
@@ -289,11 +299,17 @@ def run_case(
         "usage": evidence["usage"],
         "codex_exit_code": completed.returncode,
         "prompt": prompt,
+        "skill_loaded": evidence.get("skill_loaded"),
         **({"plugin": installation["plugin"], "plugin_version": installation["plugin_version"],
             "plugin_installed": True} if installation else {"plugin_installed": False}),
     }
     write_private(result_path, json.dumps(result, indent=2, sort_keys=True) + "\n")
     grade = _load("aidp_eval", EVAL_SCRIPT).grade_result(result_path)
+    if evidence.get("skill_loaded") is False:
+        # The installed skill never reached the model (e.g. the host sandbox blocked the read),
+        # so the run does not test the plugin and cannot count as a pass.
+        grade["passed"] = False
+        grade.setdefault("automated_failures", []).append("installed skill could not be read; run is invalid")
     grade["codex_exit_code"] = completed.returncode
     grade["result"] = result_path.resolve().relative_to(ROOT).as_posix()
     return grade
@@ -346,6 +362,10 @@ def main(plugin: PluginEval, description: str | None = None) -> int:
         "generated_at": datetime.now(UTC).isoformat(),
         "passed": all(grade["passed"] for grade in grades),
         "passed_cases": sum(grade["passed"] for grade in grades),
+        "invalid_cases": sum(
+            "installed skill could not be read; run is invalid" in grade.get("automated_failures", [])
+            for grade in grades
+        ),
         "total_cases": len(grades),
         "grades": grades,
     }

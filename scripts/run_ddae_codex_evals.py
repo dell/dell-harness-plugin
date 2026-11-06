@@ -29,6 +29,10 @@ selected_cases = shared.selected_cases
 parse_events = shared.parse_events
 extract_evidence = shared.extract_evidence
 
+_fixture_spec = importlib.util.spec_from_file_location("ddae_fixture_mcp", FIXTURE_SERVER)
+assert _fixture_spec is not None and _fixture_spec.loader is not None
+FIXTURE_SERVER_MODULE = importlib.util.module_from_spec(_fixture_spec)
+_fixture_spec.loader.exec_module(FIXTURE_SERVER_MODULE)
 SERVER = "dell_data_analytics_engine"
 AUTHORIZED_TABLE = "synthetic.fulfillment_orders"
 QUERY_CASES = {"ddae-bounded-analysis-explicit", "ddae-discovery-to-answer-explicit"}
@@ -44,8 +48,10 @@ def query_is_bounded(query: str, window: dict[str, str]) -> bool:
         and "select *" not in lowered
         and re.search(r"\blimit\s+\d+", lowered) is not None
         and re.search(r"fulfillment_status\s*=\s*'delayed'", lowered) is not None
-        and f">= '{window['start'].lower()}" in lowered.replace("timestamp '", "'")
-        and f"< '{window['end'].lower()}" in lowered.replace("timestamp '", "'")
+        and re.search(r"event_time\s*>=\s*(?:timestamp\s*)?'" + FIXTURE_SERVER_MODULE.instant(window["start"]), lowered)
+        is not None
+        and re.search(r"event_time\s*<\s*(?:timestamp\s*)?'" + FIXTURE_SERVER_MODULE.instant(window["end"]), lowered)
+        is not None
     )
 
 

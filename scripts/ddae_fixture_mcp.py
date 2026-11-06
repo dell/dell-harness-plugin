@@ -118,6 +118,12 @@ QUERY_IDS = {
 }
 
 
+def instant(iso: str) -> str:
+    """A pattern for one UTC instant written as ISO-8601 or as a SQL TIMESTAMP literal."""
+    date, time = iso.lower().rstrip("z").split("t")
+    return re.escape(date) + r"[t ]" + re.escape(time) + r"(?:z|\s*utc)?'"
+
+
 def evaluate(lowered: str) -> tuple[str, int]:
     """The query ID and delayed-order count this exact statement would return.
 
@@ -133,8 +139,8 @@ def evaluate(lowered: str) -> tuple[str, int]:
         )
     window = FIXTURE["fixed_window"]
     status = re.search(r"fulfillment_status\s*=\s*'delayed'", lowered)
-    lower = re.search(r"event_time\s*>=\s*(?:timestamp\s*)?'" + re.escape(window["start"].lower()), lowered)
-    upper = re.search(r"event_time\s*<\s*(?:timestamp\s*)?'" + re.escape(window["end"].lower()), lowered)
+    lower = re.search(r"event_time\s*>=\s*(?:timestamp\s*)?'" + instant(window["start"]), lowered)
+    upper = re.search(r"event_time\s*<\s*(?:timestamp\s*)?'" + instant(window["end"]), lowered)
     if not (status and lower and upper):
         raise ValueError(
             "Bounded review queries must filter fulfillment_status = 'delayed' and the fixed "

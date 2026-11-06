@@ -181,3 +181,19 @@ def test_review_fixture_is_synthetic_and_covers_selected_cases():
         if variant["submission_class"] in {"positive", "negative"}
     }
     assert set(fixture["selected_cases"]) == selected
+
+
+def test_sql_timestamp_literals_are_accepted_like_iso():
+    runner = load_runner()
+    sql = GOOD_QUERY.replace("'2026-08-01T00:00:00Z'", "TIMESTAMP '2026-08-01 00:00:00 UTC'").replace(
+        "'2026-08-08T00:00:00Z'", "TIMESTAMP '2026-08-08 00:00:00 UTC'")
+    assert all(runner.boundary_checks(CASE, evidence_for(sql, "17 (ddae-synthetic-delayed-orders-v1)")).values())
+    wrong_day = sql.replace("2026-08-08 00:00:00", "2026-08-09 00:00:00")
+    assert not all(runner.boundary_checks(CASE, evidence_for(wrong_day, "17 (ddae-synthetic-delayed-orders-v1)")).values())
+
+
+def test_a_run_that_never_read_the_installed_skill_is_flagged():
+    runner = load_runner()
+    events = [{"type": "item.completed", "item": {"type": "command_execution", "command": "cat x/SKILL.md",
+                                                  "status": "failed"}}]
+    assert runner.extract_evidence(events)["skill_loaded"] is False

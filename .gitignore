@@ -47,3 +47,5 @@ evals/results/doe-initial-review-20260911/*
 # Plugin bundle builds
 dist/
 .bundle-cache/
+!evals/results/codex-installed-plugin-diagnostic-20261106/
+!evals/results/codex-installed-plugin-diagnostic-20261106/**
