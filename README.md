@@ -33,7 +33,7 @@ workflow skills, documentation, evaluations, and support expectations remain
 in that product directory. Harness-specific connection files are adapters
 inside the same directory:
 
-- Codex uses `.codex-plugin/plugin.json` and `.mcp.json`.
+- Codex uses `.codex-plugin/plugin.json`. Plugins with a local MCP server also ship the portable root `plugin.json` and `mcp.json`; `scripts/build_plugin_bundle.py` packages them as self-contained desktop ZIPs.
 - Devin uses `.devin-plugin/plugin.json` and `mcp_config.json` when that adapter
   has been implemented and validated.
 

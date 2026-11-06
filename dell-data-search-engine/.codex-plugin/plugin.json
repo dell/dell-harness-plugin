@@ -1,6 +1,6 @@
 {
   "name": "dell-data-search-engine",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Investigate governed Dell Data Search Engine indices, observability, and security data with bounded read-only workflows.",
   "author": {
     "name": "Dell Technologies",

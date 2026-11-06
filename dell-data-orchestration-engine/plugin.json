@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "dell-data-orchestration-engine",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Use Dell Data Orchestration Engine (Dataloop) through a governed Python SDK MCP server.",
   "author": {
     "name": "Dell Technologies",

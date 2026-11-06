@@ -69,6 +69,15 @@ codex plugin add dell-ai-factory-agentic-workspace@dell-harness-plugin
 The manifest launches `python` with `scripts/prepare_runtime.py`. The bootstrap verifies MCP stdio imports and the pinned MCP version, reuses a working interpreter, or prepares a reusable isolated venv outside the plugin cache. `DEVSPACES_RUNTIME_DIR` can select the cache parent. Package installation uses normal verified TLS and writes logs only to stderr, preserving MCP stdout. If the `python` command is unavailable, resolve an installed interpreter and configure its absolute path. Run `prepare_runtime.py --prepare-only` for installation diagnostics or before restarting a client with a short server-startup timeout. Install `requirements.txt` for both backends, or `mcp==1.30.0` for the default connector backend. Installation does not provision the external connector or credentials.
 
 
+## Desktop package
+
+`python scripts/build_plugin_bundle.py dell-ai-factory-agentic-workspace`
+builds self-contained ZIPs for Windows x64 and Linux x86_64 with a pinned
+CPython 3.12.16 and the pinned MCP dependencies. The packaged `mcp.json` starts
+`./runtime/...`, so no system Python or first-start installation is needed, and
+the bootstrap never installs at runtime. The connector executable is still
+supplied by your organization.
+
 ## SSH configuration ownership
 
 The CLI owns `devspaces.conf`, its `Include` entries, and generated SSH settings.

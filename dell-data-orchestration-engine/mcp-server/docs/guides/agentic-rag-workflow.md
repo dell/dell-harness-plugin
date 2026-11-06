@@ -62,7 +62,7 @@ planning, because they change the plan's shape:
 | Split text into chunks | Yes | `rag_add_text_to_chunks_node` writes one chunk **item** per chunk |
 | Generate embeddings | Yes | `rag_add_embedding_node`, but only with a model already installed **and deployed**; billable |
 | Query processed chunks | Yes | `rag_query` is vector search and needs the same `model_id` that embedded the chunks |
-| Inspect the derived text and chunk items | Yes | `item_list` / `item_get` on the output dataset (`/rag/text`, `/rag/chunks`) |
+| Inspect the derived text and chunk items | Yes | `item_list` / `item_get` on the output dataset (`/rag/text/<pipeline>`, `/rag/chunks/<pipeline>`) |
 | Check embedding progress | Yes | `dataset_embeddings_status` reports the output dataset's feature sets |
 | Install a RAG pipeline template (fallback) | Yes | `pipeline_create_from_template`, gated by `confirm` |
 | Reuse models already installed | Yes | `app_list` + `model_list`; avoids paying for a fresh install |
@@ -74,8 +74,8 @@ Underlying detail the agent SHOULD be able to explain if asked:
 - **DQL filtering is built in.** `rag_add_pdf_filter_node` filters for `metadata.system.mimetype ==
   "application/pdf"`.
 - **Derived text and chunks are items, not metadata.** `rag_add_pdf_to_text_node` uploads each PDF's
-  text as a `.txt` item under `/rag/text` in the output dataset; `rag_add_text_to_chunks_node`
-  uploads one item per chunk under `/rag/chunks`. A chunk has to be an item because a DOE
+  text as a `.txt` item under `/rag/text/<pipeline>` in the output dataset; `rag_add_text_to_chunks_node`
+  uploads one item per chunk under `/rag/chunks/<pipeline>`. A chunk has to be an item because a DOE
   feature vector attaches to an entity — item, annotation or dataset — so chunk-level retrieval is
   impossible otherwise. `metadata.user.rag` on those items carries provenance only: `role`,
   `text_item_id`, `source_item_id`, `source_item_name`, `chunk_index`, `start_pos`, `end_pos`.
@@ -104,8 +104,8 @@ Underlying detail the agent SHOULD be able to explain if asked:
 
 - **Agent:** Plan, using the direct RAG tools: create pipeline `rag-pipeline` over the source and
   output datasets; add the DQL PDF filter node; add the PDF-to-text node writing `.txt` items into
-  `<output_dataset>/rag/text`; add the text-to-chunks node at chunk_size=512, chunk_overlap=50,
-  writing chunk items into `<output_dataset>/rag/chunks`; add the embedding node using
+  `<output_dataset>/rag/text/<pipeline>`; add the text-to-chunks node at chunk_size=512, chunk_overlap=50,
+  writing chunk items into `<output_dataset>/rag/chunks/<pipeline>`; add the embedding node using
   already-deployed model `<model_id>`, whose service writes the vectors into its feature set
   (billable); add the output storage node terminating on the output dataset; connect the nodes in
   sequence; install and report counters. Alternatively, with marketplace templates: create dataset
@@ -180,8 +180,8 @@ The preferred path for most RAG use cases; no marketplace template is involved.
 - **Agent:** Proposes the structure: 1. `rag_pipeline_create` creates the pipeline. 2.
   `rag_add_pdf_filter_node` filters the source dataset to PDFs using DQL. 3.
   `rag_add_pdf_to_text_node` extracts each PDF's text and uploads it as a `.txt` item under
-  `/rag/text` in the output dataset. 4. `rag_add_text_to_chunks_node` splits that text item into one
-  chunk item per chunk under `/rag/chunks`, size and overlap configurable. 5.
+  `/rag/text/<pipeline>` in the output dataset. 4. `rag_add_text_to_chunks_node` splits that text item into one
+  chunk item per chunk under `/rag/chunks/<pipeline>`, size and overlap configurable. 5.
   `rag_add_embedding_node` sends the document's chunk items to a deployed model, whose service
   writes the vectors into its feature set. 6. `rag_add_output_node` terminates the graph on the
   output dataset. 7. `pipeline_connect_nodes` wires the nodes together.
@@ -223,8 +223,8 @@ The step-by-step `rag_add_*` path here remains correct, and is what the default 
   embeddings.
 
 - **Agent:** Calls `pipeline_install` and reports `pipeline_stats` counters and the output dataset's
-  `items_count`. Calls `item_list` on the output dataset with `name: "/rag/text/*"` and again with
-  `name: "/rag/chunks/*"`, paging while `has_more` is true, and shows a few chunk items with their
+  `items_count`. Calls `item_list` on the output dataset with `name: "/rag/text/<pipeline>/*"` and again with
+  `name: "/rag/chunks/<pipeline>/*"`, paging while `has_more` is true, and shows a few chunk items with their
   `metadata.user.rag` provenance (`text_item_id`, `source_item_name`, `chunk_index`). Then calls
   `dataset_embeddings_status` and reports each feature set's `id`, `name`, `vector_count` and
   `model_id`.
@@ -338,7 +338,7 @@ Every modification round repeats the small gate: propose, show, confirm, apply, 
 
 Re-chunking a document rewrites its chunk items by name (`<document>_chunk_00000.txt` upwards), so a
 smaller chunk count than the previous run leaves the surplus chunk items — and their vectors —
-behind in `/rag/chunks`, where `rag_query` will still rank them. The agent SHOULD list the
+behind in `/rag/chunks/<pipeline>`, where `rag_query` will still rank them. The agent SHOULD list the
 document's chunk items with `item_list` after a re-run and tell you if there are stale ones; there
 is no item-delete tool, so removing them is a console job.
 
@@ -378,7 +378,7 @@ Read-only, safe during Phase 0 planning:
 | `marketplace_get_dpk` | Inspect `models` and `pipeline_templates` of one package |
 | `app_list`, `model_list`, `model_get` | See what is already installed |
 | `pipeline_list`, `pipeline_get`, `pipeline_stats` | Inspect existing pipelines and counters |
-| `item_list`, `item_get` | Inspect the text and chunk items under `/rag/text` and `/rag/chunks` |
+| `item_list`, `item_get` | Inspect the text and chunk items under `/rag/text/<pipeline>` and `/rag/chunks/<pipeline>` |
 | `dataset_embeddings_status` | List a dataset's feature sets; how embedding progress is checked |
 | `rag_query` | Vector search over a dataset's chunk items. Read-only in effect, though it does upload and then delete one throwaway query item, and running the model costs |
 
@@ -388,8 +388,8 @@ Mutating, allowed only after approval (Direct RAG tools — recommended):
 | --- | --- |
 | `rag_pipeline_create` | Plan approval; takes `source_dataset_id` and `output_dataset_id` |
 | `rag_add_pdf_filter_node` | Plan approval; uses DQL to filter PDFs |
-| `rag_add_pdf_to_text_node` | Plan approval; requires `output_dataset_id`; writes a `.txt` item under `/rag/text` |
-| `rag_add_text_to_chunks_node` | Plan approval; requires `output_dataset_id`; configurable chunk size and overlap; writes chunk items under `/rag/chunks` |
+| `rag_add_pdf_to_text_node` | Plan approval; requires `output_dataset_id`; writes a `.txt` item under `/rag/text/<pipeline>` |
+| `rag_add_text_to_chunks_node` | Plan approval; requires `output_dataset_id`; configurable chunk size and overlap; writes chunk items under `/rag/chunks/<pipeline>` |
 | `rag_add_embedding_node` | Plan approval; requires `output_dataset_id` and a deployed `model_id`; the model's service writes the vectors, and running it is cost-incurring |
 | `rag_add_output_node` | Plan approval; terminates the graph on the output dataset |
 

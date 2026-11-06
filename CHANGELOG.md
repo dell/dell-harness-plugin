@@ -5,7 +5,51 @@ loosely based on [Keep a Changelog](https://keepachangelog.com/). Each release
 heading lists the plugin versions it ships; plugins are tagged
 `<plugin>/v<version>`.
 
-## Unreleased: `dell-data-orchestration-engine` 0.6.0, `dell-data-analytics-engine` 0.2.1, `dell-data-search-engine` 0.2.1, `dell-ai-factory-agentic-workspace` 0.5.1
+## Unreleased: `dell-data-orchestration-engine` 0.7.0, `dell-data-analytics-engine` 0.2.2, `dell-data-search-engine` 0.3.0, `dell-ai-factory-agentic-workspace` 0.6.0
+
+Second OpenAI plugin review round.
+
+### Security
+
+- `dell-ai-factory-agentic-workspace` 0.6.0: certificate verification is never
+  disabled automatically. A certificate failure in list, sign-in, lifecycle,
+  delete or connect fails closed, and no failure, retry or sign-in result can
+  change TLS for later calls. `DEVSPACES_AUTO_TLS_RETRY` and the helper's
+  `--no-auto-tls-retry` are removed; `DEVSPACES_ALLOW_INSECURE_TLS` remains an
+  administrator setting read once at startup.
+- `dell-ai-factory-agentic-workspace` 0.6.0: the plugin no longer edits SSH
+  configuration, so existing host-key pins (including legacy plugin-written
+  guard blocks) survive failed connects and reconnects. The CLI keeps owning
+  SSH policy.
+- `dell-ai-factory-agentic-workspace` 0.6.0: the optional Kubernetes adapter
+  fixes its context allowlist at startup; a context selected by `oc login` is
+  no longer added to it.
+- `dell-data-orchestration-engine` 0.7.0: item and annotation lookups verify
+  the entity belongs to the selected dataset before any read or write;
+  `model_predict` verifies each item's dataset belongs to the project.
+- `dell-data-orchestration-engine` 0.7.0: RAG code nodes write under a
+  per-pipeline folder, tag items with the pipeline id, and prune and embed only
+  their own items, so pipelines sharing an output dataset cannot overwrite or
+  delete each other's output. `rag_pipeline_build` now asks the user through
+  elicitation (its context was never injected).
+- `dell-data-search-engine` 0.3.0: the search skill no longer permits writes
+  when a write tool is advertised; it is read-only in all cases.
+
+### Changed
+
+- Agentic Workspace and DOE use the portable root `plugin.json` and `mcp.json`
+  (Codex 0.159.0 does not expand `${PLUGIN_ROOT}` in a legacy `.mcp.json`).
+  `scripts/build_plugin_bundle.py` builds self-contained desktop ZIPs for
+  Windows x64 and Linux x86_64 with a pinned CPython 3.12.16 and every server
+  dependency; bundled launchers never install at runtime.
+- `configure_dataloop.py --check` is read-only (no import, no state files, no
+  bytecode) and reports `launch=blocked` when the runtime is not prepared or a
+  preparation is running. An interrupted preparation is recovered on the next
+  start.
+- DDAE and DDSE evaluations run against the installed plugin with plain user
+  prompts, and every check is derived from the trace and the returned results.
+
+## Previously unreleased: `dell-data-orchestration-engine` 0.6.0, `dell-data-analytics-engine` 0.2.1, `dell-data-search-engine` 0.2.1, `dell-ai-factory-agentic-workspace` 0.5.1
 
 ### Security
 

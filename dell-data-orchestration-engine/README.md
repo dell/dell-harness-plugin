@@ -8,6 +8,20 @@ image classification.
 The Dataloop account remains the authorization boundary. The plugin does not
 elevate permissions, bypass Dataloop controls, or run pipeline code locally.
 
+## Desktop package (recommended)
+
+`python scripts/build_plugin_bundle.py dell-data-orchestration-engine` builds
+`dist/dell-data-orchestration-engine-<version>-<platform>.zip` for Windows x64
+and Linux x86_64. Each ZIP contains a pinned CPython 3.12.16 runtime (verified
+by SHA-256) and every server dependency, and its `mcp.json` launches
+`./runtime/...`. It needs no system Python, package-index access, or first-start
+preparation, and it never installs anything at runtime. `BUNDLE.json` records
+the runtime and package versions; `THIRD_PARTY_NOTICES.txt` lists their
+licenses. `scripts/smoke_plugin_bundle.py <zip>` boots a bundle offline.
+
+The rest of this section covers a source checkout installed from the Git
+marketplace.
+
 ## Runtime prerequisites
 
 - Python 3.11 or later with the standard `venv` module
