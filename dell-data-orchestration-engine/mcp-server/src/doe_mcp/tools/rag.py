@@ -42,7 +42,7 @@ from mcp.server.mcpserver import Context
 from pydantic import Field
 
 from .. import outputs, paging, serialize
-from ..context import dataloop_call, get_dataset, get_project, owned
+from ..context import dataloop_call, get_dataset, get_item, get_project, owned
 from ..guards import elicit_or_refuse, gate_local_compute
 from ..safety import ADDITIVE
 from ..schemas import CodeNodeSpec, DatasetNodeSpec
@@ -144,19 +144,24 @@ PDF_TO_TEXT_CODE = r'''def run(item):
     # here previously caused the platform to silently truncate the packaged code by a couple
     # of bytes, corrupting the trailing statement.)
     output_dataset = dl.datasets.get(dataset_id=__OUTPUT_DATASET_ID_LITERAL__)
+    # Every pipeline writes under its own folder and tags its items, so two pipelines sharing an
+    # output dataset can never overwrite or prune each other's text or chunks.
+    pipeline_id = __PIPELINE_ID_LITERAL__
+    pipeline_token = hashlib.sha256(pipeline_id.encode("utf-8")).hexdigest()[:12]
     buffer = io.BytesIO(text.encode("utf-8"))
     base_name = item.name.rsplit(".", 1)[0]
     source_token = hashlib.sha256(str(item.id).encode("utf-8")).hexdigest()[:16]
     derived_name = "{}__{}.txt".format(base_name, source_token)
     text_item = output_dataset.items.upload(
         local_path=buffer,
-        remote_path="__TEXT_FOLDER__",
+        remote_path="__TEXT_FOLDER__/" + pipeline_token,
         remote_name=derived_name,
         overwrite=True,
         item_metadata={
             "user": {
                 "rag": {
                     "role": "text",
+                    "pipeline_id": pipeline_id,
                     "source_item_id": item.id,
                     "source_item_name": item.name,
                     "char_count": len(text),
@@ -192,6 +197,8 @@ TEXT_TO_CHUNKS_CODE = r'''def run(item):
     # projectId, leaving item.project None (verified live). dl.datasets.get needs no project
     # context to fetch by id.
     output_dataset = dl.datasets.get(dataset_id=__OUTPUT_DATASET_ID_LITERAL__)
+    pipeline_id = __PIPELINE_ID_LITERAL__
+    pipeline_token = hashlib.sha256(pipeline_id.encode("utf-8")).hexdigest()[:12]
     base_name = item.name.rsplit(".", 1)[0]
     source_token = hashlib.sha256(str(source_item_id).encode("utf-8")).hexdigest()[:16]
     stride = max(1, chunk_size - chunk_overlap)
@@ -208,13 +215,14 @@ TEXT_TO_CHUNKS_CODE = r'''def run(item):
         expected_names.add(chunk_name)
         output_dataset.items.upload(
             local_path=io.BytesIO(chunk.encode("utf-8")),
-            remote_path="__CHUNK_FOLDER__",
+            remote_path="__CHUNK_FOLDER__/" + pipeline_token,
             remote_name=chunk_name,
             overwrite=True,
             item_metadata={
                 "user": {
                     "rag": {
                         "role": "chunk",
+                        "pipeline_id": pipeline_id,
                         "text_item_id": item.id,
                         "source_item_id": source_item_id,
                         "source_item_name": rag_metadata.get("source_item_name"),
@@ -233,12 +241,14 @@ TEXT_TO_CHUNKS_CODE = r'''def run(item):
         raise ValueError("Text item {} produced no chunks.".format(item.id))
 
     # Reprocessing a shorter source must not leave old tail chunks searchable. Scope cleanup by
-    # stable source id and role so no other document's output can be touched.
+    # pipeline, stable source id and role so no other pipeline's or document's output is touched.
     stale_filters = dl.Filters(resource=dl.FiltersResource.ITEM)
+    stale_filters.add(field="metadata.user.rag.pipeline_id", values=pipeline_id)
     stale_filters.add(field="metadata.user.rag.source_item_id", values=source_item_id)
     stale_filters.add(field="metadata.user.rag.role", values="chunk")
     for stale_item in output_dataset.items.list(filters=stale_filters).all():
-        if stale_item.name not in expected_names:
+        stale_rag = (stale_item.metadata or {}).get("user", {}).get("rag", {})
+        if stale_item.name not in expected_names and stale_rag.get("pipeline_id") == pipeline_id:
             stale_item.delete()
 
     # Provenance only -- the count, not the content, and never a vector.
@@ -265,6 +275,7 @@ EMBEDDING_CODE = r'''def run(item):
     # Chunk items are found by DQL rather than by an id list carried in metadata: a long document
     # produces thousands of chunks, and the query pages instead of growing the item document.
     filters = dl.Filters(resource=dl.FiltersResource.ITEM)
+    filters.add(field="metadata.user.rag.pipeline_id", values=__PIPELINE_ID_LITERAL__)
     filters.add(field="metadata.user.rag.text_item_id", values=item.id)
     filters.page_size = batch_size
 
@@ -470,7 +481,7 @@ def live_chunk(dataset: Any, item_id: str) -> Any | None:
     those keeps them out of the answer instead of surfacing a dangling id.
     """
     try:
-        item = dataset.items.get(item_id=item_id)
+        item = get_item(dataset, item_id)
     except Exception:
         return None
     role = (getattr(item, "metadata", None) or {}).get("user", {}).get("rag", {}).get("role")
@@ -576,12 +587,16 @@ def register(mcp: MCPServer) -> None:
     ) -> outputs.PipelineNodeResult:
         """Add a code node that turns each PDF into a text item.
 
-        Extracts with pypdf on DOE, uploads to `/rag/text` tagged with the source id, and
-        returns that item. A PDF yielding no text fails the execution.
+        Extracts with pypdf on DOE, uploads to this pipeline's `/rag/text/<pipeline>` folder tagged
+        with the source and pipeline ids, and returns that item. A PDF yielding no text fails.
         """
-        code = PDF_TO_TEXT_CODE.replace(
-            "__OUTPUT_DATASET_ID_LITERAL__", python_string_literal(output_dataset_id)
-        ).replace("__TEXT_FOLDER__", TEXT_FOLDER)
+        code = (
+            PDF_TO_TEXT_CODE.replace(
+                "__OUTPUT_DATASET_ID_LITERAL__", python_string_literal(output_dataset_id)
+            )
+            .replace("__PIPELINE_ID_LITERAL__", python_string_literal(pipeline_id))
+            .replace("__TEXT_FOLDER__", TEXT_FOLDER)
+        )
         return add_node(
             project_id,
             pipeline_id,
@@ -603,14 +618,15 @@ def register(mcp: MCPServer) -> None:
     ) -> outputs.PipelineNodeResult:
         """Add a code node that splits a text item into overlapping chunk items.
 
-        Each chunk is an item under `/rag/chunks`, tagged with its source and offsets: a
-        feature vector attaches to an entity, so chunk-level retrieval needs chunk items.
+        Each chunk is an item under this pipeline's `/rag/chunks/<pipeline>`, tagged with its
+        pipeline, source and offsets; re-runs prune only this pipeline's stale chunks.
         """
         code = (
             TEXT_TO_CHUNKS_CODE.replace(
                 "__OUTPUT_DATASET_ID_LITERAL__",
                 python_string_literal(output_dataset_id),
             )
+            .replace("__PIPELINE_ID_LITERAL__", python_string_literal(pipeline_id))
             .replace("__CHUNK_FOLDER__", CHUNK_FOLDER)
             .replace("__CHUNK_SIZE__", str(chunk_size))
             .replace("__CHUNK_OVERLAP__", str(chunk_overlap))
@@ -645,6 +661,7 @@ def register(mcp: MCPServer) -> None:
                 python_string_literal(output_dataset_id),
             )
             .replace("__MODEL_ID_LITERAL__", python_string_literal(model_id))
+            .replace("__PIPELINE_ID_LITERAL__", python_string_literal(pipeline_id))
             .replace("__BATCH_SIZE__", str(EMBED_BATCH_SIZE))
         )
         return add_node(

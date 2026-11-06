@@ -26,7 +26,12 @@ CHOICES = dict(
     chunk_size=512,
     chunk_overlap=50,
     load_existing=False,
+    pipeline_id="pipe-1",
 )
+
+
+def plan_for(pipeline_id):
+    return skills.rag_blueprint(**{**CHOICES, "pipeline_id": pipeline_id})
 
 
 def build(**overrides):
@@ -188,7 +193,7 @@ def test_apply_blueprint_reuses_a_pipeline_whose_graph_already_matches(monkeypat
     monkeypatch.setattr(skills, "get_project", lambda project_id: project)
     monkeypatch.setattr(skills, "get_pipeline", lambda project_id, pipeline_id: existing)
 
-    result = skills.apply_blueprint("proj-1", plan)
+    result = skills.apply_blueprint("proj-1", plan.name, plan_for)
 
     assert result["reused_existing_pipeline"] is True
     assert result["pipeline"]["id"] == "pipe-1"
@@ -205,7 +210,7 @@ def test_apply_blueprint_does_not_reuse_a_same_named_pipeline_with_a_different_g
     monkeypatch.setattr(skills, "get_project", lambda project_id: project)
     monkeypatch.setattr(skills, "get_pipeline", lambda project_id, pipeline_id: stale)
 
-    result = skills.apply_blueprint("proj-1", plan)
+    result = skills.apply_blueprint("proj-1", plan.name, plan_for)
 
     assert result["reused_existing_pipeline"] is False
     assert repo.created == {"name": plan.name, "project_id": "proj-1"}
@@ -228,7 +233,7 @@ def test_apply_blueprint_builds_from_scratch_when_no_pipeline_exists_yet(monkeyp
     reads = iter([empty, build()])
     monkeypatch.setattr(skills, "get_pipeline", lambda project_id, pipeline_id: next(reads))
 
-    result = skills.apply_blueprint("proj-1", plan)
+    result = skills.apply_blueprint("proj-1", plan.name, plan_for)
 
     assert result["reused_existing_pipeline"] is False
     assert repo.created == {"name": plan.name, "project_id": "proj-1"}

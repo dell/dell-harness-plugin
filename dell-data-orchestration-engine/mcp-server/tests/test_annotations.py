@@ -14,6 +14,7 @@ def fake_annotation(annotation_id="ann-1", label="person"):
     return SimpleNamespace(
         id=annotation_id,
         item_id="item-1",
+        dataset_id="ds-1",
         label=label,
         type="box",
         creator="model",
@@ -72,7 +73,7 @@ class FakeAnnotations:
 @pytest.fixture
 def dataset(monkeypatch):
     item_annotations = FakeAnnotations()
-    item = SimpleNamespace(id="item-1", annotations=item_annotations)
+    item = SimpleNamespace(id="item-1", dataset_id="ds-1", annotations=item_annotations)
     ds = SimpleNamespace(
         id="ds-1",
         items=SimpleNamespace(get=lambda item_id=None, **_: item),

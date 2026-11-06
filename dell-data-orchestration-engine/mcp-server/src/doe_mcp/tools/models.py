@@ -12,6 +12,7 @@ so the caller can inspect the result before continuing:
     model_deploy                               start a service that serves predictions
 """
 
+from functools import partial
 from typing import Annotated, Any, Literal
 
 import dtlpy as dl
@@ -20,7 +21,7 @@ from mcp.server.mcpserver import Context
 from pydantic import Field
 
 from .. import outputs, paging, serialize
-from ..context import get_project, marketplace_dpks, owned
+from ..context import dataloop_call, get_project, marketplace_dpks, owned
 from ..guards import confirm_or_elicit
 from ..progress import report_progress
 from ..safety import ADDITIVE, ADDITIVE_MARKETPLACE, DELETE, OVERWRITE, READ_ONLY
@@ -342,6 +343,15 @@ def register(mcp: MCPServer) -> None:
         model = owned(project, "models", "model", model_id=model_id)
         if dataset_id is not None:
             owned(project, "datasets", "dataset", dataset_id=dataset_id)
+        # An item id is global on the platform, so each one must resolve to a dataset this
+        # project owns before inference writes annotations onto it.
+        verified_datasets: set[str] = set()
+        for item_id in item_ids or []:
+            item = dataloop_call("item lookup", partial(dl.items.get, item_id=item_id))
+            item_dataset = str(getattr(item, "dataset_id", "") or "")
+            if item_dataset not in verified_datasets:
+                owned(project, "datasets", "dataset", dataset_id=item_dataset)
+                verified_datasets.add(item_dataset)
         status = getattr(model, "status", None)
         execution = model.predict(item_ids=item_ids, dataset_id=dataset_id)
         return {

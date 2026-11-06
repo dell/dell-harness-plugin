@@ -90,6 +90,17 @@ def _undeclared_mock_owners_are_not_under_test(monkeypatch: pytest.MonkeyPatch) 
 
     monkeypatch.setattr(context, "_verify_resource_project", verify)
 
+    strict_dataset = context._verify_resource_dataset
+
+    def verify_dataset(resource: Any, dataset_id: str, resource_name: str) -> Any:
+        # Same rule for dataset ownership: an undeclared mock owner is not under test, a
+        # declared one (see test_dataset_isolation) is checked strictly.
+        if isinstance(getattr(resource, "dataset_id", None), Base):
+            return resource
+        return strict_dataset(resource, dataset_id, resource_name)
+
+    monkeypatch.setattr(context, "_verify_resource_dataset", verify_dataset)
+
 
 class OwnedRepo:
     """A repository whose ``get`` returns a resource owned by ``project_id``.

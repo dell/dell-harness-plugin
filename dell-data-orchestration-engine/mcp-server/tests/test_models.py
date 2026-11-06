@@ -490,7 +490,9 @@ def test_predict_needs_exactly_one_scope(project, call_tool):
     assert project.models.predicted == []
 
 
-def test_predict_runs_when_confirmed(project, call_tool):
+def test_predict_runs_when_confirmed(project, call_tool, monkeypatch):
+    item = SimpleNamespace(get=lambda item_id: SimpleNamespace(id=item_id, dataset_id="ds-1"))
+    monkeypatch.setattr(models.dl, "items", item)
     result = call_tool("model_predict", {**PREDICT, "item_ids": ["i-1"], "confirm": True})
 
     assert result.is_error is False
