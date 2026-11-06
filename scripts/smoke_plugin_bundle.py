@@ -43,7 +43,8 @@ async def handshake(root: Path, home: Path) -> dict:
     assert server["command"].startswith("./runtime/"), "bundled mcp.json must launch the bundled runtime"
     assert (root / "BUNDLE.json").is_file()
     expand = lambda value: value.replace("${PLUGIN_ROOT}", str(root))  # noqa: E731
-    env = {"HOME": str(home), "PATH": os.defpath, "PLUGIN_ROOT": str(root),
+    env = {"HOME": str(home), "USERPROFILE": str(home), "PATH": os.defpath, "PLUGIN_ROOT": str(root),
+           **{key: os.environ[key] for key in ("SYSTEMROOT", "WINDIR") if key in os.environ},
            **{key: expand(value) for key, value in server.get("env", {}).items()}}
     params = StdioServerParameters(
         command=str(root / server["command"][2:]), args=[expand(arg) for arg in server["args"]],

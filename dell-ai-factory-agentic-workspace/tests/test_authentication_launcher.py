@@ -193,3 +193,17 @@ def test_status_file_contains_no_terminal_data(tmp_path):
     AUTH.publish_status(path, ORIGIN, 'verified', cluster_verified=True, terminal=SECRET, token=SECRET)
     assert json.loads(path.read_text()) == {'state': 'verified', 'cluster_url': ORIGIN, 'cluster_verified': True}
     assert SECRET not in path.read_text()
+
+
+def test_helper_flag_alone_cannot_disable_tls(monkeypatch):
+    monkeypatch.delenv('DEVSPACES_ALLOW_INSECURE_TLS', raising=False)
+    monkeypatch.setattr(AUTH, 'validate', lambda *args: ('connector', ORIGIN, CLUSTER))
+    seen = []
+    def run(args, **kwargs):
+        seen.append(kwargs['env'].get('NODE_TLS_REJECT_UNAUTHORIZED'))
+        return subprocess.CompletedProcess(args, 0, json.dumps([{'clusterId': CLUSTER}]), '')
+    monkeypatch.setattr(AUTH.subprocess, 'run', run)
+    assert AUTH.main(['--check', '--allow-insecure-tls']) == 0
+    monkeypatch.setenv('DEVSPACES_ALLOW_INSECURE_TLS', 'true')
+    assert AUTH.main(['--check', '--allow-insecure-tls']) == 0
+    assert seen == [None, '0']

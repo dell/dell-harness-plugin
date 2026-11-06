@@ -158,6 +158,10 @@ def main(argv=None):
     parser.add_argument('--allow-insecure-tls', action='store_true',
                         help='Administrator opt-in mirrored from DEVSPACES_ALLOW_INSECURE_TLS')
     args = parser.parse_args(argv)
+    # The flag only mirrors the administrator's launch setting; on its own it cannot relax TLS.
+    if args.allow_insecure_tls and os.getenv('DEVSPACES_ALLOW_INSECURE_TLS', 'false').lower() not in {'1', 'true', 'yes'}:
+        print('--allow-insecure-tls requires DEVSPACES_ALLOW_INSECURE_TLS=true from the administrator; verification stays enabled.', flush=True)
+        args.allow_insecure_tls = False
     code = 1
     try:
         connector, cluster, cluster_id = validate(args.connector, args.cluster)
