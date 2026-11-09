@@ -13,6 +13,9 @@ import sys
 import threading
 from urllib.parse import urlsplit
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import devspaces_settings  # noqa: E402
+
 CERTIFICATE_ERRORS = (
     'unable to verify the first certificate', 'unable to get local issuer certificate',
     'self signed certificate', 'self-signed certificate',
@@ -34,6 +37,9 @@ def validate(connector, cluster):
 def child_environment(insecure):
     env = os.environ.copy()
     env.pop('NODE_TLS_REJECT_UNAUTHORIZED', None)
+    ca_bundle = devspaces_settings.load().get('NODE_EXTRA_CA_CERTS')
+    if ca_bundle:
+        env.setdefault('NODE_EXTRA_CA_CERTS', ca_bundle)
     if insecure:
         env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
     return env
@@ -148,9 +154,10 @@ def publish_status(path, cluster, state, **fields):
 
 
 def main(argv=None):
+    settings = devspaces_settings.load()
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--connector', default=os.getenv('DEVSPACES_CONNECTOR_COMMAND', 'devspaces-cli-connector'))
-    parser.add_argument('--cluster', default=os.getenv('DEVSPACES_CLUSTER_URL', ''))
+    parser.add_argument('--connector', default=settings.get('DEVSPACES_CONNECTOR_COMMAND', 'devspaces-cli-connector'))
+    parser.add_argument('--cluster', default=settings.get('DEVSPACES_CLUSTER_URL', ''))
     parser.add_argument('--foreground', action='store_true', help='Use the existing local terminal')
     parser.add_argument('--check', action='store_true', help='Read-only CLI access check; never launch authentication')
     parser.add_argument('--pause', action='store_true', help='Keep the native terminal visible after completion')
@@ -159,8 +166,8 @@ def main(argv=None):
                         help='Administrator opt-in mirrored from DEVSPACES_ALLOW_INSECURE_TLS')
     args = parser.parse_args(argv)
     # The flag only mirrors the administrator's launch setting; on its own it cannot relax TLS.
-    if args.allow_insecure_tls and os.getenv('DEVSPACES_ALLOW_INSECURE_TLS', 'false').lower() not in {'1', 'true', 'yes'}:
-        print('--allow-insecure-tls requires DEVSPACES_ALLOW_INSECURE_TLS=true from the administrator; verification stays enabled.', flush=True)
+    if args.allow_insecure_tls and not devspaces_settings.enabled(settings, 'DEVSPACES_ALLOW_INSECURE_TLS'):
+        print('--allow-insecure-tls requires allow_insecure_tls=true in the plugin settings; verification stays enabled.', flush=True)
         args.allow_insecure_tls = False
     code = 1
     try:

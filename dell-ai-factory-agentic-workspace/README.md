@@ -12,21 +12,38 @@ The skill begins each new Dev Spaces workflow by asking for the user's credentia
 
 Provide Python 3.11+ with the dependencies in `requirements.txt` and a Devspaces CLI connector executable obtained through your organization. Python 3.12 on Windows is the tested runtime. The executable is not redistributed here. The inspected Windows build reports `0.1.0 (168c6b8)`; verify `--help` when upgrading. Direct dependencies are pinned; this is not a complete transitive lockfile.
 
-Set these variables in the environment that launches Codex. `DEVSPACES_CLUSTER_URL` is required and has no built-in default; until it is set, every remote tool fails closed without invoking the connector.
+Put the settings in a user-only file, `~/.config/dell-mcp/devspaces.json` (or the path in
+`DEVSPACES_CONFIG_FILE`). Codex passes only a fixed set of variables such as `HOME` and `PATH`
+to a plugin's MCP server, so variables exported where Codex starts do not reach it. A variable
+that does reach the process overrides the file. `cluster_url` is required and has no default;
+until it is set, every remote tool fails closed without invoking the connector.
 
-```powershell
-$env:DEVSPACES_CONNECTOR_COMMAND = 'C:/Tools/Devspaces/devspaces-cli-connector-win-x64.exe'
-$env:DEVSPACES_CLUSTER_URL = 'https://devspaces.example.com'
-$env:NODE_EXTRA_CA_CERTS = 'C:/Certificates/your-organization-ca.pem'
-# Optional namespace restriction:
-$env:DEVSPACES_ALLOWED_NAMESPACES = 'your-devspaces-namespace'
-# Enable for intended lifecycle use:
-$env:DEVSPACES_ENABLE_WRITES = 'true'
-# Deletion stays disabled unless separately enabled:
-# $env:DEVSPACES_ENABLE_DELETE = 'true'
+```json
+{
+  "cluster_url": "https://devspaces.example.com",
+  "connector_command": "C:/Tools/Devspaces/devspaces-cli-connector-win-x64.exe",
+  "ca_bundle": "C:/Certificates/devspaces-cluster.pem",
+  "allowed_namespaces": ["your-devspaces-namespace"],
+  "enable_writes": true
+}
 ```
 
-Certificate verification is always on. A certificate failure during listing, sign-in, a lifecycle action, or a tunnel launch is reported as a failure and is never retried with verification disabled; a failed or cancelled sign-in cannot change TLS settings for later calls. Point `NODE_EXTRA_CA_CERTS` at your organization's CA bundle. For an isolated lab cluster only, an administrator can set `DEVSPACES_ALLOW_INSECURE_TLS=true` in the environment that launches Codex. The server reads it once at startup, reports it as `tls_verification_enabled=false`, and nothing at runtime turns it on or off. `DEVSPACES_AUTO_TLS_RETRY` is no longer read (removed in 0.6.0), and ambient `NODE_TLS_REJECT_UNAUTHORIZED` is ignored. See [troubleshooting](skills/manage-agentic-workspace/references/troubleshooting.md).
+On POSIX, `chmod 600` the file. `enable_delete` stays off unless set separately.
+
+### Clusters without a publicly trusted certificate
+
+Certificate verification is on by default, and a certificate failure is never retried
+without it. There are two workarounds:
+
+1. **Recommended: trust the cluster's certificate.** Export the cluster's CA certificate
+   (or, for a self-signed cluster, the certificate itself) as PEM, check its fingerprint
+   with the cluster administrator, and set `ca_bundle` to that file. Verification stays on
+   and only that certificate is added.
+2. **Lab only: disable verification.** Set `"allow_insecure_tls": true`. The server reads
+   it once at startup and reports `tls_verification_enabled=false`; nothing at runtime turns
+   it on or off. This permits interception, so use it only for isolated lab clusters.
+
+See [troubleshooting](skills/manage-agentic-workspace/references/troubleshooting.md) for certificate failures.
 
 A configure/connect request includes beginning native login when CLI access is unverified; no second user request is needed. The agent monitors structured authentication progress itself, then checks CLI access. It does not ask the user to validate terminal text. An empty inventory is inconclusive; finish native authentication before asking about account or workspace assignment. The agent runs local commands and diagnostics itself. User participation is limited to SSO/MFA, credentials, and private terminal input. Authentication uses the machine's default browser through the native CLI; workspace status and validation always use the CLI, not dashboard browsing. Browser sign-in alone never proves CLI access.
 

@@ -26,6 +26,7 @@ def adapter(monkeypatch, tmp_path):
     for name in ('DEVSPACES_CLUSTER_URL', 'DEVSPACES_ALLOWED_NAMESPACES',
                  'DEVSPACES_ENABLE_WRITES', 'DEVSPACES_ENABLE_DELETE', 'DEVSPACES_ALLOW_INSECURE_TLS'):
         monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv('DEVSPACES_CONFIG_FILE', str(tmp_path / 'no-settings.json'))
     monkeypatch.setenv('DEVSPACES_CLUSTER_URL', 'https://devspaces.example.com')
     ssh_config = tmp_path / 'ssh_config'
     ssh_config.write_text('')
@@ -490,3 +491,31 @@ def test_failed_reconnect_preserves_settings(adapter, monkeypatch):
     workspace['id'] = 'replacement456'
     assert adapter.connect('devbox', 'team')['state'] == 'exited'
     assert config.read_bytes() == PINNED
+
+
+def test_settings_file_reaches_the_server_and_keeps_verification_on(monkeypatch, tmp_path):
+    """Codex forwards only HOME/PATH, so settings must come from the user-only file."""
+    for name in ('DEVSPACES_CLUSTER_URL', 'NODE_EXTRA_CA_CERTS', 'DEVSPACES_ALLOW_INSECURE_TLS'):
+        monkeypatch.delenv(name, raising=False)
+    config = tmp_path / 'devspaces.json'  # noqa: F841
+    config.write_text(json.dumps({'cluster_url': 'https://devspaces.example.com', 'ca_bundle': '/certs/cluster.pem'}))
+    config.chmod(0o600)
+    monkeypatch.setenv('DEVSPACES_CONFIG_FILE', str(config))
+    adapter = SERVER.Connector()
+    assert adapter.cluster == 'https://devspaces.example.com'
+    env = adapter.environment()
+    assert env['NODE_EXTRA_CA_CERTS'] == '/certs/cluster.pem'
+    assert 'NODE_TLS_REJECT_UNAUTHORIZED' not in env and not adapter.insecure_tls
+    config.write_text(json.dumps({'cluster_url': 'https://devspaces.example.com', 'allow_insecure_tls': True}))
+    assert SERVER.Connector().environment()['NODE_TLS_REJECT_UNAUTHORIZED'] == '0'
+
+
+def test_settings_file_must_be_user_only(monkeypatch, tmp_path):
+    if SERVER.os.name != 'posix':
+        pytest.skip('POSIX permissions')
+    config = tmp_path / 'devspaces.json'
+    config.write_text('{"allow_insecure_tls": true}')
+    config.chmod(0o644)
+    monkeypatch.setenv('DEVSPACES_CONFIG_FILE', str(config))
+    with pytest.raises(ValueError, match='chmod 600'):
+        SERVER.Connector()

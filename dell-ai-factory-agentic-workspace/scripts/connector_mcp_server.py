@@ -103,15 +103,17 @@ class DeleteResult(TypedDict):
     namespace: str
 
 
-def enabled(name):
-    return os.getenv(name, "false").lower() in {"1", "true", "yes"}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import devspaces_settings  # noqa: E402
 
 
 class Connector:
     def __init__(self):
-        self.command = os.getenv("DEVSPACES_CONNECTOR_COMMAND", "devspaces-cli-connector")
+        settings = devspaces_settings.load()
+        self.ca_bundle = settings.get("NODE_EXTRA_CA_CERTS", "")
+        self.command = settings.get("DEVSPACES_CONNECTOR_COMMAND", "devspaces-cli-connector")
         # No built-in default: each deployment supplies its own Dev Spaces origin.
-        self.cluster = os.getenv("DEVSPACES_CLUSTER_URL", "").strip().rstrip("/")
+        self.cluster = settings.get("DEVSPACES_CLUSTER_URL", "").strip().rstrip("/")
         self.cluster_id = ""
         if self.cluster:
             parsed = urlparse(self.cluster)
@@ -120,12 +122,12 @@ class Connector:
                     or parsed.query or parsed.fragment or parsed.path):
                 raise ValueError("DEVSPACES_CLUSTER_URL must be a credential-free HTTPS origin")
             self.cluster_id = parsed.netloc
-        self.namespaces = tuple(x.strip() for x in os.getenv("DEVSPACES_ALLOWED_NAMESPACES", "").split(",") if x.strip())
+        self.namespaces = tuple(x.strip() for x in settings.get("DEVSPACES_ALLOWED_NAMESPACES", "").split(",") if x.strip())
         if "*" in self.namespaces:
             raise ValueError("Wildcard namespaces are not supported")
-        self.writes = enabled("DEVSPACES_ENABLE_WRITES")
-        self.deletion = enabled("DEVSPACES_ENABLE_DELETE")
-        self._insecure_tls = enabled("DEVSPACES_ALLOW_INSECURE_TLS")
+        self.writes = devspaces_settings.enabled(settings, "DEVSPACES_ENABLE_WRITES")
+        self.deletion = devspaces_settings.enabled(settings, "DEVSPACES_ENABLE_DELETE")
+        self._insecure_tls = devspaces_settings.enabled(settings, "DEVSPACES_ALLOW_INSECURE_TLS")
         self.auth_job = None
         self.connections = {}
         self.lock = threading.RLock()
@@ -146,6 +148,9 @@ class Connector:
         env = os.environ.copy()
         # Ignore ambient bypasses; require explicit plugin opt-in for this process.
         env.pop("NODE_TLS_REJECT_UNAUTHORIZED", None)
+        if self.ca_bundle:
+            # Trust the organization's or cluster's own certificate; verification stays on.
+            env.setdefault("NODE_EXTRA_CA_CERTS", self.ca_bundle)
         if self.insecure_tls:
             env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0"
         return env

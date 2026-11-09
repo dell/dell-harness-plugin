@@ -67,7 +67,7 @@ def runtime_files():
                'evals/cases.json', 'validation/REVIEW.md',
                'scripts/connector_mcp_server.py', 'scripts/devspaces_mcp_server.py',
                'scripts/authenticate_devspaces.py', 'scripts/authenticate_devspaces.ps1', 'scripts/launch-auth.cmd',
-               'scripts/prepare_runtime.py', 'scripts/mcp_session.py']
+               'scripts/prepare_runtime.py', 'scripts/mcp_session.py', 'scripts/devspaces_settings.py']
     paths = [ROOT / name for name in singles]
     for directory in ('skills', 'assets', 'config'):
         paths.extend(p for p in (ROOT / directory).rglob('*') if p.is_file() and '__pycache__' not in p.parts)
