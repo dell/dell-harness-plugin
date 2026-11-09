@@ -39,10 +39,12 @@ while making that surface strictly more confusing. Whether the `skills` profile 
 *replace* `rag` is the question this prototype exists to inform.
 """
 
+from collections.abc import Callable
 from typing import Annotated, Any
 
 import dtlpy as dl
 from mcp.server import MCPServer
+from mcp.server.mcpserver import Context
 from pydantic import Field
 
 from .. import serialize
@@ -83,21 +85,28 @@ def rag_blueprint(
     chunk_size: int,
     chunk_overlap: int,
     load_existing: bool,
+    pipeline_id: str,
 ) -> PipelineBlueprint:
     """The five-stage RAG chain, as data: PDFs -> text -> chunks -> embeddings -> output.
 
     Every argument is a resolved user choice. Same arguments in, same graph out — which is the
     whole point, and is what `tests/test_skills.py` asserts against a pinned fingerprint.
+    `pipeline_id` is the pipeline the graph is written into: the code nodes tag and scope their
+    output with it, so two pipelines sharing an output dataset never touch each other's items.
 
     Node names, positions, DQL filter and code templates match what the `rag_add_*_node` tools
     produce one at a time, so this is a port rather than a second, subtly different RAG shape.
     """
     pdf_filter = {"filter": {"$and": [{"metadata.system.mimetype": {"$eq": "application/pdf"}}]}}
-    to_text = PDF_TO_TEXT_CODE.replace(
-        "__OUTPUT_DATASET_ID_LITERAL__", python_string_literal(output_dataset_id)
-    ).replace("__TEXT_FOLDER__", TEXT_FOLDER)
+    pipeline_literal = python_string_literal(pipeline_id)
+    to_text = (
+        PDF_TO_TEXT_CODE.replace("__OUTPUT_DATASET_ID_LITERAL__", python_string_literal(output_dataset_id))
+        .replace("__PIPELINE_ID_LITERAL__", pipeline_literal)
+        .replace("__TEXT_FOLDER__", TEXT_FOLDER)
+    )
     to_chunks = (
         TEXT_TO_CHUNKS_CODE.replace("__OUTPUT_DATASET_ID_LITERAL__", python_string_literal(output_dataset_id))
+        .replace("__PIPELINE_ID_LITERAL__", pipeline_literal)
         .replace("__CHUNK_FOLDER__", CHUNK_FOLDER)
         .replace("__CHUNK_SIZE__", str(chunk_size))
         .replace("__CHUNK_OVERLAP__", str(chunk_overlap))
@@ -105,6 +114,7 @@ def rag_blueprint(
     embed = (
         EMBEDDING_CODE.replace("__OUTPUT_DATASET_ID_LITERAL__", python_string_literal(output_dataset_id))
         .replace("__MODEL_ID_LITERAL__", python_string_literal(model_id))
+        .replace("__PIPELINE_ID_LITERAL__", pipeline_literal)
         .replace("__BATCH_SIZE__", str(EMBED_BATCH_SIZE))
     )
     return PipelineBlueprint(
@@ -138,7 +148,10 @@ def rag_blueprint(
 
 
 def reusable_pipeline(
-    project: dl.entities.Project, project_id: str, plan: PipelineBlueprint
+    project: dl.entities.Project,
+    project_id: str,
+    name: str,
+    plan_for: Callable[[str], PipelineBlueprint],
 ) -> dict[str, Any] | None:
     """A same-named pipeline this blueprint's choices already match, if one exists.
 
@@ -152,7 +165,7 @@ def reusable_pipeline(
     # `RuntimeError`, which would swallow the `NotFound` this depends on distinguishing from a
     # genuine failure (auth, network, a name collision `Pipelines.get` itself refuses to resolve).
     try:
-        existing = project.pipelines.get(pipeline_name=plan.name)
+        existing = project.pipelines.get(pipeline_name=name)
     except dl.exceptions.NotFound:
         return None
     except Exception as exc:
@@ -162,6 +175,7 @@ def reusable_pipeline(
         raise DoeError(f"DOE pipeline lookup by name failed: {exc}") from exc
 
     verified = get_pipeline(project_id, existing.id)
+    plan = plan_for(str(existing.id))
     live_graph = canonical_graph(verified)
     if live_graph != expected_canonical_graph(project, plan):
         return None
@@ -173,7 +187,9 @@ def reusable_pipeline(
     }
 
 
-def apply_blueprint(project_id: str, plan: PipelineBlueprint) -> dict[str, Any]:
+def apply_blueprint(
+    project_id: str, name: str, plan_for: Callable[[str], PipelineBlueprint]
+) -> dict[str, Any]:
     """Reuse a matching same-named pipeline; otherwise create one and write the graph in one PATCH.
 
     A fresh build is always verified by an independent re-read, never `update()`'s own return
@@ -181,13 +197,14 @@ def apply_blueprint(project_id: str, plan: PipelineBlueprint) -> dict[str, Any]:
     (techspec A.4).
     """
     project = get_project(project_id)
-    reused = reusable_pipeline(project, project_id, plan)
+    reused = reusable_pipeline(project, project_id, name, plan_for)
     if reused is not None:
         return reused
 
     created = dataloop_call(
-        "pipeline create", lambda: project.pipelines.create(name=plan.name, project_id=project_id)
+        "pipeline create", lambda: project.pipelines.create(name=name, project_id=project_id)
     )
+    plan = plan_for(str(created.id))
     pipeline = get_pipeline(project_id, created.id)
     build_graph(pipeline, plan)
     dataloop_call("pipeline graph write", pipeline.update)
@@ -238,7 +255,7 @@ def register(mcp: MCPServer) -> None:
             bool, Field(description="Feed existing PDFs in on install, not just new ones.")
         ] = False,
         confirm: Annotated[bool, Field(description="Must be true: this creates and deploys code.")] = False,
-        ctx: Any = None,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         """Build the whole PDFs->text->chunks->embeddings pipeline in one call.
 
@@ -252,16 +269,19 @@ def register(mcp: MCPServer) -> None:
         owned(project, "datasets", "dataset", dataset_id=source_dataset_id)
         owned(project, "datasets", "dataset", dataset_id=output_dataset_id)
         owned(project, "models", "model", model_id=model_id)
-        plan = rag_blueprint(
-            name=name,
-            source_dataset_id=source_dataset_id,
-            output_dataset_id=output_dataset_id,
-            model_id=model_id,
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-            load_existing=load_existing,
-        )
-        return apply_blueprint(project_id, plan)
+        def plan_for(pipeline_id: str) -> PipelineBlueprint:
+            return rag_blueprint(
+                name=name,
+                source_dataset_id=source_dataset_id,
+                output_dataset_id=output_dataset_id,
+                model_id=model_id,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+                load_existing=load_existing,
+                pipeline_id=pipeline_id,
+            )
+
+        return apply_blueprint(project_id, name, plan_for)
 
     @mcp.tool(title="Match a request to the tool or skill that serves it", annotations=READ_ONLY)
     def intent_route(

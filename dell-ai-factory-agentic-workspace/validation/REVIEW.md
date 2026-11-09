@@ -1,5 +1,17 @@
 # Dev Spaces plugin pre-push review
 
+## 0.6.0 update: trust checks hold through failures (OpenAI review round 2)
+
+Automatic TLS downgrades are removed: a certificate failure fails closed and no
+failure, retry or sign-in result changes TLS for later calls (the 0.3.0/0.4.0
+retry notes below are superseded). The plugin no longer edits SSH configuration,
+so existing host-key pins survive failed connects (superseding the 0.4.1
+migration). The Kubernetes adapter's context allowlist is fixed at startup.
+Packaging moved to the portable root `plugin.json`/`mcp.json` with self-contained
+desktop bundles. Regression tests cover each case; live acceptance on a clean
+desktop (fresh SSO, Codex remote session, bad certificate, changed host key,
+failed reconnect) is still required.
+
 ## 0.5.0 update: product rename
 
 The plugin is renamed from `dell-devspaces-sandbox` to

@@ -18,3 +18,12 @@ regexes = [
 paths = [
   '''(^|/)validation/evidence/summary\.json$''',
 ]
+
+[[rules]]
+id = "generic-api-key"
+[[rules.allowlists]]
+description = "SHA-256 source hashes in the Windows review manifest, not credentials"
+condition = "AND"
+paths = ['''^evals/results/windows-review-20261109/manifest\.json$''']
+regexTarget = "line"
+regexes = ['''^\s*"[a-zA-Z0-9_./-]+\.py": "[a-f0-9]{64}",?\s*$''']

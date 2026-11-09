@@ -1,13 +1,16 @@
 {
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {
     "dell_dataloop": {
+      "type": "stdio",
       "command": "python",
       "args": [
         "${PLUGIN_ROOT}/scripts/dataloop_mcp_launcher.py"
       ],
       "env": {
         "PYTHONUNBUFFERED": "1"
-      }
+      },
+      "cwd": "${PLUGIN_ROOT}"
     }
   }
 }

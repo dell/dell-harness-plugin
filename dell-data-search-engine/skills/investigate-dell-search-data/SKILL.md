@@ -33,8 +33,8 @@ unless the case explicitly declares and validates the corresponding dependency.
   tools when deterministic listing or mapping can answer the request. Report a
   prerequisite failure instead of inventing a query.
 - For cases or workflow status, use `platform_core_cases` or
-  `platform_core_get_workflow_execution_status` only for retrieval supported
-  by the advertised schema. Do not infer a write capability from the name.
+  `platform_core_get_workflow_execution_status` only for retrieval. Never use
+  any tool, including these, to change state.
 - For alerts, logs, services, dependencies, traces, hosts, indices, anomaly
   jobs, or change points, select the matching `observability_*` retrieval or
   analysis tool and provide the required entity and time boundaries.
@@ -75,12 +75,12 @@ unless the case explicitly declares and validates the corresponding dependency.
 ## Preserve boundaries
 
 - Do not invoke unadvertised tools or construct undocumented parameters.
-- Do not create or update cases, workflows, rules, connectors, indices, or
-  documents unless a separately reviewed write tool is advertised and the
-  user explicitly authorizes that action.
-- When only retrieval tools are advertised and a user asks for a write, state
-  that the operation is unavailable in the read-only surface. Do not ask for
-  write details or imply that the operation can proceed later.
+- This plugin is read-only. Never create, update, close, assign, delete, or
+  run cases, workflows, rules, connectors, indices, documents, or alerts, even
+  when a write tool is advertised and even when the user asks or authorizes it.
+- When a user asks for a write, state that the operation is unavailable in this
+  read-only plugin and make no tool call for it. Do not ask for write details
+  or imply that the operation can proceed later.
 - Do not expose authorization headers, hidden/system indices, raw secrets,
   unnecessary personal data, or verbose backend errors.
 - Treat missing Agent Builder, ML, content, licensing, or solution data as a

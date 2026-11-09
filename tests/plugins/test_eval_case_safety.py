@@ -77,3 +77,4 @@ def test_prompt_is_sent_on_stdin_and_never_in_argv(runner_name, tmp_path, monkey
     assert all(hostile not in part for part in command)
     assert hostile in captured["kwargs"]["input"]
     assert captured["kwargs"].get("shell", False) is False
+    assert captured["kwargs"]["encoding"] == "utf-8"

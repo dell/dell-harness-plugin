@@ -120,7 +120,8 @@ listing, mappings, known-document retrieval, or exact bounded ES|QL.
 - Begin with mappings and bounded ES|QL. Minimize fields, rows, time ranges,
   buckets, and result payloads.
 - Treat case, workflow, and other state-changing tools as writes even if they
-  appear beside read tools. Require explicit approval or disable them.
+  appear beside read tools. The plugin never calls them; disable them in the
+  Kibana Agent Builder tool selection for a read-only deployment.
 - Treat observability and security results as sensitive. Do not expose API
   keys, authorization headers, unnecessary source fields, or secrets in logs.
 

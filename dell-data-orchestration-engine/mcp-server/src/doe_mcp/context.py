@@ -87,6 +87,47 @@ def get_pipeline(project_id: str, pipeline_id: str) -> dl.entities.Pipeline:
     )
 
 
+def _verify_resource_dataset(resource: T, dataset_id: str, resource_name: str) -> T:
+    """Reject an item or annotation that does not belong to the requested dataset.
+
+    ``Items.get`` and ``Annotations.get`` fetch ``/items/<id>`` and ``/annotations/<id>`` with no
+    dataset scope, so an identity with access to two datasets can otherwise read or write dataset
+    B's entity while dataset A is selected.
+    """
+    if resource is None:
+        raise DoeError(f"DOE {resource_name} lookup failed: no {resource_name} was returned.")
+    owner = getattr(resource, "dataset_id", None)
+    if owner is None:
+        raise DoeError(
+            f"DOE {resource_name} lookup failed: the returned {resource_name} has no dataset identity; "
+            f"ownership by requested dataset {dataset_id!r} could not be verified."
+        )
+    if str(owner) != str(dataset_id):
+        raise DoeError(
+            f"DOE {resource_name} lookup failed: the returned {resource_name} belongs to dataset "
+            f"{owner!r}, not requested dataset {dataset_id!r}."
+        )
+    return resource
+
+
+def get_item(dataset: dl.entities.Dataset, item_id: str) -> dl.entities.Item:
+    """Fetch an item and verify it belongs to ``dataset`` before any caller reads or writes it."""
+    return dataloop_call(
+        "item lookup",
+        lambda: _verify_resource_dataset(dataset.items.get(item_id=item_id), str(dataset.id), "item"),
+    )
+
+
+def get_annotation(dataset: dl.entities.Dataset, annotation_id: str) -> dl.entities.Annotation:
+    """Fetch an annotation and verify it belongs to ``dataset``."""
+    return dataloop_call(
+        "annotation lookup",
+        lambda: _verify_resource_dataset(
+            dataset.annotations.get(annotation_id=annotation_id), str(dataset.id), "annotation"
+        ),
+    )
+
+
 def owned(project: dl.entities.Project, repository: str, resource_name: str, **lookup: str) -> Any:
     """Fetch one resource through an already-resolved ``project.<repository>`` and verify it.
 

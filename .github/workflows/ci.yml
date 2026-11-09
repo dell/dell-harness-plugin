@@ -66,6 +66,37 @@ jobs:
       - working-directory: dell-data-orchestration-engine/mcp-server
         run: ../../.venv-doe/bin/python -m pytest -q
 
+  bundles:
+    name: Bundled local MCP packages (build + offline boot)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r dell-ai-factory-agentic-workspace/requirements.txt
+      - name: Build Linux and Windows bundles
+        run: python scripts/build_plugin_bundle.py dell-ai-factory-agentic-workspace dell-data-orchestration-engine
+      - name: Boot the Linux bundles offline
+        run: python scripts/smoke_plugin_bundle.py dist/*-linux_x86_64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-bundles
+          path: dist/*.zip
+
+  bundles-windows:
+    name: Windows bundle offline boot
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r dell-ai-factory-agentic-workspace/requirements.txt
+      - run: python scripts/build_plugin_bundle.py dell-ai-factory-agentic-workspace dell-data-orchestration-engine --platform win_amd64
+      - shell: bash
+        run: python scripts/smoke_plugin_bundle.py dist/*-win_amd64.zip
+
   secrets:
     name: Secret scan
     runs-on: ubuntu-latest

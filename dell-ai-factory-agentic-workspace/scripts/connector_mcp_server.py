@@ -68,7 +68,6 @@ class Runtime(TypedDict):
     writes_enabled: bool
     delete_enabled: bool
     tls_verification_enabled: bool
-    automatic_tls_retry: bool
     allowed_namespaces: list[str]
     scope: str
 
@@ -104,66 +103,17 @@ class DeleteResult(TypedDict):
     namespace: str
 
 
-def enabled(name):
-    return os.getenv(name, "false").lower() in {"1", "true", "yes"}
-
-
-def remove_legacy_ssh_trust(path, name):
-    """Remove only this alias's complete, unmodified plugin-owned guard blocks.
-
-    The CLI owns SSH configuration. This migration never adds Host/Include
-    directives or changes user policy, generated endpoints, or known-host keys.
-    """
-    if not path.exists():
-        return
-    raw = path.read_bytes()
-    lines = raw.decode('utf-8-sig').splitlines(keepends=True)
-    begin = '# Dell Devspaces pinned trust: ' + name
-    end = '# End Dell Devspaces pinned trust: ' + name
-    allowed = {'stricthostkeychecking', 'userknownhostsfile', 'globalknownhostsfile',
-               'hostkeyalias', 'checkhostip', 'verifyhostkeydns'}
-    kept = []
-    index = 0
-    while index < len(lines):
-        line = lines[index].rstrip('\r\n')
-        if line == end:
-            raise RuntimeError('Legacy SSH guard is incomplete; inspect the marked block before reconnecting')
-        if line != begin:
-            kept.append(lines[index])
-            index += 1
-            continue
-        finish = index + 1
-        while finish < len(lines) and lines[finish].rstrip('\r\n') != end:
-            finish += 1
-        body = [value.rstrip('\r\n') for value in lines[index + 1:finish]]
-        if (finish == len(lines) or len(body) < 2 or body[0] != 'Host ' + name
-                or body[-1] != 'Host *'):
-            raise RuntimeError('Legacy SSH guard is incomplete or modified; inspect the marked block before reconnecting')
-        for directive in body[1:-1]:
-            match = re.fullmatch(r'\s+([A-Za-z][A-Za-z0-9]*)(?:\s+|\s*=\s*).+', directive)
-            if not match or match[1].lower() not in allowed:
-                raise RuntimeError('Legacy SSH guard was modified; inspect the marked block before reconnecting')
-        index = finish + 1
-    encoded = ''.join(kept).encode('utf-8-sig' if raw.startswith(b'\xef\xbb\xbf') else 'utf-8')
-    if encoded == raw:
-        return
-    if path.is_symlink():
-        raise RuntimeError('Legacy SSH guard is in a symlink; inspect the marked block before reconnecting')
-    with tempfile.NamedTemporaryFile(dir=path.parent, prefix='.devspaces-ssh-', delete=False) as handle:
-        temporary = Path(handle.name)
-        handle.write(encoded)
-    try:
-        shutil.copymode(path, temporary)
-        temporary.replace(path)
-    finally:
-        temporary.unlink(missing_ok=True)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import devspaces_settings  # noqa: E402
 
 
 class Connector:
     def __init__(self):
-        self.command = os.getenv("DEVSPACES_CONNECTOR_COMMAND", "devspaces-cli-connector")
+        settings = devspaces_settings.load()
+        self.ca_bundle = settings.get("NODE_EXTRA_CA_CERTS", "")
+        self.command = settings.get("DEVSPACES_CONNECTOR_COMMAND", "devspaces-cli-connector")
         # No built-in default: each deployment supplies its own Dev Spaces origin.
-        self.cluster = os.getenv("DEVSPACES_CLUSTER_URL", "").strip().rstrip("/")
+        self.cluster = settings.get("DEVSPACES_CLUSTER_URL", "").strip().rstrip("/")
         self.cluster_id = ""
         if self.cluster:
             parsed = urlparse(self.cluster)
@@ -172,18 +122,21 @@ class Connector:
                     or parsed.query or parsed.fragment or parsed.path):
                 raise ValueError("DEVSPACES_CLUSTER_URL must be a credential-free HTTPS origin")
             self.cluster_id = parsed.netloc
-        self.namespaces = tuple(x.strip() for x in os.getenv("DEVSPACES_ALLOWED_NAMESPACES", "").split(",") if x.strip())
+        self.namespaces = tuple(x.strip() for x in settings.get("DEVSPACES_ALLOWED_NAMESPACES", "").split(",") if x.strip())
         if "*" in self.namespaces:
             raise ValueError("Wildcard namespaces are not supported")
-        self.writes = enabled("DEVSPACES_ENABLE_WRITES")
-        self.deletion = enabled("DEVSPACES_ENABLE_DELETE")
-        self.insecure_tls = enabled("DEVSPACES_ALLOW_INSECURE_TLS")
-        self.auto_tls_retry = os.getenv("DEVSPACES_AUTO_TLS_RETRY", "true").lower() in {"1", "true", "yes"}
-        self.empty_tls_checked = False
+        self.writes = devspaces_settings.enabled(settings, "DEVSPACES_ENABLE_WRITES")
+        self.deletion = devspaces_settings.enabled(settings, "DEVSPACES_ENABLE_DELETE")
+        self._insecure_tls = devspaces_settings.enabled(settings, "DEVSPACES_ALLOW_INSECURE_TLS")
         self.auth_job = None
-        self.ssh_config = Path(os.getenv('DEVSPACES_SSH_CONFIG', str(Path.home() / '.ssh/config')))
         self.connections = {}
         self.lock = threading.RLock()
+
+    @property
+    def insecure_tls(self):
+        # Read once from the administrator's launch environment. No failure, retry, sign-in
+        # result, or helper status can change it, so a bad certificate stays rejected.
+        return self._insecure_tls
 
     def executable(self):
         path = shutil.which(self.command)
@@ -195,6 +148,9 @@ class Connector:
         env = os.environ.copy()
         # Ignore ambient bypasses; require explicit plugin opt-in for this process.
         env.pop("NODE_TLS_REJECT_UNAUTHORIZED", None)
+        if self.ca_bundle:
+            # Trust the organization's or cluster's own certificate; verification stays on.
+            env.setdefault("NODE_EXTRA_CA_CERTS", self.ca_bundle)
         if self.insecure_tls:
             env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0"
         return env
@@ -202,7 +158,7 @@ class Connector:
     def options(self):
         return {"env": self.environment(), "creationflags": subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0}
 
-    def run(self, args, timeout=30, _retried=False):
+    def run(self, args, timeout=30):
         try:
             result = subprocess.run([self.executable(), *args], stdin=subprocess.DEVNULL,
                                     capture_output=True, text=True, encoding="utf-8", errors="replace",
@@ -217,12 +173,7 @@ class Connector:
                     'unable to verify the first certificate', 'unable to get local issuer certificate',
                     'self signed certificate', 'self-signed certificate',
                     'unable_to_verify_leaf_signature', 'unable_to_get_issuer_cert_locally')):
-                # Only replay a read. Lifecycle commands and tunnel launches are never replayed.
-                if self.auto_tls_retry and not self.insecure_tls and not _retried and args == ["--list"]:
-                    self.insecure_tls = True
-                    print("Devspaces certificate verification failed; retrying once with verification disabled for this connector session. This can permit interception.", file=sys.stderr)
-                    return self.run(args, timeout, _retried=True)
-                raise RuntimeError("Connector certificate verification failed; configure a trusted CA or inspect the bounded, process-scoped TLS retry")
+                raise RuntimeError("Connector certificate verification failed; configure a trusted CA with NODE_EXTRA_CA_CERTS")
             raise RuntimeError(f"Connector {args[0]} failed (exit {result.returncode}); check local authentication, CA trust, and connectivity")
         return result.stdout
 
@@ -231,7 +182,7 @@ class Connector:
             raise RuntimeError("Set DEVSPACES_CLUSTER_URL to your Dev Spaces HTTPS origin before using the connector")
         return self.cluster
 
-    def list(self, filtered=True, _diagnostic=False):
+    def list(self, filtered=True):
         self.require_cluster()
         try:
             rows = json.loads(self.run(["--list"]))
@@ -239,21 +190,6 @@ class Connector:
             raise RuntimeError("Connector --list did not return a JSON array") from None
         if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
             raise RuntimeError("Connector --list returned an invalid workspace list")
-        # The inspected CLI can silently return [] when verified TLS cannot reach
-        # inventory. One differential read can recover access without another login.
-        if not rows and self.auto_tls_retry and not self.insecure_tls and not self.empty_tls_checked and not _diagnostic:
-            self.empty_tls_checked = True
-            print('Devspaces: empty inventory is inconclusive; checking once with certificate verification disabled. This can permit interception.', file=sys.stderr)
-            self.insecure_tls = True
-            recovered = False
-            try:
-                candidate = self.list(filtered=False, _diagnostic=True)
-                if candidate:
-                    rows = candidate
-                    recovered = True
-            finally:
-                if not recovered:
-                    self.insecure_tls = False
         for row in rows:
             if (any(not isinstance(row.get(key), str) or not row[key] or len(row[key]) > 253
                     for key in ('name', 'namespace', 'clusterId', 'devworkspaceId', 'phase'))
@@ -308,6 +244,10 @@ class Connector:
             identity = row["devworkspaceId"]
             if not identity:
                 raise RuntimeError("Workspace identity is missing")
+            owned = self.connections.get((namespace, name))
+            reconnect = (action == "restart" and owned is not None
+                         and owned['workspace_id'] == identity
+                         and owned['process'].poll() is None)
             if action in {"stop", "restart"}:
                 if row["phase"] != "Stopped" or row["started"] is not False:
                     self.run(["--stop", name])
@@ -317,6 +257,11 @@ class Connector:
                 if row["phase"] != "Running" or row["started"] is not True:
                     self.run(["--start", name])
                     row = self.wait(name, namespace, identity, "Running", timeout)
+            if reconnect:
+                # Restore only the connection this explicit restart interrupted. The
+                # normal connect preflight revalidates identity; never start a watcher
+                # or change trust settings to recover an intentionally stopped target.
+                self.connect(name, namespace, identity)
             return row
 
     def connection_status(self, name, namespace):
@@ -342,14 +287,16 @@ class Connector:
                 if self.connections[(namespace, name)]['workspace_id'] == row['devworkspaceId']:
                     return state
                 self.disconnect(name, namespace)
+            # SSH configuration and host-key policy belong to the CLI and the user. The plugin
+            # never reads or edits them, so a failed connect or reconnect leaves any existing
+            # host-key pin exactly as it was.
             try:
-                remove_legacy_ssh_trust(self.ssh_config, name)
                 process = subprocess.Popen([self.executable(), "--connect", name],
-                                       stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                                       stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace",
+                                           stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                           stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace",
                                            **self.options())
             except OSError:
-                raise RuntimeError("Unable to migrate legacy SSH configuration or launch the tunnel; check SSH config permissions and connector executable access") from None
+                raise RuntimeError("Unable to launch the tunnel; check connector executable access") from None
             entry = {"process": process, "ready": False, "workspace_id": row['devworkspaceId']}
             self.connections[(namespace, name)] = entry
 
@@ -408,8 +355,6 @@ class Connector:
                         result[key] = data[key]
                 if type(data.get('workspace_count')) is int and data['workspace_count'] >= 0:
                     result['workspace_count'] = data['workspace_count']
-                if data.get('tls_verification_enabled') is False and (self.auto_tls_retry or self.insecure_tls):
-                    self.insecure_tls = True
             except (OSError, ValueError):
                 result['state'] = 'status_unavailable'
         if process.poll() is not None and result['state'] in {'launched', 'waiting_for_sso', 'checking_access', 'status_unavailable'}:
@@ -441,8 +386,6 @@ class Connector:
                        '--cluster', self.cluster, '--status-file', str(status_file)]
             if self.insecure_tls:
                 command.append('--allow-insecure-tls')
-            if not self.auto_tls_retry:
-                command.append('--no-auto-tls-retry')
             if os.name != 'nt':
                 raise RuntimeError('Native auth launcher requires Windows; use a controllable local terminal with the bundled helper on this platform')
             process = subprocess.Popen(command, creationflags=subprocess.CREATE_NEW_CONSOLE,
@@ -466,7 +409,6 @@ def get_runtime_configuration() -> Runtime:
     return {"backend": "cli-connector", "command": connector.executable(), "cluster_url": connector.cluster,
             "version": connector.run(["--version"]).strip(), "writes_enabled": connector.writes,
             "tls_verification_enabled": not connector.insecure_tls,
-            "automatic_tls_retry": connector.auto_tls_retry,
             "delete_enabled": connector.deletion, "allowed_namespaces": list(connector.namespaces),
             "scope": "Authenticated connector account; optional namespace filter"}
 
@@ -500,7 +442,7 @@ def begin_devspaces_authentication() -> AuthenticationProgress:
 
 @mcp.tool(annotations=READ)
 def get_devspaces_authentication_progress() -> AuthenticationProgress:
-    """Read safe native-login completion evidence without inspecting terminal credentials. Carry effective TLS state into this MCP session, then recheck CLI authentication/inventory."""
+    """Read safe native-login completion evidence without inspecting terminal credentials, then recheck CLI authentication/inventory. Never changes TLS verification."""
     return connector.authentication_progress()
 
 
@@ -542,13 +484,17 @@ def stop_devspace(namespace: Name, name: Name, expected_workspace_id: Identity, 
 
 @mcp.tool(annotations=RESTART)
 def restart_devspace(namespace: Name, name: Name, expected_workspace_id: Identity, timeout: Timeout = 120) -> Workspace:
-    """Stop, verify Stopped, then start and verify Running; timeout applies to each transition."""
+    """Stop, verify Stopped, then start and verify Running; timeout applies to each transition.
+
+    Reconnect a live tunnel owned before this restart. Check get_connection_status
+    afterward: Running and reconnect initiation do not establish SSH readiness.
+    """
     return connector.lifecycle(name, namespace, "restart", timeout, expected_workspace_id)
 
 
 @mcp.tool(annotations=DESTRUCTIVE)
 def connect_devspace(namespace: Name, name: Name, expected_workspace_id: Identity) -> Connection:
-    """Launch a managed SSH tunnel for a Running workspace; may update local SSH config."""
+    """Launch a managed SSH tunnel for a Running workspace. The connector CLI owns SSH config; this tool never edits it."""
     return connector.connect(name, namespace, expected_workspace_id)
 
 

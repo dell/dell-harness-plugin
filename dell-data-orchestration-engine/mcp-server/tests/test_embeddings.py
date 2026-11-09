@@ -59,7 +59,7 @@ class FakeItems:
         self.requested.append(item_id)
         if item_id in self.missing:
             raise ValueError(f"Item {item_id} not found")
-        return SimpleNamespace(id=item_id)
+        return SimpleNamespace(id=item_id, dataset_id="ds-1")
 
 
 def build_dataset(monkeypatch, sets=(), feature_pages=(), items_count=10, missing_items=()):

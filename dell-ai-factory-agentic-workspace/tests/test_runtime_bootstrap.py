@@ -72,3 +72,17 @@ def test_parallel_bootstrap_reuses_other_owned_runtime_without_removing_lock(mon
     monkeypatch.setattr(BOOT.subprocess, 'run', lambda *args, **kwargs: pytest.fail('must not reinstall'))
     assert BOOT.prepare().is_relative_to(tmp_path)
     assert lock.exists()
+
+
+def test_bundled_package_never_installs_at_runtime(tmp_path, monkeypatch):
+    import importlib.util
+    path = Path(__file__).parents[1] / 'scripts' / 'prepare_runtime.py'
+    spec = importlib.util.spec_from_file_location('prepare_runtime_bundled', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, 'ROOT', tmp_path)
+    (tmp_path / 'BUNDLE.json').write_text('{}')
+    monkeypatch.setattr(module, 'usable', lambda python: False)
+    monkeypatch.setattr(module.subprocess, 'run', lambda *a, **k: pytest.fail('bundle must not install'))
+    with pytest.raises(RuntimeError, match='reinstall'):
+        module.prepare()

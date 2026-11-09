@@ -106,10 +106,19 @@ def test_failure_stays_visible_and_returns_nonzero(connector_stub):
 
 
 def test_explicit_tls_opt_in(connector_stub):
-    result = run_helper(connector_stub, extra=['--allow-insecure-tls'])
+    result = run_helper(connector_stub, extra=['--allow-insecure-tls'],
+                        env={'DEVSPACES_ALLOW_INSECURE_TLS': 'true'})
     assert result.returncode == 2
     assert 'TLS=0' in result.stdout
     assert 'does not confirm login' in result.stdout
+
+
+def test_tls_flag_without_setting_keeps_verification(connector_stub, tmp_path):
+    result = run_helper(connector_stub, extra=['--allow-insecure-tls'],
+                        env={'DEVSPACES_ALLOW_INSECURE_TLS': 'false',
+                             'DEVSPACES_CONFIG_FILE': str(tmp_path / 'absent.json')})
+    assert 'TLS=verified' in result.stdout
+    assert 'verification stays enabled' in result.stdout
 
 
 @pytest.mark.parametrize('origin', ['http://example.test', f'https://user:{URL_SECRET}@example.test',

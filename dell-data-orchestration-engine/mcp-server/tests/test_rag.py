@@ -84,6 +84,7 @@ def chunk_item(item_id, name, chunk_index, text):
     return SimpleNamespace(
         id=item_id,
         name=name,
+        dataset_id="ds-1",
         metadata={
             "user": {
                 "rag": {
@@ -194,7 +195,8 @@ def test_rag_add_pdf_to_text_node(call_tool, monkeypatch, mock_pipeline):
     assert "pypdf" in code
     assert "item.download(save_locally=False)" in code
     assert 'dataset_id="ds-out"' in code
-    assert '"/rag/text"' in code
+    assert '"/rag/text/" + pipeline_token' in code
+    assert 'pipeline_id = "pipe-1"' in code
     assert "items.upload" in code
     # The document text is the item's binary now; nothing dumps it into metadata.
     assert "extracted_text" not in code
@@ -223,7 +225,8 @@ def test_rag_add_text_to_chunks_node(call_tool, monkeypatch, mock_pipeline):
     assert "chunk_size = 1024" in code
     assert "chunk_overlap = 128" in code
     assert 'dataset_id="ds-out"' in code
-    assert '"/rag/chunks"' in code
+    assert '"/rag/chunks/" + pipeline_token' in code
+    assert 'pipeline_id = "pipe-1"' in code
     assert '"role": "chunk"' in code
     assert '"text_item_id": item.id' in code
 
@@ -514,7 +517,9 @@ def test_rag_query_skips_vectors_for_non_chunk_items(call_tool, rag_query_platfo
             has_next_page=False,
         ),
     ]
-    text_item = SimpleNamespace(id="text-1", name="policy.txt", metadata={"user": {"rag": {"role": "text"}}})
+    text_item = SimpleNamespace(
+        id="text-1", name="policy.txt", dataset_id="ds-1", metadata={"user": {"rag": {"role": "text"}}}
+    )
     items = {"text-1": text_item, "chunk-1": chunk_item("chunk-1", "c.txt", 0, "General intro.")}
     dataset.items.get.side_effect = lambda item_id: items[item_id]
 
@@ -773,6 +778,7 @@ def generated_chunk_runner(call_tool, monkeypatch, mock_pipeline):
     namespace = {}
     source = (
         rag.TEXT_TO_CHUNKS_CODE.replace("__OUTPUT_DATASET_ID_LITERAL__", rag.python_string_literal("ds-out"))
+        .replace("__PIPELINE_ID_LITERAL__", rag.python_string_literal("pipe-1"))
         .replace("__CHUNK_FOLDER__", rag.CHUNK_FOLDER)
         .replace("__CHUNK_SIZE__", "100")
         .replace("__CHUNK_OVERLAP__", "0")

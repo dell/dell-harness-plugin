@@ -43,3 +43,13 @@ evals/results/doe-initial-review-20260911/*
 !evals/results/ddse-codex-rerun-20261104/**
 !evals/results/doe-codex-live-20261104/
 !evals/results/doe-codex-live-20261104/**
+
+# Plugin bundle builds
+dist/
+.bundle-cache/
+!evals/results/codex-installed-plugin-diagnostic-20261106/
+!evals/results/codex-installed-plugin-diagnostic-20261106/**
+!evals/results/doe-live-round2-20261109/
+!evals/results/doe-live-round2-20261109/**
+!evals/results/windows-review-20261109/
+!evals/results/windows-review-20261109/**

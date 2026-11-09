@@ -10,18 +10,16 @@ Configure/connect requests include initiating normal native login as needed. Run
 | Runtime install blocked by sandbox/network | Use the normal tool escalation path; report a real policy/package-network blocker if rejected | No false missing-package diagnosis from access denial |
 | MCP tools absent in this chat | Run bundled bootstrap/client with a new private session directory | status.json is ready and tool results arrive |
 | Existing authenticated inventory | Skip login; continue selection and connect | Correct cluster and observed workspace IDs |
-| Empty CLI inventory | One differential TLS read when configured; if still unverified during setup, begin native login automatically | Empty is never proof of no assignment or trusted certificates |
-| Certificate failure in list/auth | One configured child-only TLS retry; never replay lifecycle mutations | Runtime reports effective TLS mode |
-| Empty under verified TLS, populated under exception | Keep the successful session mode for list/connect | Correct cluster and IDs, TLS false reported |
-| Both TLS modes empty | Restore prior mode; complete one native login attempt before account/assignment clarification | Unverified state remains explicit |
+| Empty CLI inventory | If still unverified during setup, begin native login automatically; complete one attempt before account/assignment clarification | Empty is never proof of no assignment or trusted certificates |
+| Certificate failure in list/auth/connect | Fail closed; ask for the organization CA via `NODE_EXTRA_CA_CERTS`; never retry unverified or replay mutations | Runtime still reports `tls_verification_enabled=true` |
 | Login window already active | Reuse its owned process; never create a duplicate | Progress tool reports the same PID |
 | Private SSO/MFA/URI prompt | Let the user enter secrets locally; monitor safe progress yourself | Status plus a fresh CLI access check |
 | Helper exits or is cancelled | Read failed/cancelled state and recheck CLI before proposing recovery | No user terminal readback required |
-| Login says success but CLI remains empty | Finish differential TLS check before asking account/assignment questions | Native banner/exit zero is insufficient |
+| Login says success but CLI remains empty | Recheck origin, CA trust, and namespace filters before asking account/assignment questions | Native banner/exit zero is insufficient |
 | URI prompt after SSO | User may press Enter once to finish the attempt; do not fabricate a URI | Follow-up CLI evidence, not the blank entry |
 | Workspace already Running | Skip start, establish the requested tunnel | Separate Running and tunnel-ready states |
 | Workspace stopped | Ask for the exact startup authorization unless already given | Observed Running after approved start |
-| CLI manages SSH configuration | Leave `devspaces.conf`, Includes, and host-key policy to the CLI; remove only complete legacy plugin-owned guards for the selected alias | SSH login checked separately; report whether server identity was verified |
+| CLI manages SSH configuration | Leave `devspaces.conf`, Includes, host-key pins, and known hosts untouched, including after a failed connect | SSH login checked separately; report whether server identity was verified |
 | CLI prints readiness without a newline | The connector backend recognizes the bounded marker stream without waiting for a newline | Ready after the CLI readiness marker is observed and the owned process stays alive; SSH login is separate |
 | Tunnel ready, Codex registration pending | Dispatch observed alias and inspect supported app state | Registration/connection are separate from URI dispatch |
 
@@ -33,7 +31,7 @@ Use the configured cluster/connector environment and run:
 python <plugin>/scripts/prepare_runtime.py --client --session-dir <new-private-work-directory>
 ```
 
-The agent substitutes actual absolute paths and executes it. The session directory must be new, preventing reuse of stale responses. Wait for `status.json` with `state=ready`; `failed` indicates initialization/transport failure, and `busy` names the active tool without its arguments. Atomically write `request-1.json` with `{"tool":"get_runtime_configuration","arguments":{}}`, then read `response-1.json`. IDs contain hexadecimal characters/hyphens only; use a new ID for each request. Duplicate IDs are rejected without replaying a tool. The response contains `is_error` and the plugin's sanitized structured `result`; failures add an allowlisted `error` category instead of raw text. For `timeout_recheck_state`, inspect workspace/tunnel state before another mutation. Call `begin_devspaces_authentication`, then `get_devspaces_authentication_progress` through this same retained client; the effective TLS mode stays with its connector and tunnels. Never place credentials or raw auth output in request/response files.
+The agent substitutes actual absolute paths and executes it. The session directory must be new, preventing reuse of stale responses. Wait for `status.json` with `state=ready`; `failed` indicates initialization/transport failure, and `busy` names the active tool without its arguments. Atomically write `request-1.json` with `{"tool":"get_runtime_configuration","arguments":{}}`, then read `response-1.json`. IDs contain hexadecimal characters/hyphens only; use a new ID for each request. Duplicate IDs are rejected without replaying a tool. The response contains `is_error` and the plugin's sanitized structured `result`; failures add an allowlisted `error` category instead of raw text. For `timeout_recheck_state`, inspect workspace/tunnel state before another mutation. Call `begin_devspaces_authentication`, then `get_devspaces_authentication_progress` through this same retained client. Never place credentials or raw auth output in request/response files.
 
 The client keeps running until an authorized `{"tool":"close"}` request or process shutdown. Closing it closes its owned tunnels; do not use a one-shot process for a connection that must remain alive. Use explicit local process ownership for cleanup. Do not overwrite the installed plugin manifest with per-user paths or weaken package-download TLS.
 

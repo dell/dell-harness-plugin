@@ -1,0 +1,16 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "dell_devspaces": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "${PLUGIN_ROOT}/scripts/prepare_runtime.py"
+      ],
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      },
+      "cwd": "${PLUGIN_ROOT}"
+    }
+  }
+}

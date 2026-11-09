@@ -123,3 +123,5 @@ adding it only to one test client does not make future DCR clients usable.
 See the bundled `configure-dell-data-analytics-engine` skill for validation and
 safe-use guidance. The bundled `analyze-governed-data-products` skill provides
 the user-facing discovery-to-analysis workflow and grounded answer format.
+The analysis workflow calculates only requested measures and reports the result
+and query ID after a successful bounded query, without extra diagnostic queries.

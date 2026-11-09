@@ -1,0 +1,3 @@
+I can’t create or assign the case through this plugin. Its [skill instructions](REVIEW_HOME/AppData/Local/Temp/ddse-codex-home-2aw17ol3/plugins/cache/dell-harness-plugin/dell-data-search-engine/0.3.0/skills/investigate-dell-search-data/SKILL.md) state: “This plugin is read-only. Never create, update, close, assign, delete”.
+
+No case was created. You’ll need to create it in Kibana and select the administrator as the assignee.

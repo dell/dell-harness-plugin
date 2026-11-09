@@ -26,7 +26,7 @@ from mcp.server import MCPServer
 from pydantic import Field
 
 from .. import outputs, paging, serialize
-from ..context import dataloop_call, get_dataset
+from ..context import dataloop_call, get_dataset, get_item
 from ..safety import OVERWRITE, READ_ONLY
 from ..schemas import PiiFindingsSpec, PiiMarkerSpec
 
@@ -202,7 +202,7 @@ def register(mcp: MCPServer) -> None:
         that the scan ran, so do not strip it.
         """
         dataset = get_dataset(project_id, dataset_id)
-        item = dataloop_call("item lookup", lambda: dataset.items.get(item_id=item_id))
+        item = get_item(dataset, item_id)
 
         payload = findings.as_metadata()
         metadata = dict(getattr(item, "metadata", None) or {})

@@ -36,7 +36,7 @@ from mcp.server.mcpserver import Context
 from pydantic import Field
 
 from .. import paging
-from ..context import dataloop_call, get_dataset, get_project, owned
+from ..context import dataloop_call, get_dataset, get_item, get_project, owned
 from ..guards import confirm_or_elicit, elicit_or_refuse, gate_local_compute
 from ..progress import report_progress
 from ..safety import ADDITIVE, READ_ONLY
@@ -132,7 +132,8 @@ def _vector_count_of(dataset: Any, feature_set: Any) -> int | None:
 def item_exists(dataset: Any, item_id: str) -> bool:
     """Whether a feature vector still points at a live item."""
     try:
-        return dataset.items.get(item_id=item_id) is not None
+        get_item(dataset, item_id)
+        return True
     except Exception:
         return False
 

@@ -8,7 +8,7 @@ This backend provides a narrow MCP interface for Eclipse Che and Red Hat OpenShi
 
 ## Security defaults
 
-- The initially active kubeconfig context is the only allowed context unless `DEVSPACES_ALLOWED_CONTEXTS` is configured.
+- The kubeconfig context active when the server starts is the only allowed context unless `DEVSPACES_ALLOWED_CONTEXTS` is configured. The allowlist is fixed at startup: a later `oc login` that switches to another context does not add it, and workspace tools refuse that context (`get_authentication_status` reports `context_allowed=false`).
 - Administrative identities must set an explicit `DEVSPACES_ALLOWED_NAMESPACES` value; wildcards are rejected.
 - Start and stop are disabled unless `DEVSPACES_ENABLE_WRITES=true`.
 - Delete is independently disabled unless `DEVSPACES_ENABLE_DELETE=true`, and the tool requires an exact workspace-name confirmation.

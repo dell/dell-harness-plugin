@@ -34,13 +34,18 @@ def check_package(root):
     interface = manifest['interface']
     assert interface['displayName'] == 'Dell AI Factory Agentic Workspace'
     assert len(interface['defaultPrompt']) >= 3
-    for value in (manifest['skills'], manifest['mcpServers'], interface['composerIcon'], interface['logo']):
+    assert 'mcpServers' not in manifest, 'MCP servers live in the portable root mcp.json'
+    for value in (manifest['skills'], interface['composerIcon'], interface['logo']):
         assert value.startswith('./')
         resolved = (root / value).resolve()
         assert resolved.is_relative_to(root.resolve()) and resolved.exists(), value
-    config = json.loads((root / manifest['mcpServers']).read_text(encoding='utf-8'))
+    portable = json.loads((root / 'plugin.json').read_text(encoding='utf-8'))
+    assert portable['name'] == manifest['name'] and portable['version'] == manifest['version']
+    config = json.loads((root / 'mcp.json').read_text(encoding='utf-8'))
     server = config['mcpServers']['dell_devspaces']
-    assert server['command'] == 'python'
+    assert server['type'] == 'stdio' and server['cwd'] == '${PLUGIN_ROOT}'
+    # Source checkouts launch the system interpreter; bundled builds a contained ./runtime one.
+    assert server['command'] == 'python' or server['command'].startswith('./runtime/')
     assert server['args'] == ['${PLUGIN_ROOT}/scripts/prepare_runtime.py']
     for path in (root / 'skills').rglob('SKILL.md'):
         text = path.read_text(encoding='utf-8')
@@ -58,11 +63,11 @@ def check_package(root):
 
 
 def runtime_files():
-    singles = ['.codex-plugin/plugin.json', '.mcp.json', 'README.md', 'requirements.txt',
+    singles = ['.codex-plugin/plugin.json', 'plugin.json', 'mcp.json', 'README.md', 'requirements.txt',
                'evals/cases.json', 'validation/REVIEW.md',
                'scripts/connector_mcp_server.py', 'scripts/devspaces_mcp_server.py',
                'scripts/authenticate_devspaces.py', 'scripts/authenticate_devspaces.ps1', 'scripts/launch-auth.cmd',
-               'scripts/prepare_runtime.py', 'scripts/mcp_session.py']
+               'scripts/prepare_runtime.py', 'scripts/mcp_session.py', 'scripts/devspaces_settings.py', 'scripts/configure_devspaces.py']
     paths = [ROOT / name for name in singles]
     for directory in ('skills', 'assets', 'config'):
         paths.extend(p for p in (ROOT / directory).rglob('*') if p.is_file() and '__pycache__' not in p.parts)

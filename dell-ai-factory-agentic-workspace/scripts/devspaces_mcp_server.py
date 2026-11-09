@@ -275,7 +275,7 @@ class DevSpacesClient:
         allowed_contexts = set(settings.allowed_contexts) or {active["name"]}
         if selected not in allowed_contexts:
             raise PermissionError(
-                f"Context {selected!r} is outside DEVSPACES_ALLOWED_CONTEXTS"
+                f"Context {selected!r} is outside the allowed contexts (DEVSPACES_ALLOWED_CONTEXTS)"
             )
 
         config.load_kube_config(config_file=settings.kubeconfig, context=selected)
@@ -484,22 +484,47 @@ REGISTRY = InstanceRegistry.from_file(SETTINGS.instances_file)
 AUTHENTICATION = AuthenticationManager(SETTINGS, REGISTRY)
 _client: DevSpacesClient | None = None
 _session_context: str | None = None
+_startup_contexts: tuple[str, ...] | None = None
+
+
+def allowed_contexts() -> tuple[str, ...]:
+    """The contexts this server may use, fixed at startup and never widened afterwards.
+
+    An explicit DEVSPACES_ALLOWED_CONTEXTS wins. Otherwise only the context that was active
+    when the server started is allowed, so a later `oc login` that switches the active
+    context to another cluster cannot add that cluster to the allowlist.
+    """
+    global _startup_contexts
+    if _startup_contexts is None:
+        if SETTINGS.allowed_contexts:
+            _startup_contexts = tuple(dict.fromkeys(SETTINGS.allowed_contexts))
+        else:
+            try:
+                _, active = config.list_kube_config_contexts(config_file=SETTINGS.kubeconfig)
+            except Exception:  # noqa: BLE001 - no readable kubeconfig: allow nothing
+                active = None
+            _startup_contexts = (active["name"],) if active else ()
+    return _startup_contexts
+
+
+def context_allowed(context: str) -> bool:
+    return context in allowed_contexts()
 
 
 def get_client() -> DevSpacesClient:
     global _client
     if _client is None:
-        effective_settings = SETTINGS
-        if _session_context:
-            allowed_contexts = tuple(
-                dict.fromkeys((*SETTINGS.allowed_contexts, _session_context))
+        allowed = allowed_contexts()
+        if not allowed:
+            raise PermissionError("No Kubernetes context is allowed; set DEVSPACES_ALLOWED_CONTEXTS")
+        requested = _session_context or SETTINGS.requested_context or allowed[0]
+        if requested not in allowed:
+            raise PermissionError(
+                f"Context {requested!r} is outside the allowed contexts (DEVSPACES_ALLOWED_CONTEXTS)"
             )
-            effective_settings = replace(
-                SETTINGS,
-                requested_context=_session_context,
-                allowed_contexts=allowed_contexts,
-            )
-        _client = DevSpacesClient(effective_settings)
+        _client = DevSpacesClient(
+            replace(SETTINGS, requested_context=requested, allowed_contexts=allowed)
+        )
     return _client
 
 
@@ -508,6 +533,21 @@ def activate_context(context: str) -> None:
     _session_context = context
     _client = None
 
+
+def _record_login_context(result: dict[str, Any]) -> dict[str, Any]:
+    context = result.get("context")
+    if result.get("authenticated") and context:
+        activate_context(context)
+        result["context_allowed"] = context_allowed(context)
+        if not result["context_allowed"]:
+            result["reason"] = (
+                f"Signed-in context {context!r} is outside the allowed contexts; "
+                "workspace tools stay blocked"
+            )
+    return result
+
+
+allowed_contexts()
 
 READ = ToolAnnotations(
     readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True
@@ -537,20 +577,14 @@ def list_devspaces_instances() -> dict[str, Any]:
 
 @mcp.tool(annotations=READ)
 def get_authentication_status(instance_name: str | None = None) -> dict[str, Any]:
-    """Check whether oc has a valid SSO session for a managed instance."""
-    result = AUTHENTICATION.status(instance_name)
-    if result.get("authenticated") and result.get("context"):
-        activate_context(result["context"])
-    return result
+    """Check whether oc has a valid SSO session for a managed instance and an allowed context."""
+    return _record_login_context(AUTHENTICATION.status(instance_name))
 
 
 @mcp.tool(annotations=WRITE)
 def authenticate_devspaces(instance_name: str | None = None) -> dict[str, Any]:
-    """Initiate oc login --web for a managed instance and activate its context."""
-    result = AUTHENTICATION.authenticate(instance_name)
-    if result.get("authenticated") and result.get("context"):
-        activate_context(result["context"])
-    return result
+    """Initiate oc login --web for a managed instance; its context is used only if allowed."""
+    return _record_login_context(AUTHENTICATION.authenticate(instance_name))
 
 
 @mcp.tool(annotations=READ)

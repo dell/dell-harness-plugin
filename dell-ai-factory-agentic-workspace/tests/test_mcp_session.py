@@ -65,6 +65,7 @@ def test_retained_client_requests_results_and_shutdown(monkeypatch, tmp_path):
 @pytest.mark.parametrize('message,category', [('Set DEVSPACES_ENABLE_WRITES=true', 'writes_disabled'),
                                             ('Deletion requires DEVSPACES_ENABLE_WRITES=true and DEVSPACES_ENABLE_DELETE=true', 'delete_gates_disabled'),
                                             ('Connector certificate verification failed', 'certificate_verification_failed'),
+                                            ('Start the workspace and verify Running before connecting', 'workspace_not_running'),
                                             ('Workspace identity changed', 'workspace_identity_changed')])
 def test_tool_failure_category_never_serializes_raw_error(message, category):
     secret = secrets.token_urlsafe(12)

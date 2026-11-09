@@ -26,7 +26,7 @@ from mcp.server.mcpserver import Context
 from pydantic import Field
 
 from .. import outputs, paging, serialize
-from ..context import dataloop_call, get_dataset
+from ..context import dataloop_call, get_annotation, get_dataset, get_item
 from ..guards import confirm_or_elicit
 from ..safety import ADDITIVE, DELETE, READ_ONLY
 
@@ -94,7 +94,7 @@ def register(mcp: MCPServer) -> None:
     ) -> paging.ListResult:
         """List the annotations on one item, e.g. to review what a classifier tagged it with."""
         dataset = get_dataset(project_id, dataset_id)
-        item = dataloop_call("item lookup", lambda: dataset.items.get(item_id=item_id))
+        item = get_item(dataset, item_id)
         filters = dl.Filters(resource=dl.FiltersResource.ANNOTATION)
         if label is not None:
             filters.add(field="label", values=label)
@@ -124,9 +124,7 @@ def register(mcp: MCPServer) -> None:
     ) -> outputs.AnnotationSummary:
         """Fetch one annotation by id."""
         dataset = get_dataset(project_id, dataset_id)
-        return serialize.annotation(
-            dataloop_call("annotation lookup", lambda: dataset.annotations.get(annotation_id=annotation_id))
-        )
+        return serialize.annotation(get_annotation(dataset, annotation_id))
 
     @mcp.tool(title="List dataset ontology labels", annotations=READ_ONLY)
     def annotation_labels(
@@ -176,7 +174,7 @@ def register(mcp: MCPServer) -> None:
             else None
         )
 
-        item = dataloop_call("item lookup", lambda: dataset.items.get(item_id=item_id))
+        item = get_item(dataset, item_id)
         builder = item.annotations.builder()
         builder.add(annotation_definition=dl.Classification(label=label), model_info=model_info)
         uploaded = dataloop_call("annotation upload", lambda: item.annotations.upload(builder))
@@ -197,6 +195,7 @@ def register(mcp: MCPServer) -> None:
         """Delete one annotation."""
         confirm_or_elicit(ctx, confirm, "delete this annotation", "the annotation is removed permanently")
         dataset = get_dataset(project_id, dataset_id)
+        get_annotation(dataset, annotation_id)
         deleted = dataloop_call(
             "annotation delete", lambda: dataset.annotations.delete(annotation_id=annotation_id)
         )

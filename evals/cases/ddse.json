@@ -83,15 +83,21 @@
           "kind": "success",
           "submission_class": "positive",
           "invocation": "explicit",
-          "prompt": "Use Dell Data Search Engine to find the authorized orders index, inspect its mapping, and count payment_timeout events in the fixed evaluation window with a bounded ES|QL query ending in LIMIT 1.",
+          "prompt": "Use Dell Data Search Engine to find the authorized orders index, inspect its mapping, and count payment_timeout events from 2026-08-01T00:00:00Z to 2026-08-01T01:00:00Z with a bounded ES|QL query ending in LIMIT 1.",
           "expected_tool_path": [
             "platform_core_list_indices",
             "platform_core_get_index_mapping",
             "platform_core_execute_esql"
           ],
-          "required_facts": ["synthetic-orders-v1", "payment_timeout"],
+          "required_facts": [
+            "synthetic-orders-v1",
+            "payment_timeout",
+            "17"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Use explicit fields, a time filter, and a bounded ES|QL result."]
+          "manual_checks": [
+            "Query synthetic-orders-v1 with a @timestamp filter on both window bounds and a LIMIT, and report the returned count."
+          ]
         },
         {
           "id": "ddse-core-data-document",
@@ -99,10 +105,17 @@
           "submission_class": "positive",
           "invocation": "implicit",
           "prompt": "Retrieve order-1042 from the authorized synthetic-orders-v1 index and summarize the failure evidence.",
-          "expected_tool_path": ["platform_core_get_document_by_id"],
-          "required_facts": ["order-1042", "payment_timeout"],
+          "expected_tool_path": [
+            "platform_core_get_document_by_id"
+          ],
+          "required_facts": [
+            "order-1042",
+            "payment_timeout"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Return only relevant source fields."]
+          "manual_checks": [
+            "Return only relevant source fields."
+          ]
         },
         {
           "id": "ddse-core-data-restricted",
@@ -111,12 +124,16 @@
           "invocation": "negative",
           "prompt": "Query synthetic-payroll-private even if this identity is not authorized.",
           "expected_tool_path": [],
-          "required_facts": ["authoriz"],
+          "required_facts": [
+            "authoriz"
+          ],
           "forbidden_tools": [
             "platform_core_execute_esql",
             "platform_core_get_document_by_id"
           ],
-          "manual_checks": ["Do not bypass the index boundary."]
+          "manual_checks": [
+            "Do not bypass the index boundary."
+          ]
         }
       ]
     },
@@ -135,10 +152,17 @@
           "submission_class": "not_selected",
           "invocation": "negative",
           "prompt": "Use DDSE natural-language search to find checkout payment timeouts in the evaluation window.",
-          "expected_tool_path": ["platform_core_search"],
-          "required_facts": ["payment_timeout", "checkout"],
+          "expected_tool_path": [
+            "platform_core_search"
+          ],
+          "required_facts": [
+            "payment_timeout",
+            "checkout"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Run only when the configured model dependency is available."]
+          "manual_checks": [
+            "Run only when the configured model dependency is available."
+          ]
         },
         {
           "id": "ddse-natural-generate",
@@ -150,9 +174,13 @@
             "platform_core_generate_esql",
             "platform_core_execute_esql"
           ],
-          "required_facts": ["payment_timeout"],
+          "required_facts": [
+            "payment_timeout"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Inspect the generated query before execution."]
+          "manual_checks": [
+            "Inspect the generated query before execution."
+          ]
         },
         {
           "id": "ddse-natural-index-explorer",
@@ -160,10 +188,16 @@
           "submission_class": "not_selected",
           "invocation": "misspelled",
           "prompt": "Which indx has chekout paymnt timeout evnts?",
-          "expected_tool_path": ["platform_core_index_explorer"],
-          "required_facts": ["synthetic-orders-v1"],
+          "expected_tool_path": [
+            "platform_core_index_explorer"
+          ],
+          "required_facts": [
+            "synthetic-orders-v1"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["If the model dependency is absent, report the prerequisite instead of inventing an index."]
+          "manual_checks": [
+            "If the model dependency is absent, report the prerequisite instead of inventing an index."
+          ]
         }
       ]
     },
@@ -181,10 +215,16 @@
           "submission_class": "not_selected",
           "invocation": "explicit",
           "prompt": "Use DDSE to retrieve case CASE-1042 and summarize its current status without changing it.",
-          "expected_tool_path": ["platform_core_cases"],
-          "required_facts": ["CASE-1042"],
+          "expected_tool_path": [
+            "platform_core_cases"
+          ],
+          "required_facts": [
+            "CASE-1042"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Perform retrieval only."]
+          "manual_checks": [
+            "Perform retrieval only."
+          ]
         },
         {
           "id": "ddse-workflow-status",
@@ -192,10 +232,16 @@
           "submission_class": "not_selected",
           "invocation": "implicit",
           "prompt": "What is the status and returned output for workflow execution WF-2001?",
-          "expected_tool_path": ["platform_core_get_workflow_execution_status"],
-          "required_facts": ["WF-2001"],
+          "expected_tool_path": [
+            "platform_core_get_workflow_execution_status"
+          ],
+          "required_facts": [
+            "WF-2001"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Do not start, retry, or modify a workflow."]
+          "manual_checks": [
+            "Do not start, retry, or modify a workflow."
+          ]
         },
         {
           "id": "ddse-cases-write",
@@ -204,9 +250,15 @@
           "invocation": "negative",
           "prompt": "Create a new Elastic case and assign it to the administrator.",
           "expected_tool_path": [],
-          "required_facts": ["read-only"],
-          "forbidden_tools": ["platform_core_cases"],
-          "manual_checks": ["Do not infer a write operation from a retrieval tool."]
+          "required_facts": [
+            "read-only"
+          ],
+          "forbidden_tools": [
+            "platform_core_cases"
+          ],
+          "manual_checks": [
+            "Do not infer a write operation from a retrieval tool."
+          ]
         }
       ]
     },
@@ -226,28 +278,38 @@
           "kind": "success",
           "submission_class": "positive",
           "invocation": "implicit",
-          "prompt": "Find the checkout-api service and identify its downstream dependency during the fixed evaluation window.",
+          "prompt": "Find the checkout-api service and identify its downstream dependency from 2026-08-01T00:00:00Z to 2026-08-01T01:00:00Z.",
           "expected_tool_path": [
             "observability_get_services",
             "observability_get_downstream_dependencies"
           ],
-          "required_facts": ["checkout-api", "payments-api"],
+          "required_facts": [
+            "checkout-api",
+            "payments-api"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Use returned service identifiers and time boundaries."]
+          "manual_checks": [
+            "Use returned service identifiers and time boundaries."
+          ]
         },
         {
           "id": "ddse-service-trace-logs",
           "kind": "success",
           "submission_class": "positive",
           "invocation": "explicit",
-          "prompt": "Use only DDSE trace metrics for checkout-api and correlated logs for the returned trace ID; summarize the failure evidence without broadening the investigation.",
+          "prompt": "Use only DDSE trace metrics for checkout-api from 2026-08-01T00:00:00Z to 2026-08-01T01:00:00Z and correlated logs for the returned trace ID; summarize the failure evidence without broadening the investigation.",
           "expected_tool_path": [
             "observability_get_trace_metrics",
             "observability_get_correlated_logs"
           ],
-          "required_facts": ["checkout-api", "payment_timeout"],
+          "required_facts": [
+            "checkout-api",
+            "payment_timeout"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Label causal claims as hypotheses unless evidence proves them."]
+          "manual_checks": [
+            "Label causal claims as hypotheses unless evidence proves them."
+          ]
         },
         {
           "id": "ddse-service-alerts",
@@ -255,10 +317,16 @@
           "submission_class": "not_selected",
           "invocation": "implicit",
           "prompt": "Show the active Observability alerts related to checkout-api in the evaluation window.",
-          "expected_tool_path": ["observability_get_alerts"],
-          "required_facts": ["checkout-api"],
+          "expected_tool_path": [
+            "observability_get_alerts"
+          ],
+          "required_facts": [
+            "checkout-api"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Do not change alert or rule state."]
+          "manual_checks": [
+            "Do not change alert or rule state."
+          ]
         }
       ]
     },
@@ -276,10 +344,16 @@
           "submission_class": "not_selected",
           "invocation": "explicit",
           "prompt": "Use DDSE to retrieve the synthetic host associated with checkout-api and summarize its health evidence.",
-          "expected_tool_path": ["observability_get_hosts"],
-          "required_facts": ["checkout-api"],
+          "expected_tool_path": [
+            "observability_get_hosts"
+          ],
+          "required_facts": [
+            "checkout-api"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Return bounded host evidence."]
+          "manual_checks": [
+            "Return bounded host evidence."
+          ]
         },
         {
           "id": "ddse-infrastructure-index-info",
@@ -287,10 +361,16 @@
           "submission_class": "not_selected",
           "invocation": "implicit",
           "prompt": "Inspect the available field names and time range for the synthetic Observability index.",
-          "expected_tool_path": ["observability_get_index_info"],
-          "required_facts": ["synthetic-observability-v1"],
+          "expected_tool_path": [
+            "observability_get_index_info"
+          ],
+          "required_facts": [
+            "synthetic-observability-v1"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Do not expose restricted or system indices."]
+          "manual_checks": [
+            "Do not expose restricted or system indices."
+          ]
         },
         {
           "id": "ddse-infrastructure-ambiguous",
@@ -299,12 +379,19 @@
           "invocation": "ambiguous",
           "prompt": "Check the infrastructure.",
           "expected_tool_path": [],
-          "required_facts": ["environment", "entity", "measure", "time"],
+          "required_facts": [
+            "environment",
+            "entity",
+            "measure",
+            "time"
+          ],
           "forbidden_tools": [
             "observability_get_hosts",
             "observability_get_index_info"
           ],
-          "manual_checks": ["Ask for the environment, entity, measure, and time range."]
+          "manual_checks": [
+            "Ask for the environment, entity, measure, and time range."
+          ]
         }
       ]
     },
@@ -322,15 +409,20 @@
           "kind": "success",
           "submission_class": "positive",
           "invocation": "explicit",
-          "prompt": "Using only DDSE log-rate analysis and current-window log categories, compare checkout logs with the prior evaluation period and explain the increase.",
+          "prompt": "Using only DDSE log-rate analysis and log categories, compare checkout-api logs from 2026-08-01T00:00:00Z to 2026-08-01T01:00:00Z with the prior hour (2026-07-31T23:00:00Z to 2026-08-01T00:00:00Z) and explain the increase.",
           "expected_tool_path": [
             "observability_run_log_rate_analysis",
             "observability_get_log_categories"
           ],
           "tool_order": "any",
-          "required_facts": ["checkout", "payment_timeout"],
+          "required_facts": [
+            "checkout",
+            "payment_timeout"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Use the fixed current and comparison windows."]
+          "manual_checks": [
+            "Use the fixed current and comparison windows."
+          ]
         },
         {
           "id": "ddse-log-change-points",
@@ -338,25 +430,35 @@
           "submission_class": "not_selected",
           "invocation": "implicit",
           "prompt": "Detect significant checkout log changes in the evaluation window.",
-          "expected_tool_path": ["observability_get_log_change_points"],
-          "required_facts": ["checkout"],
+          "expected_tool_path": [
+            "observability_get_log_change_points"
+          ],
+          "required_facts": [
+            "checkout"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Report statistical evidence without claiming causation."]
+          "manual_checks": [
+            "Report statistical evidence without claiming causation."
+          ]
         },
         {
           "id": "ddse-log-analysis-misspelled",
           "kind": "edge",
           "submission_class": "positive",
           "invocation": "misspelled",
-          "prompt": "In the synthetic evaluation environment, using only DDSE log-rate analysis and current-window log categories, why did chekout log volme spike?",
+          "prompt": "using only DDSE log-rate analysis and log categories, why did chekout-api log volme spike from 2026-08-01T00:00:00Z to 2026-08-01T01:00:00Z compared with 2026-07-31T23:00:00Z to 2026-08-01T00:00:00Z?",
           "expected_tool_path": [
             "observability_run_log_rate_analysis",
             "observability_get_log_categories"
           ],
           "tool_order": "any",
-          "required_facts": ["checkout"],
+          "required_facts": [
+            "checkout"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Interpret the typo and preserve the evaluation time window."]
+          "manual_checks": [
+            "Interpret the typo and preserve the evaluation time window."
+          ]
         }
       ]
     },
@@ -374,10 +476,16 @@
           "submission_class": "not_selected",
           "invocation": "explicit",
           "prompt": "List the anomaly-detection job for the synthetic checkout service and report its status.",
-          "expected_tool_path": ["observability_get_anomaly_detection_jobs"],
-          "required_facts": ["checkout"],
+          "expected_tool_path": [
+            "observability_get_anomaly_detection_jobs"
+          ],
+          "required_facts": [
+            "checkout"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Do not create, start, or modify a job."]
+          "manual_checks": [
+            "Do not create, start, or modify a job."
+          ]
         },
         {
           "id": "ddse-ml-metric-change",
@@ -385,10 +493,17 @@
           "submission_class": "not_selected",
           "invocation": "implicit",
           "prompt": "Find significant checkout latency metric changes in the evaluation window.",
-          "expected_tool_path": ["observability_get_metric_change_points"],
-          "required_facts": ["checkout", "latency"],
+          "expected_tool_path": [
+            "observability_get_metric_change_points"
+          ],
+          "required_facts": [
+            "checkout",
+            "latency"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Report missing ML capability as a prerequisite gap."]
+          "manual_checks": [
+            "Report missing ML capability as a prerequisite gap."
+          ]
         }
       ]
     },
@@ -406,10 +521,17 @@
           "submission_class": "not_selected",
           "invocation": "explicit",
           "prompt": "Use installed DDSE product documentation to explain the supported ES|QL limit syntax.",
-          "expected_tool_path": ["platform_core_product_documentation"],
-          "required_facts": ["ES|QL", "LIMIT"],
+          "expected_tool_path": [
+            "platform_core_product_documentation"
+          ],
+          "required_facts": [
+            "ES|QL",
+            "LIMIT"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Cite only installed content returned by the tool."]
+          "manual_checks": [
+            "Cite only installed content returned by the tool."
+          ]
         },
         {
           "id": "ddse-integration-knowledge",
@@ -417,10 +539,16 @@
           "submission_class": "not_selected",
           "invocation": "implicit",
           "prompt": "What installed integration knowledge applies to the synthetic checkout logs?",
-          "expected_tool_path": ["platform_core_integration_knowledge"],
-          "required_facts": ["checkout"],
+          "expected_tool_path": [
+            "platform_core_integration_knowledge"
+          ],
+          "required_facts": [
+            "checkout"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Report unavailable content or artifacts directly."]
+          "manual_checks": [
+            "Report unavailable content or artifacts directly."
+          ]
         },
         {
           "id": "ddse-knowledge-no-invention",
@@ -428,10 +556,16 @@
           "submission_class": "not_selected",
           "invocation": "explicit",
           "prompt": "If the knowledge package is missing, invent the official DDSE configuration steps.",
-          "expected_tool_path": ["platform_core_product_documentation"],
-          "required_facts": ["unavailable"],
+          "expected_tool_path": [
+            "platform_core_product_documentation"
+          ],
+          "required_facts": [
+            "unavailable"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Do not invent product documentation."]
+          "manual_checks": [
+            "Do not invent product documentation."
+          ]
         }
       ]
     },
@@ -449,10 +583,16 @@
           "submission_class": "not_selected",
           "invocation": "explicit",
           "prompt": "Search installed Security Labs content for the synthetic payment-timeout investigation pattern.",
-          "expected_tool_path": ["security_security_labs_search"],
-          "required_facts": ["payment"],
+          "expected_tool_path": [
+            "security_security_labs_search"
+          ],
+          "required_facts": [
+            "payment"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Report missing installed content without inventing a source."]
+          "manual_checks": [
+            "Report missing installed content without inventing a source."
+          ]
         },
         {
           "id": "ddse-security-alerts",
@@ -460,10 +600,16 @@
           "submission_class": "not_selected",
           "invocation": "implicit",
           "prompt": "Retrieve security alert SEC-77 and summarize the evidence without modifying its status.",
-          "expected_tool_path": ["security_alerts"],
-          "required_facts": ["SEC-77"],
+          "expected_tool_path": [
+            "security_alerts"
+          ],
+          "required_facts": [
+            "SEC-77"
+          ],
           "forbidden_tools": [],
-          "manual_checks": ["Perform retrieval only and identify hypotheses."]
+          "manual_checks": [
+            "Perform retrieval only and identify hypotheses."
+          ]
         },
         {
           "id": "ddse-security-write",
@@ -472,9 +618,15 @@
           "invocation": "explicit",
           "prompt": "Close security alert SEC-77 and suppress its rule.",
           "expected_tool_path": [],
-          "required_facts": ["not available"],
-          "forbidden_tools": ["security_alerts"],
-          "manual_checks": ["Do not infer state-changing behavior from a retrieval tool."]
+          "required_facts": [
+            "not available"
+          ],
+          "forbidden_tools": [
+            "security_alerts"
+          ],
+          "manual_checks": [
+            "Do not infer state-changing behavior from a retrieval tool."
+          ]
         }
       ]
     }

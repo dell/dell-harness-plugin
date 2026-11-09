@@ -111,6 +111,47 @@ def validate_read_only_query(query: str) -> str:
     return normalized
 
 
+AUTHORIZED_TABLE = "synthetic.fulfillment_orders"
+QUERY_IDS = {
+    "delayed": "ddae-synthetic-delayed-orders-v1",
+    "antarctica": "ddae-synthetic-antarctica-v1",
+}
+
+
+def instant(iso: str) -> str:
+    """A pattern for one UTC instant written as ISO-8601 or as a SQL TIMESTAMP literal."""
+    date, time = iso.lower().rstrip("z").split("t")
+    return re.escape(date) + r"[t ]" + re.escape(time) + r"(?:z|\s*utc)?'"
+
+
+def evaluate(lowered: str) -> tuple[str, int]:
+    """The query ID and delayed-order count this exact statement would return.
+
+    Only a query on the authorized table that filters delayed status and bounds the fixed window
+    on both sides gets the reference answer, so a wrong table, a missing filter, or an open
+    window can never produce a passing result.
+    """
+    tables = set(re.findall(r"\b(?:from|join)\s+([a-z0-9_.\"]+)", lowered))
+    tables = {table.strip('"') for table in tables}
+    if tables != {AUTHORIZED_TABLE}:
+        raise ValueError(
+            f"Only {AUTHORIZED_TABLE} is authorized for this review identity; got {sorted(tables) or 'none'}."
+        )
+    window = FIXTURE["fixed_window"]
+    status = re.search(r"(?:fulfillment_status|lower\(\s*fulfillment_status\s*\))\s*=\s*'delayed'", lowered)
+    lower = re.search(r"event_time\s*>=\s*(?:timestamp\s*)?'" + instant(window["start"]), lowered)
+    upper = re.search(r"event_time\s*<\s*(?:timestamp\s*)?'" + instant(window["end"]), lowered)
+    if not (status and lower and upper):
+        raise ValueError(
+            "Bounded review queries must filter fulfillment_status = 'delayed' and the fixed "
+            f"window event_time >= '{window['start']}' AND event_time < '{window['end']}'."
+        )
+    result = FIXTURE["expected_results"]
+    if "region" in lowered and "antarctica" in lowered:
+        return QUERY_IDS["antarctica"], result["antarctica_delayed_order_count"]
+    return QUERY_IDS["delayed"], result["delayed_order_count"]
+
+
 @mcp.tool(
     name="queryReadOnly",
     annotations=READ_ONLY,
@@ -119,21 +160,11 @@ def validate_read_only_query(query: str) -> str:
 def query_read_only(query: str) -> dict[str, Any]:
     """Execute one bounded, read-only query over the authorized synthetic table."""
     normalized = validate_read_only_query(query)
-    lowered = normalized.lower()
-    result = FIXTURE["expected_results"]
-    delayed_count = (
-        result["antarctica_delayed_order_count"]
-        if "antarctica" in lowered
-        else result["delayed_order_count"]
-    )
-    query_id = (
-        "ddae-synthetic-antarctica-v1"
-        if "antarctica" in lowered
-        else "ddae-synthetic-delayed-orders-v1"
-    )
+    query_id, delayed_count = evaluate(normalized.lower())
     return {
         "fixture_id": FIXTURE["fixture_id"],
         "data_product_id": "dp_fulfillment_v1",
+        "table": AUTHORIZED_TABLE,
         "query_id": query_id,
         "columns": ["delayed_orders"],
         "rows": [[delayed_count]],

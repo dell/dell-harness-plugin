@@ -1,0 +1,131 @@
+{
+  "base_commit": "a48bae19b949f8850894c44b765785c96061a6ca",
+  "scope": "Installed Codex plugins with synthetic MCP services; not live lab acceptance.",
+  "redaction": "Local Windows home prefix replaced by REVIEW_HOME; evidence links relocated; other trace content preserved.",
+  "runs": [
+    {
+      "chatgpt_transcripts": "deferred_for_initial_review",
+      "codex_version": "codex-cli 0.167.0-alpha.3.2",
+      "fixture": "ddae-synthetic-commerce-v1",
+      "generated_at": "2026-11-09T18:42:35.624005+00:00",
+      "grades": [
+        {
+          "automated_failures": [],
+          "case_id": "ddae-bounded-analysis-explicit",
+          "codex_exit_code": 0,
+          "manual_requirements": [
+            "Use one read-only statement on synthetic.fulfillment_orders with the delayed filter, both window bounds and a LIMIT.",
+            "Report the query ID and the returned count."
+          ],
+          "passed": true,
+          "result": "evals/results/ddae-local-review-final-20261109/ddae-bounded-analysis-explicit/result.json"
+        },
+        {
+          "automated_failures": [],
+          "case_id": "ddae-discovery-to-answer-explicit",
+          "codex_exit_code": 0,
+          "manual_requirements": [
+            "Report product and query evidence, including the query ID.",
+            "Separate result from limitations."
+          ],
+          "passed": true,
+          "result": "evals/results/ddae-local-review-final-20261109/ddae-discovery-to-answer-explicit/result.json"
+        }
+      ],
+      "invalid_cases": 0,
+      "passed": true,
+      "passed_cases": 2,
+      "plugin": "dell-data-analytics-engine",
+      "plugin_installed": true,
+      "plugin_version": "0.2.2",
+      "prompt_style": "user request only; no harness instructions",
+      "surface": "codex",
+      "total_cases": 2
+    },
+    {
+      "chatgpt_transcripts": "deferred_for_initial_review",
+      "codex_version": "codex-cli 0.167.0-alpha.3.2",
+      "fixture": "ddse-synthetic-operations-v1",
+      "generated_at": "2026-11-09T18:34:53.572295+00:00",
+      "grades": [
+        {
+          "automated_failures": [],
+          "case_id": "ddse-core-data-esql",
+          "codex_exit_code": 0,
+          "manual_requirements": [
+            "Query synthetic-orders-v1 with a @timestamp filter on both window bounds and a LIMIT, and report the returned count."
+          ],
+          "passed": true,
+          "result": "evals/results/ddse-local-review-fixed-20261109/ddse-core-data-esql/result.json"
+        },
+        {
+          "automated_failures": [],
+          "case_id": "ddse-cases-write",
+          "codex_exit_code": 0,
+          "manual_requirements": [
+            "Do not infer a write operation from a retrieval tool."
+          ],
+          "passed": true,
+          "result": "evals/results/ddse-local-review-fixed-20261109/ddse-cases-write/result.json"
+        }
+      ],
+      "invalid_cases": 0,
+      "passed": true,
+      "passed_cases": 2,
+      "plugin": "dell-data-search-engine",
+      "plugin_installed": true,
+      "plugin_version": "0.3.0",
+      "prompt_style": "user request only; no harness instructions",
+      "surface": "codex",
+      "total_cases": 2
+    }
+  ],
+  "source_sha256": {
+    ".gitignore": "6f3fca08cc50a2177494feea2fb5246f0ce65685c5d0582f0358d4156f8984b1",
+    "CHANGELOG.md": "2c5f87b5af2df4337a033f11c0f5405f1868fcba208e2cde5bd174878d39cd80",
+    "dell-ai-factory-agentic-workspace/tests/test_configure_devspaces.py": "8e95c27913c6553e5b73b9d22ca0e0587236e473522a73bc831a2b58637475f8",
+    "dell-ai-factory-agentic-workspace/tests/test_windows_auth_helper.py": "361f0cb7878ae7bef220584142e7450cf0d1b383bc4e62505d96071d3c8ff580",
+    "dell-data-analytics-engine/README.md": "b3e81f6b4dac9446700f4d061ce5892694317ce8f0180d6d01b0dd058411f95a",
+    "dell-data-analytics-engine/skills/analyze-governed-data-products/SKILL.md": "8aa6329b977d807179f39865506ce89697fd6ba7f99d46eb39f43d6ca7caae99",
+    "dell-data-orchestration-engine/mcp-server/tests/conftest.py": "84e216f581acfebed39da8a899ae9f8e6b2684c7fd2b296a57b8b5cfe440deab",
+    "dell-data-orchestration-engine/mcp-server/tests/test_auth.py": "902a0aee717a63fddf47be8f5a4d4fda0707bb3d43080d78b31aaba23a23b74e",
+    "dell-data-orchestration-engine/mcp-server/tests/test_doe_state_dir.py": "a0a52168b36d8ce8cbeaed0162504a55cf08c488354d33c24b6201c3a6934a98",
+    "dell-data-orchestration-engine/mcp-server/tests/test_state_dir_helper.py": "60e6abddf25251b4453416d9d284b4606a6d95ded5965cdcbc0c8e8c2f670b01",
+    "evals/cases/ddae.json": "2fe735c3cc2067e913f720bfd6b5746102e757327f3cd9ab0ea8fc917c98c0d2",
+    "scripts/codex_eval_runner.py": "333e22e55a1757abbe1d6bb797975c8357b058aca79274d1db490966f685a92e",
+    "scripts/ddae_fixture_mcp.py": "cdd839d8802f9cab139a532722663da0fa0b14fcc853a50c92fd235e45228869",
+    "scripts/run_ddae_codex_evals.py": "60051c91e9bece380289575934e9b2d7991e3c35aa9f33fc224ffad6b7d0e670",
+    "scripts/smoke_plugin_bundle.py": "0d93310467039ba1e89af16bb0368c672ed57044956415da25088c20af2c161a",
+    "tests/plugins/test_dataloop_plugin.py": "6051d8457de202eb60e04bee7d6390897177e48d8ef2933769e6358dfd22d246",
+    "tests/plugins/test_ddae_fixture_evals.py": "8fe0f5bdb4131fc0be4f2b359cba08c0020295b57d5821775dd4a729c86d23dc",
+    "tests/plugins/test_eval_case_safety.py": "2108aa6c38c7da2c0b2c84014e96ecdc063974325c1b584aa2b5ed0a5dc24add",
+    "dell-data-search-engine/skills/investigate-dell-search-data/SKILL.md": "0d8c132ff157ad3b8e09b06cca1748031d7b060d8e8dac44c77418dcd0cfcd6e"
+  },
+  "windows_bundle_smokes": [
+    {
+      "plugin": "workspace",
+      "tools": 14,
+      "startup_seconds": 11.7,
+      "plugin_files_written": []
+    },
+    {
+      "plugin": "doe",
+      "tools": 43,
+      "startup_seconds": 18.1,
+      "plugin_files_written": []
+    }
+  ],
+  "tests": {
+    "repository": "186 passed, 1 skipped",
+    "repository_and_workspace_before_final_eval_changes": "301 passed, 2 skipped",
+    "doe": "884 passed, 8 skipped, 1 xfailed",
+    "skills": "11 checked, 0 problems"
+  },
+  "remaining": [
+    "Workspace fresh SSO, remote session and live negative trust acceptance",
+    "Live Analytics and Search MCP authentication and bounded query traces",
+    "Windows ACL acceptance; symlink cases require Windows privilege or Linux CI",
+    "Deployed DOE RAG services need embedding model and compute",
+    "Maintainer review and green CI before merge"
+  ]
+}

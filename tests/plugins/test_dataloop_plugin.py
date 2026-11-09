@@ -11,6 +11,8 @@ import subprocess
 import sys
 import tomllib
 import types
+
+import pytest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -34,9 +36,12 @@ def load_launcher():
 def test_manifest_mcp_marketplace_and_governance_are_registered():
     manifest = load_json(PLUGIN / ".codex-plugin" / "plugin.json")
     assert manifest["name"] == "dell-data-orchestration-engine"
-    assert manifest["version"] == "0.6.0"
+    assert manifest["version"] == "0.7.0"
     assert manifest["skills"] == "./skills/"
-    assert manifest["mcpServers"] == "./.mcp.json"
+    assert "mcpServers" not in manifest
+    assert not (PLUGIN / ".mcp.json").exists()
+    portable = load_json(PLUGIN / "plugin.json")
+    assert (portable["name"], portable["version"]) == (manifest["name"], manifest["version"])
     assert manifest["homepage"].startswith("https://")
     assert manifest["author"]["url"].startswith("https://")
     for field in ("websiteURL", "privacyPolicyURL", "termsOfServiceURL"):
@@ -46,7 +51,8 @@ def test_manifest_mcp_marketplace_and_governance_are_registered():
     assert manifest["interface"]["capabilities"] == ["Read", "Write"]
     assert len(manifest["interface"]["defaultPrompt"]) == 3
 
-    mcp = load_json(PLUGIN / ".mcp.json")["mcpServers"]["dell_dataloop"]
+    mcp = load_json(PLUGIN / "mcp.json")["mcpServers"]["dell_dataloop"]
+    assert mcp["type"] == "stdio" and mcp["cwd"] == "${PLUGIN_ROOT}"
     assert mcp["command"] == "python"
     assert mcp["args"] == ["${PLUGIN_ROOT}/scripts/dataloop_mcp_launcher.py"]
     assert "DATALOOP_API_KEY" not in json.dumps(mcp)
@@ -119,7 +125,7 @@ def test_launcher_requires_private_config_and_never_serializes_secret(tmp_path):
     ]
     assert launcher.profiles_from(None) == ["plugin-v1"]
     assert launcher.profiles_from("all") == []
-    assert api_key not in json.dumps(load_json(PLUGIN / ".mcp.json"))
+    assert api_key not in json.dumps(load_json(PLUGIN / "mcp.json"))
 
     config.chmod(0o644)
     try:
@@ -128,7 +134,8 @@ def test_launcher_requires_private_config_and_never_serializes_secret(tmp_path):
         assert "chmod 600" in str(exc)
         assert api_key not in str(exc)
     else:
-        raise AssertionError("group-readable credentials must be rejected")
+        if os.name == "posix":
+            raise AssertionError("group-readable credentials must be rejected")
 
     config.unlink()
     state = tmp_path / "state"
@@ -292,7 +299,7 @@ def test_launcher_rejects_a_world_writable_directory_and_runs_the_resolved_targe
 
 def test_runtime_reuses_launching_interpreter_when_server_imports(monkeypatch):
     launcher = load_launcher()
-    monkeypatch.setattr(launcher, "server_importable", lambda python, environ: True)
+    monkeypatch.setattr(launcher, "server_ready", lambda python, environ: True)
     assert launcher.runtime_python({}) == Path(sys.executable)
 
 
@@ -310,18 +317,18 @@ def test_runtime_prepares_isolated_venv_with_bundled_requirements(tmp_path, monk
             prepared["done"] = True
         return subprocess.CompletedProcess(command, 0)
 
-    monkeypatch.setattr(launcher, "server_importable", importable)
+    monkeypatch.setattr(launcher, "server_ready", importable)
     monkeypatch.setattr(launcher.subprocess, "run", run)
     python = launcher.runtime_python({"DATALOOP_RUNTIME_DIR": str(tmp_path)})
     assert str(python).startswith(str(tmp_path))
-    assert calls[0][:3] == [sys.executable, "-m", "venv"]
+    assert calls[0][:4] == [sys.executable, "-m", "venv", "--clear"]
     assert any(arg.startswith("mcp>=2.0") for arg in calls[1])
     assert not list(tmp_path.glob("*.lock"))
 
 
 def test_runtime_preparation_failure_is_a_configuration_error(tmp_path, monkeypatch):
     launcher = load_launcher()
-    monkeypatch.setattr(launcher, "server_importable", lambda python, environ: False)
+    monkeypatch.setattr(launcher, "server_ready", lambda python, environ: False)
 
     def run(command, **kwargs):
         raise subprocess.CalledProcessError(1, command)
@@ -402,6 +409,7 @@ def test_configure_rejects_all_mixed_with_other_profiles(tmp_path):
     assert not (tmp_path / "c.json").exists()
 
 
+@pytest.mark.skipif(os.name != "posix", reason="Tests the POSIX execve launch path and mode bits")
 def test_command_override_never_prepares_a_runtime(tmp_path, monkeypatch):
     launcher = load_launcher()
     executable = tmp_path / "doe-mcp"
@@ -428,19 +436,72 @@ def test_prepare_only_needs_no_credentials(tmp_path, monkeypatch, capsys):
     assert json.loads(capsys.readouterr().out) == {"state": "ready", "python": str(tmp_path / "python")}
 
 
-def test_interrupted_preparation_reports_lock_path(tmp_path, monkeypatch):
+def _runtime_lock(launcher, tmp_path):
+    python = launcher.runtime_python_path({"DATALOOP_RUNTIME_DIR": str(tmp_path)})
+    return python.parents[1].with_suffix(".lock")
+
+
+def test_interrupted_preparation_is_recovered_on_the_next_start(tmp_path, monkeypatch):
+    """A killed preparation leaves its lock and a half-built venv; the next start rebuilds both."""
     launcher = load_launcher()
-    monkeypatch.setattr(launcher, "server_importable", lambda python, environ: False)
+    lock = _runtime_lock(launcher, tmp_path)
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.mkdir()
+    (lock / "owner.json").write_text(json.dumps({"pid": 2**22 + 12345}), encoding="utf-8")
+    prepared = {"done": False}
+    calls = []
+    monkeypatch.setattr(
+        launcher, "server_ready", lambda python, environ: prepared["done"] and python != Path(sys.executable)
+    )
+    monkeypatch.setattr(launcher, "_owner_alive", lambda pid: False)
+    monkeypatch.setattr(launcher.time, "sleep", lambda seconds: pytest.fail("must not wait on a dead owner"))
+
+    def run(command, **kwargs):
+        calls.append(command)
+        if "pip" in command:
+            prepared["done"] = True
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(launcher.subprocess, "run", run)
+    python = launcher.runtime_python({"DATALOOP_RUNTIME_DIR": str(tmp_path)})
+    assert python.parents[1].with_suffix(".lock") == lock and not lock.exists()
+    assert calls[0][:4] == [sys.executable, "-m", "venv", "--clear"]
+
+
+def test_active_preparation_is_waited_for_not_removed(tmp_path, monkeypatch):
+    launcher = load_launcher()
+    lock = _runtime_lock(launcher, tmp_path)
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.mkdir()
+    (lock / "owner.json").write_text(json.dumps({"pid": os.getpid()}), encoding="utf-8")
+    monkeypatch.setattr(launcher, "server_ready", lambda python, environ: False)
     monkeypatch.setattr(launcher.time, "sleep", lambda seconds: None)
-    pyproject = (PLUGIN / "mcp-server" / "pyproject.toml").read_bytes()
-    identity = launcher.hashlib.sha256(sys.executable.encode() + sys.version.encode() + pyproject).hexdigest()[:16]
-    (tmp_path / f"{identity}.lock").mkdir()
-    try:
+    with pytest.raises(launcher.ConfigurationError, match="still holds"):
         launcher.runtime_python({"DATALOOP_RUNTIME_DIR": str(tmp_path)})
-    except launcher.ConfigurationError as exc:
-        assert f"{identity}.lock" in str(exc) and "--prepare-only" in str(exc)
-    else:
-        raise AssertionError("a leftover lock must be reported")
+    assert lock.exists()
+
+
+def test_bundled_package_never_installs_at_runtime(tmp_path, monkeypatch):
+    launcher = load_launcher()
+    monkeypatch.setattr(launcher, "BUNDLE_MANIFEST", tmp_path / "BUNDLE.json")
+    (tmp_path / "BUNDLE.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(launcher, "server_ready", lambda python, environ: False)
+    monkeypatch.setattr(launcher.subprocess, "run", lambda *a, **k: pytest.fail("bundle must not install"))
+    with pytest.raises(launcher.ConfigurationError, match="reinstall"):
+        launcher.runtime_python({"DATALOOP_RUNTIME_DIR": str(tmp_path)})
+    assert launcher.planned_runtime({})[1].startswith("the bundled runtime")
+
+
+def test_readiness_probe_matches_this_environment():
+    """The read-only probe agrees with an interpreter that has (or lacks) the server deps."""
+    launcher = load_launcher()
+    try:
+        import dtlpy  # noqa: F401
+        has_deps = True
+    except ImportError:
+        has_deps = False
+    assert launcher.server_ready(Path(sys.executable), dict(os.environ)) is has_deps
+    assert launcher.server_ready(Path("/nonexistent/python"), {}) is False
 
 
 # --- R07: the configuration check reports exactly what the launcher will run ---------------
@@ -621,3 +682,45 @@ def test_check_never_runs_a_configured_command(tmp_path):
 
     assert "launch=ready" in check.stdout
     assert not marker.exists()
+
+
+def _snapshot(root):
+    return sorted(str(path.relative_to(root)) for path in root.rglob("*"))
+
+
+def test_check_is_read_only_and_blocks_an_unprepared_runtime(tmp_path):
+    """A clean start: nothing prepared yet. The check must change nothing and must not say ready."""
+    import shutil
+
+    plugin = tmp_path / "plugin"
+    shutil.copytree(PLUGIN, plugin, ignore=shutil.ignore_patterns("__pycache__", "tests"))
+    config = _private_config(tmp_path)
+    environ = _isolated_environ(tmp_path, DATALOOP_RUNTIME_DIR=str(tmp_path / "runtimes"))
+    environ.pop("PYTHONDONTWRITEBYTECODE", None)
+    # A bare interpreter without the server's dependencies, as on a clean desktop.
+    bare = tmp_path / "bare"
+    subprocess.run([sys.executable, "-m", "venv", "--without-pip", str(bare)], check=True)
+    before = _snapshot(tmp_path)
+    python = bare / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    check = subprocess.run(
+        [str(python), str(plugin / "scripts" / "configure_dataloop.py"), "--check", "--config", str(config)],
+        env=environ, capture_output=True, text=True,
+    )
+    assert check.returncode == 1, check.stdout + check.stderr
+    assert "launch=blocked reason=the isolated runtime is not prepared" in check.stdout
+    assert "launch=ready" not in check.stdout
+    assert _snapshot(tmp_path) == before
+
+
+def test_check_reports_an_active_preparation_as_blocked(tmp_path, monkeypatch):
+    launcher = load_launcher()
+    environ = {"DATALOOP_RUNTIME_DIR": str(tmp_path)}
+    monkeypatch.setattr(launcher, "server_ready", lambda python, environ: False)
+    lock = _runtime_lock(launcher, tmp_path)
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.mkdir()
+    (lock / "owner.json").write_text(json.dumps({"pid": os.getpid()}), encoding="utf-8")
+    assert "in progress" in launcher.planned_runtime(environ)[1]
+    (lock / "owner.json").write_text(json.dumps({"pid": 2**22 + 12345}), encoding="utf-8")
+    monkeypatch.setattr(launcher, "_owner_alive", lambda pid: False)
+    assert "interrupted preparation" in launcher.planned_runtime(environ)[1]

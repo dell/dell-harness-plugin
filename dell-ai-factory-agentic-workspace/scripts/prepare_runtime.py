@@ -19,7 +19,7 @@ IMPORT_CHECK = "import importlib.metadata; import mcp.client.stdio; assert impor
 
 def usable(python):
     try:
-        return subprocess.run([str(python), '-c', IMPORT_CHECK], stdout=subprocess.DEVNULL,
+        return subprocess.run([str(python), '-B', '-c', IMPORT_CHECK], stdout=subprocess.DEVNULL,
                               stderr=subprocess.DEVNULL, timeout=30).returncode == 0
     except (OSError, subprocess.TimeoutExpired):
         return False
@@ -30,6 +30,9 @@ def prepare():
         raise RuntimeError('Python 3.11 or newer is required.')
     if usable(sys.executable):
         return Path(sys.executable)
+    if (ROOT / 'BUNDLE.json').is_file():
+        # A bundled package ships its interpreter and dependencies; never install at runtime.
+        raise RuntimeError('The bundled runtime is missing a dependency; reinstall the plugin package.')
     identity = hashlib.sha256((sys.executable + sys.version + REQUIREMENT).encode()).hexdigest()[:16]
     base = Path(os.getenv('DEVSPACES_RUNTIME_DIR') or
                 (Path(os.getenv('LOCALAPPDATA', str(Path.home() / '.cache'))) / 'Dell' / 'Devspaces' / 'runtimes'))

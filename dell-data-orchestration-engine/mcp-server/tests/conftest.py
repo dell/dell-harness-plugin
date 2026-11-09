@@ -19,6 +19,22 @@ from doe_mcp.server import build_server
 T = TypeVar("T")
 
 
+@pytest.fixture
+def directory_symlinks(tmp_path):
+    """Skip only when Windows explicitly denies the symlink privilege."""
+    target = tmp_path / "symlink-capability-target"
+    target.mkdir()
+    link = tmp_path / "symlink-capability-link"
+    try:
+        link.symlink_to(target, target_is_directory=True)
+    except OSError as exc:
+        if getattr(exc, "winerror", None) == 1314:
+            pytest.skip("Windows symlink privilege unavailable; covered by Linux CI")
+        raise
+    link.unlink()
+    target.rmdir()
+
+
 def run(coro: Awaitable[T]) -> T:
     """Drive a coroutine from a synchronous test, so no async plugin is needed."""
     return asyncio.run(coro)  # type: ignore[arg-type]
@@ -89,6 +105,17 @@ def _undeclared_mock_owners_are_not_under_test(monkeypatch: pytest.MonkeyPatch) 
         return strict(resource, project_id, resource_name)
 
     monkeypatch.setattr(context, "_verify_resource_project", verify)
+
+    strict_dataset = context._verify_resource_dataset
+
+    def verify_dataset(resource: Any, dataset_id: str, resource_name: str) -> Any:
+        # Same rule for dataset ownership: an undeclared mock owner is not under test, a
+        # declared one (see test_dataset_isolation) is checked strictly.
+        if isinstance(getattr(resource, "dataset_id", None), Base):
+            return resource
+        return strict_dataset(resource, dataset_id, resource_name)
+
+    monkeypatch.setattr(context, "_verify_resource_dataset", verify_dataset)
 
 
 class OwnedRepo:

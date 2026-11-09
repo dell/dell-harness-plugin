@@ -25,7 +25,7 @@ from mcp.server import MCPServer
 from pydantic import Field
 
 from .. import outputs, paging, serialize
-from ..context import dataloop_call, get_dataset
+from ..context import dataloop_call, get_dataset, get_item
 from ..safety import ADDITIVE, OVERWRITE, READ_ONLY
 
 # Profiling counts client-side because dtlpy exposes no aggregation, group-by or facet API —
@@ -185,7 +185,7 @@ def register(mcp: MCPServer) -> None:
     ) -> outputs.ItemSummary:
         """Fetch one item by id."""
         dataset = get_dataset(project_id, dataset_id)
-        return serialize.item(dataloop_call("item lookup", lambda: dataset.items.get(item_id=item_id)))
+        return serialize.item(get_item(dataset, item_id))
 
     @mcp.tool(title="Upload items", annotations=ADDITIVE)
     def item_upload(
@@ -271,7 +271,7 @@ def register(mcp: MCPServer) -> None:
         patch = validate_item_metadata(metadata) if metadata is not None else None
 
         dataset = get_dataset(project_id, dataset_id)
-        item = dataloop_call("item lookup", lambda: dataset.items.get(item_id=item_id))
+        item = get_item(dataset, item_id)
         if name is not None:
             item.name = name
         if description is not None:

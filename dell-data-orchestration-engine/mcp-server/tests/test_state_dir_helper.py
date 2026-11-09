@@ -55,9 +55,9 @@ def test_alias_cannot_be_reused_for_another_gate(tmp_path):
         provision("cloud", "https://gate-two.example.test/api/v1", base=tmp_path)
 
 
-def test_symlink_is_refused_and_listing_is_bounded(tmp_path):
+def test_symlink_is_refused_and_listing_is_bounded(tmp_path, directory_symlinks):
     provision("cloud", "https://gate-one.example.test/api/v1", base=tmp_path)
-    (tmp_path / "dataloop-link").symlink_to(tmp_path / "dataloop-cloud")
+    (tmp_path / "dataloop-link").symlink_to(tmp_path / "dataloop-cloud", target_is_directory=True)
     with pytest.raises(ValueError, match="symlink"):
         provision("link", "https://gate-one.example.test/api/v1", base=tmp_path)
     assert [alias for alias, _, _ in list_aliases(tmp_path)] == ["cloud"]

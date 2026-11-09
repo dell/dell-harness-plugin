@@ -28,6 +28,8 @@ def default_config_path() -> Path:
 
 
 def _launcher():
+    # Loading the launcher must not leave bytecode in the installed plugin.
+    sys.dont_write_bytecode = True
     path = Path(__file__).resolve().with_name("dataloop_mcp_launcher.py")
     spec = importlib.util.spec_from_file_location("dataloop_mcp_launcher", path)
     module = importlib.util.module_from_spec(spec)
@@ -70,9 +72,9 @@ def _command_version(executable: str) -> str | None:
 def check(path: Path) -> int:
     """Report what the launcher would start, using the launcher's own resolution.
 
-    Changes nothing: no file is created, repaired or prepared, and a configured command is
-    never run. When no command is configured, the launcher's own import probe of the bundled
-    server runs, as it would at launch. Exit 0 only when launch would start.
+    Changes nothing: no file is created, repaired or prepared, nothing is imported, and a
+    configured command is never run. When no command is configured, the launcher's own read-only
+    readiness probe runs. Exit 0 only when launch would start without preparing or waiting.
     """
     launcher = _launcher()
     environ = {**os.environ, "DATALOOP_CONFIG_FILE": str(path)}
@@ -107,9 +109,13 @@ def check(path: Path) -> int:
                 "remove 'command' from the configuration to use the bundled server"
             )
     else:
-        state = "ready" if plan["runtime_ready"] else "prepared on first start"
-        print(f"command=bundled-python-module runtime={state} server_version={bundled}")
+        print(f"command=bundled-python-module runtime={'ready' if plan['runtime_ready'] else 'not-ready'} "
+              f"server_version={bundled}")
     print(f"command_line={' '.join(command)}")
+    if plan["runtime_blocked"]:
+        # Launch would have to prepare or wait first, which can outlast a client's startup timeout.
+        print(f"launch=blocked reason={plan['runtime_blocked']}")
+        return 1
     print("launch=ready")
     return 0
 

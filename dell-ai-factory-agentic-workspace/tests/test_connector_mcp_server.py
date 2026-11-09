@@ -26,6 +26,7 @@ def adapter(monkeypatch, tmp_path):
     for name in ('DEVSPACES_CLUSTER_URL', 'DEVSPACES_ALLOWED_NAMESPACES',
                  'DEVSPACES_ENABLE_WRITES', 'DEVSPACES_ENABLE_DELETE', 'DEVSPACES_ALLOW_INSECURE_TLS'):
         monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv('DEVSPACES_CONFIG_FILE', str(tmp_path / 'no-settings.json'))
     monkeypatch.setenv('DEVSPACES_CLUSTER_URL', 'https://devspaces.example.com')
     ssh_config = tmp_path / 'ssh_config'
     ssh_config.write_text('')
@@ -110,6 +111,92 @@ def test_stop_timeout_never_starts(adapter, monkeypatch):
     with pytest.raises(TimeoutError):
         adapter.lifecycle('devbox', 'team', 'restart', 1)
     assert ['--start', 'devbox'] not in calls
+
+
+@pytest.mark.parametrize('action,owned_state,expected_connections', [
+    ('restart', 'live', 1), ('restart', 'exited', 0),
+    ('restart', 'absent', 0), ('restart', 'other_identity', 0),
+    ('stop', 'live', 0), ('start', 'live', 0),
+])
+def test_lifecycle_restores_only_the_live_tunnel_it_restarted(
+        adapter, monkeypatch, action, owned_state, expected_connections):
+    adapter.writes = True
+    phase = {'value': 'Running'}
+    monkeypatch.setattr(adapter, 'workspace', lambda *args: row(phase['value']))
+    if owned_state != 'absent':
+        adapter.connections[('team', 'devbox')] = {
+            'process': Tunnel(code=1 if owned_state == 'exited' else None),
+            'workspace_id': 'other' if owned_state == 'other_identity' else 'workspace123',
+            'ready': True,
+        }
+    commands = []
+    def run(args):
+        commands.append(args[0])
+        phase['value'] = 'Stopped' if args[0] == '--stop' else 'Running'
+    monkeypatch.setattr(adapter, 'run', run)
+    connections = []
+    def connect(name, namespace, identity):
+        assert phase['value'] == 'Running'
+        assert commands == ['--stop', '--start']
+        assert ('team', 'devbox') not in adapter.connections
+        connections.append((name, namespace, identity))
+    monkeypatch.setattr(adapter, 'connect', connect)
+    adapter.lifecycle('devbox', 'team', action, expected_identity='workspace123')
+    assert connections == [('devbox', 'team', 'workspace123')] * expected_connections
+
+
+def test_failed_restart_does_not_reconnect_or_alter_pins(adapter, monkeypatch):
+    adapter.writes = True
+    config = Path(SERVER.os.environ['DEVSPACES_SSH_CONFIG'])
+    config.write_bytes(PINNED)
+    adapter.connections[('team', 'devbox')] = {
+        'process': Tunnel(), 'workspace_id': 'workspace123', 'ready': True,
+    }
+    monkeypatch.setattr(adapter, 'workspace', lambda *args: row())
+    monkeypatch.setattr(adapter, 'run', lambda args: '')
+    def wait(*args):
+        if args[3] == 'Running':
+            raise TimeoutError('Workspace did not reach Running')
+        return row('Stopped')
+    monkeypatch.setattr(adapter, 'wait', wait)
+    monkeypatch.setattr(adapter, 'connect', lambda *args: pytest.fail('must not reconnect'))
+    with pytest.raises(TimeoutError):
+        adapter.lifecycle('devbox', 'team', 'restart', expected_identity='workspace123')
+    assert config.read_bytes() == PINNED
+
+
+@pytest.mark.parametrize('replacement', [False, True])
+def test_restart_reconnect_revalidates_identity_before_launch(adapter, monkeypatch, replacement):
+    adapter.writes = True
+    old = Tunnel()
+    adapter.connections[('team', 'devbox')] = {
+        'process': old, 'workspace_id': 'workspace123', 'ready': True,
+    }
+    final = row()
+    if replacement:
+        final['devworkspaceId'] = 'replacement456'
+    inventory = iter([row(), row('Stopped'), row(), final])
+    commands = []
+    def run(args):
+        commands.append(args)
+        return json.dumps([next(inventory)]) if args == ['--list'] else ''
+    monkeypatch.setattr(adapter, 'run', run)
+    monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
+    spawned = []
+    def popen(args, **kwargs):
+        spawned.append(args)
+        return Tunnel()
+    monkeypatch.setattr(SERVER.subprocess, 'Popen', popen)
+    run_threads_inline(monkeypatch)
+    if replacement:
+        with pytest.raises(RuntimeError, match='identity changed'):
+            adapter.lifecycle('devbox', 'team', 'restart', expected_identity='workspace123')
+        assert spawned == []
+    else:
+        assert adapter.lifecycle('devbox', 'team', 'restart', expected_identity='workspace123')['phase'] == 'Running'
+        assert spawned == [['connector', '--connect', 'devbox']]
+        assert adapter.connection_status('devbox', 'team')['state'] == 'ready'
+    assert old.poll() == -15
 
 
 def test_replaced_workspace_never_starts(adapter, monkeypatch):
@@ -283,7 +370,6 @@ def test_explicit_tls_retry_scoped_to_child_environment(monkeypatch):
 
 
 def test_certificate_error_category_is_sanitized(adapter, monkeypatch):
-    adapter.auto_tls_retry = False
     monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
     monkeypatch.setattr(SERVER.subprocess, 'run', lambda *args, **kwargs:
                         subprocess.CompletedProcess([], 1, '', f'unable to verify the first certificate; token={SENTINEL}'))
@@ -293,79 +379,74 @@ def test_certificate_error_category_is_sanitized(adapter, monkeypatch):
     assert SENTINEL not in str(exc.value)
 
 
-def test_certificate_retry_is_bounded_and_child_scoped(adapter, monkeypatch, capsys):
+@pytest.mark.parametrize('args', [['--list'], ['--start', 'devbox'], ['--stop', 'devbox'],
+                                  ['--delete', 'devbox'], ['--version']])
+@pytest.mark.parametrize('auto_setting', [None, 'true'])
+def test_bad_certificate_is_rejected_and_never_downgrades_tls(adapter, monkeypatch, args, auto_setting):
+    if auto_setting is not None:
+        monkeypatch.setenv('DEVSPACES_AUTO_TLS_RETRY', auto_setting)
+        adapter = SERVER.Connector()
     monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
-    monkeypatch.setenv('NODE_TLS_REJECT_UNAUTHORIZED', '1')
-    calls = []
-    def run(args, **kwargs):
-        calls.append(kwargs['env'].get('NODE_TLS_REJECT_UNAUTHORIZED'))
-        if len(calls) == 1:
-            return subprocess.CompletedProcess(args, 1, '', 'unable to verify the first certificate ' + SENTINEL)
-        return subprocess.CompletedProcess(args, 0, '[]', '')
-    monkeypatch.setattr(SERVER.subprocess, 'run', run)
-    assert adapter.run(['--list']) == '[]'
-    assert calls == [None, '0']
-    assert adapter.insecure_tls
-    assert SERVER.os.environ['NODE_TLS_REJECT_UNAUTHORIZED'] == '1'
-    assert SENTINEL not in capsys.readouterr().err
-    adapter.run(['--list'])
-    assert calls == [None, '0', '0']
-
-
-@pytest.mark.parametrize('args', [['--start', 'devbox'], ['--stop', 'devbox'], ['--delete', 'devbox']])
-def test_certificate_error_never_replays_a_mutation(adapter, monkeypatch, args):
-    calls = []
-    monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
+    seen = []
     def run(command, **kwargs):
-        calls.append(command)
-        return subprocess.CompletedProcess(command, 1, '', 'unable to verify the first certificate')
+        seen.append(kwargs['env'].get('NODE_TLS_REJECT_UNAUTHORIZED'))
+        return subprocess.CompletedProcess(command, 1, SENTINEL, 'self signed certificate ' + SENTINEL)
     monkeypatch.setattr(SERVER.subprocess, 'run', run)
-    with pytest.raises(RuntimeError, match='certificate'):
-        adapter.run(args)
-    assert len(calls) == 1
+    for _ in range(2):
+        with pytest.raises(RuntimeError, match='certificate verification failed') as exc:
+            adapter.run(args)
+        assert SENTINEL not in str(exc.value)
+    # One attempt per call, every attempt verified, and nothing carried into later calls.
+    assert seen == [None, None]
     assert not adapter.insecure_tls
 
 
-def test_failed_certificate_retry_stops_after_two_attempts(adapter, monkeypatch):
-    calls = []
-    monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
-    def run(command, **kwargs):
-        calls.append(command)
-        return subprocess.CompletedProcess(command, 1, SENTINEL, 'self signed certificate ' + SENTINEL)
-    monkeypatch.setattr(SERVER.subprocess, 'run', run)
-    with pytest.raises(RuntimeError) as exc:
-        adapter.run(['--list'])
-    assert len(calls) == 2
-    assert SENTINEL not in str(exc.value)
-
-
-def test_tls_retry_can_be_disabled_by_configuration(monkeypatch):
-    monkeypatch.setenv('DEVSPACES_AUTO_TLS_RETRY', 'false')
-    assert not SERVER.Connector().auto_tls_retry
-
-
-def test_empty_inventory_differential_tls_probe_recovers_session(adapter, monkeypatch):
+def test_empty_inventory_never_triggers_an_unverified_probe(adapter, monkeypatch):
     calls = []
     def run(args):
         calls.append(adapter.insecure_tls)
-        return json.dumps([row()] if adapter.insecure_tls else [])
+        return '[]'
     monkeypatch.setattr(adapter, 'run', run)
-    assert adapter.list()[0]['name'] == 'devbox'
-    assert calls == [False, True] and adapter.insecure_tls
+    assert adapter.list() == []
+    assert adapter.list() == []
+    assert calls == [False, False] and not adapter.insecure_tls
 
 
-def test_auth_progress_transfers_tls_without_terminal_confirmation(adapter, monkeypatch, tmp_path):
+@pytest.mark.parametrize('state', ['failed', 'unverified', 'verified', 'cancelled'])
+def test_sign_in_result_cannot_disable_tls_for_later_calls(adapter, monkeypatch, tmp_path, state):
     class Process:
         pid = 123
-        def poll(self): return None
+        def poll(self): return 1
     status_file = tmp_path / 'status.json'
-    status_file.write_text(json.dumps({'cluster_url': adapter.cluster, 'state': 'verified',
-                                     'cluster_verified': True, 'tls_verification_enabled': False,
-                                     'terminal': SENTINEL}))
+    status_file.write_text(json.dumps({'cluster_url': adapter.cluster, 'state': state,
+                                     'cluster_verified': state == 'verified',
+                                     'tls_verification_enabled': False, 'terminal': SENTINEL}))
     adapter.auth_job = (Process(), status_file)
     result = adapter.authentication_progress()
-    assert result['state'] == 'verified' and adapter.insecure_tls
+    assert result['state'] == state
     assert SENTINEL not in json.dumps(result)
+    assert not adapter.insecure_tls
+    monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
+    seen = []
+    def run(command, **kwargs):
+        seen.append(kwargs['env'].get('NODE_TLS_REJECT_UNAUTHORIZED'))
+        return subprocess.CompletedProcess(command, 0, json.dumps([row()]), '')
+    monkeypatch.setattr(SERVER.subprocess, 'run', run)
+    SERVER.connector, original = adapter, SERVER.connector
+    try:
+        assert SERVER.get_authentication_status()['cluster_verified']
+    finally:
+        SERVER.connector = original
+    assert seen == [None]
+
+
+def test_runtime_reports_no_automatic_tls_retry(adapter, monkeypatch):
+    monkeypatch.setattr(SERVER, 'connector', adapter)
+    monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
+    monkeypatch.setattr(adapter, 'run', lambda args: 'test-version')
+    runtime = SERVER.get_runtime_configuration()
+    assert runtime['tls_verification_enabled'] is True
+    assert 'automatic_tls_retry' not in runtime
 
 
 def test_begin_auth_avoids_duplicate_native_windows(adapter, monkeypatch, tmp_path):
@@ -403,13 +484,15 @@ def test_begin_auth_launches_native_helper_with_private_status(adapter, monkeypa
     assert result['state'] == 'launched'
     command, options = calls[0]
     assert '--status-file' in command and '--foreground' in command
+    assert '--allow-insecure-tls' not in command
     assert options['creationflags'] == subprocess.CREATE_NEW_CONSOLE
     assert not any(key in options for key in ('stdin', 'stdout', 'stderr'))
+    assert 'NODE_TLS_REJECT_UNAUTHORIZED' not in options['env']
     (tmp_path / 'status.json').write_text(json.dumps({'cluster_url': adapter.cluster,
                                                     'state': 'verified', 'cluster_verified': True,
                                                     'tls_verification_enabled': False}))
     assert adapter.authentication_progress()['cluster_verified']
-    assert adapter.insecure_tls
+    assert not adapter.insecure_tls
 
 
 def legacy_guard(name='devbox'):
@@ -419,88 +502,106 @@ def legacy_guard(name='devbox'):
             'Host *\n# End Dell Devspaces pinned trust: ' + name + '\n')
 
 
-@pytest.mark.parametrize('newline,bom', [(b'\n', b''), (b'\r\n', b''), (b'\r\n', b'\xef\xbb\xbf')])
-def test_migration_preserves_includes_user_policy_and_other_aliases(tmp_path, newline, bom):
-    path = tmp_path / 'config'
-    original = ('# User settings\nHost devbox\n  StrictHostKeyChecking ask\n'
-                'Include devspaces.conf\nInclude devspaces.conf\n'
-                + legacy_guard('other') + 'Host other\n  Port 2222\n')
-    remaining = bom + original.encode().replace(b'\n', newline)
-    path.write_bytes(bom + legacy_guard().encode().replace(b'\n', newline) + remaining[len(bom):])
-    SERVER.remove_legacy_ssh_trust(path, 'devbox')
-    assert path.read_bytes() == remaining
-    SERVER.remove_legacy_ssh_trust(path, 'devbox')
-    assert path.read_bytes() == remaining
+PINNED = (legacy_guard() + '# User settings\nHost devbox\n  StrictHostKeyChecking yes\n'
+          'Include devspaces.conf\n').encode()
 
 
-def test_migration_removes_repeated_owned_blocks(tmp_path):
-    path = tmp_path / 'config'
-    path.write_text(legacy_guard() + legacy_guard() + 'Include devspaces.conf\n')
-    SERVER.remove_legacy_ssh_trust(path, 'devbox')
-    assert path.read_text() == 'Include devspaces.conf\n'
+class Tunnel:
+    pid = 123
+    def __init__(self, output='Connection setup completed!', code=None):
+        self.stdout = io.StringIO(output)
+        self.code = code
+    def poll(self): return self.code
+    def terminate(self): self.code = -15
+    def wait(self, timeout): return self.code
 
 
-@pytest.mark.parametrize('content', ['', 'Host devbox\n StrictHostKeyChecking yes\n',
-                                    'Include devspaces.conf\n' + legacy_guard('other')])
-def test_no_guard_never_rewrites_config(tmp_path, monkeypatch, content):
-    path = tmp_path / 'config'
-    path.write_text(content)
-    monkeypatch.setattr(SERVER.tempfile, 'NamedTemporaryFile', lambda **kw: pytest.fail('unexpected rewrite'))
-    SERVER.remove_legacy_ssh_trust(path, 'devbox')
-    assert path.read_text() == content
-    SERVER.remove_legacy_ssh_trust(tmp_path / 'missing', 'devbox')
-    assert not (tmp_path / 'missing').exists()
-
-
-@pytest.mark.parametrize('content', [
-    legacy_guard().replace('# End Dell Devspaces pinned trust: devbox\n', ''),
-    '# End Dell Devspaces pinned trust: devbox\n',
-    legacy_guard().replace('Host *\n', 'Host other\n'),
-    legacy_guard().replace('    StrictHostKeyChecking yes\n', '    ProxyCommand user-command\n'),
-    legacy_guard() + '# Dell Devspaces pinned trust: devbox\n',
-])
-def test_migration_refuses_incomplete_or_modified_blocks_without_partial_write(tmp_path, content):
-    path = tmp_path / 'config'
-    path.write_text(content)
-    original = path.read_bytes()
-    with pytest.raises(RuntimeError, match='Legacy SSH guard'):
-        SERVER.remove_legacy_ssh_trust(path, 'devbox')
-    assert path.read_bytes() == original
-
-
-def test_connect_migrates_before_cli_and_status_never_rewrites_config(adapter, monkeypatch):
-    monkeypatch.setattr(adapter, 'workspace', lambda *args: row())
-    monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
-    adapter.ssh_config.write_text(legacy_guard() + 'Include devspaces.conf\n')
-    generated = 'Include devspaces.conf\nHost devbox\n Port 45678\n StrictHostKeyChecking no\n UserKnownHostsFile nul\n'
-    class Process:
-        pid = 123
-        stdout = io.StringIO('Connection setup completed!')
-        def poll(self): return None
-        def terminate(self): pass
-        def wait(self, timeout): pass
-    def popen(*args, **kwargs):
-        assert adapter.ssh_config.read_text() == 'Include devspaces.conf\n'
-        adapter.ssh_config.write_text(generated)
-        return Process()
-    monkeypatch.setattr(SERVER.subprocess, 'Popen', popen)
-    targets = []
+def run_threads_inline(monkeypatch):
     class Thread:
         def __init__(self, target, daemon): self.target = target
-        def start(self): targets.append(self.target)
+        def start(self): self.target()
     monkeypatch.setattr(SERVER.threading, 'Thread', Thread)
-    assert adapter.connect('devbox', 'team')['state'] == 'connecting'
-    assert len(targets) == 1
-    targets[0]()  # Readiness marker without a newline still works.
-    monkeypatch.setattr(SERVER, 'remove_legacy_ssh_trust', lambda *args: pytest.fail('unexpected migration'))
-    assert adapter.connection_status('devbox', 'team')['state'] == 'ready'
-    adapter.disconnect('devbox', 'team')
-    assert adapter.ssh_config.read_text() == generated
 
 
-def test_migration_failure_prevents_connector_launch(adapter, monkeypatch):
+def test_plugin_has_no_ssh_config_writer():
+    assert not hasattr(SERVER, 'remove_legacy_ssh_trust')
+    source = PATH.read_text(encoding='utf-8')
+    assert 'ssh_config' not in source and 'NamedTemporaryFile' not in source
+
+
+def test_connect_leaves_ssh_config_and_pins_to_the_cli(adapter, monkeypatch):
     monkeypatch.setattr(adapter, 'workspace', lambda *args: row())
-    monkeypatch.setattr(SERVER.subprocess, 'Popen', lambda *args, **kw: pytest.fail('must migrate before launch'))
-    adapter.ssh_config.write_text('# Dell Devspaces pinned trust: devbox\n')
-    with pytest.raises(RuntimeError, match='Legacy SSH guard'):
-        adapter.connect('devbox', 'team')
+    monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
+    config = Path(SERVER.os.environ['DEVSPACES_SSH_CONFIG'])
+    config.write_bytes(PINNED)
+    def popen(*args, **kwargs):
+        assert config.read_bytes() == PINNED
+        return Tunnel()
+    monkeypatch.setattr(SERVER.subprocess, 'Popen', popen)
+    run_threads_inline(monkeypatch)
+    assert adapter.connect('devbox', 'team')['state'] == 'ready'
+    adapter.disconnect('devbox', 'team')
+    assert config.read_bytes() == PINNED
+
+
+@pytest.mark.parametrize('failure', ['launch', 'exit'])
+def test_failed_connect_preserves_existing_host_key_pin(adapter, monkeypatch, failure):
+    monkeypatch.setattr(adapter, 'workspace', lambda *args: row())
+    monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
+    config = Path(SERVER.os.environ['DEVSPACES_SSH_CONFIG'])
+    config.write_bytes(PINNED)
+    def popen(*args, **kwargs):
+        if failure == 'launch':
+            raise OSError('connector missing')
+        return Tunnel(output='Host key verification failed.\n', code=255)
+    monkeypatch.setattr(SERVER.subprocess, 'Popen', popen)
+    run_threads_inline(monkeypatch)
+    if failure == 'launch':
+        with pytest.raises(RuntimeError, match='launch the tunnel'):
+            adapter.connect('devbox', 'team')
+    else:
+        assert adapter.connect('devbox', 'team')['state'] == 'exited'
+    assert config.read_bytes() == PINNED
+
+
+def test_failed_reconnect_preserves_settings(adapter, monkeypatch):
+    workspace = {'id': 'workspace123'}
+    monkeypatch.setattr(adapter, 'workspace', lambda *args: {**row(), 'devworkspaceId': workspace['id']})
+    monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
+    config = Path(SERVER.os.environ['DEVSPACES_SSH_CONFIG'])
+    config.write_bytes(PINNED)
+    tunnels = [Tunnel(), Tunnel(output='', code=1)]
+    monkeypatch.setattr(SERVER.subprocess, 'Popen', lambda *args, **kwargs: tunnels.pop(0))
+    run_threads_inline(monkeypatch)
+    assert adapter.connect('devbox', 'team')['state'] == 'ready'
+    workspace['id'] = 'replacement456'
+    assert adapter.connect('devbox', 'team')['state'] == 'exited'
+    assert config.read_bytes() == PINNED
+
+
+def test_settings_file_reaches_the_server_and_keeps_verification_on(monkeypatch, tmp_path):
+    """Codex forwards only HOME/PATH, so settings must come from the user-only file."""
+    for name in ('DEVSPACES_CLUSTER_URL', 'NODE_EXTRA_CA_CERTS', 'DEVSPACES_ALLOW_INSECURE_TLS'):
+        monkeypatch.delenv(name, raising=False)
+    config = tmp_path / 'devspaces.json'  # noqa: F841
+    config.write_text(json.dumps({'cluster_url': 'https://devspaces.example.com', 'ca_bundle': '/certs/cluster.pem'}))
+    config.chmod(0o600)
+    monkeypatch.setenv('DEVSPACES_CONFIG_FILE', str(config))
+    adapter = SERVER.Connector()
+    assert adapter.cluster == 'https://devspaces.example.com'
+    env = adapter.environment()
+    assert env['NODE_EXTRA_CA_CERTS'] == '/certs/cluster.pem'
+    assert 'NODE_TLS_REJECT_UNAUTHORIZED' not in env and not adapter.insecure_tls
+    config.write_text(json.dumps({'cluster_url': 'https://devspaces.example.com', 'allow_insecure_tls': True}))
+    assert SERVER.Connector().environment()['NODE_TLS_REJECT_UNAUTHORIZED'] == '0'
+
+
+def test_settings_file_must_be_user_only(monkeypatch, tmp_path):
+    if SERVER.os.name != 'posix':
+        pytest.skip('POSIX permissions')
+    config = tmp_path / 'devspaces.json'
+    config.write_text('{"allow_insecure_tls": true}')
+    config.chmod(0o644)
+    monkeypatch.setenv('DEVSPACES_CONFIG_FILE', str(config))
+    with pytest.raises(ValueError, match='chmod 600'):
+        SERVER.Connector()

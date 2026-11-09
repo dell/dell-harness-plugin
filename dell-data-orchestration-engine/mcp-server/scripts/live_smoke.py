@@ -656,22 +656,26 @@ async def run(project_id: str) -> None:
             await cleanup_dataset(dataset_id, name)
             return
 
-        plan = rag_blueprint(
-            name=f"smoke-determinism-{uuid.uuid4().hex[:8]}",
-            source_dataset_id=dataset_id,
-            output_dataset_id=dataset_id,
-            model_id="smoke-not-a-real-model",
-            chunk_size=512,
-            chunk_overlap=50,
-            load_existing=False,
-        )
-        record("blueprint fingerprint", fingerprint(plan)[:16])
+        def smoke_plan(pipeline_id: str, name: str):
+            return rag_blueprint(
+                name=name,
+                source_dataset_id=dataset_id,
+                output_dataset_id=dataset_id,
+                model_id="smoke-not-a-real-model",
+                chunk_size=512,
+                chunk_overlap=50,
+                load_existing=False,
+                pipeline_id=pipeline_id,
+            )
 
-        res = await call("pipeline_create", {"project_id": project_id, "name": plan.name})
+        det_name = f"smoke-determinism-{uuid.uuid4().hex[:8]}"
+        res = await call("pipeline_create", {"project_id": project_id, "name": det_name})
         if res.is_error:
             check("pipeline_create for the determinism check", False, _detail(res))
         else:
             det_id = res.structured_content["id"]
+            plan = smoke_plan(det_id, det_name)
+            record("blueprint fingerprint", fingerprint(plan)[:16])
             det_args = {"project_id": project_id, "pipeline_id": det_id}
             try:
                 import dtlpy as dl
