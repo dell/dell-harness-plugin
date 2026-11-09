@@ -2,3 +2,5 @@
 pytest==9.1.1
 PyYAML==6.0.3
 requests==2.34.2
+# Synthetic MCP fixture servers are imported by repository eval regression tests.
+mcp==1.30.0
