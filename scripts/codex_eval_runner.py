@@ -17,6 +17,7 @@ import os
 import shutil
 import stat
 import subprocess
+import sys
 import tempfile
 import time
 import uuid
@@ -245,14 +246,16 @@ def run_case(
         "--sandbox",
         "read-only",
         "--cd",
-        "/tmp",
+        tempfile.gettempdir(),
         "--skip-git-repo-check",
         "--output-last-message",
         str(final_path),
         "--config",
-        f'mcp_servers.{plugin.server_name}.command="python3"',
+        # The fixture runs with this interpreter (Windows often has no `python3`). json.dumps
+        # yields a valid TOML basic string, escaping Windows backslashes.
+        f"mcp_servers.{plugin.server_name}.command={json.dumps(sys.executable)}",
         "--config",
-        f'mcp_servers.{plugin.server_name}.args=["{plugin.fixture_server}"]',
+        f"mcp_servers.{plugin.server_name}.args=[{json.dumps(str(plugin.fixture_server))}]",
         "-",
     ]
     started = time.monotonic()
