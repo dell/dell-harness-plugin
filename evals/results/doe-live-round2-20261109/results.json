@@ -1,0 +1,37 @@
+{
+  "instance": "self-hosted DOE (redlab), disposable project codex-review-r2-e54d5cca, deleted after the run",
+  "code": "branch fix/openai-review-round2, DOE 0.7.0",
+  "ownership": {
+    "item_get": "rejected",
+    "item_update": "rejected",
+    "pii_set_findings": "rejected",
+    "annotation_list": "rejected",
+    "names_leaked": false,
+    "same_dataset_control": "served",
+    "item_b_metadata_unchanged": true
+  },
+  "pipeline_isolation": {
+    "pipeline_a_chunks_before": 4,
+    "pipeline_a_chunks_after_b_ran": 4,
+    "pipeline_a_items_identical": true,
+    "pipeline_b_chunks": 1,
+    "no_shared_items": true,
+    "separate_folders": true
+  },
+  "decline_in_codex": {
+    "codex": "codex-cli 0.159.0, installed DOE 0.7.0 Linux bundle",
+    "tool": "pii_set_findings",
+    "result": "user cancelled MCP tool call",
+    "item_b_metadata_unchanged": true
+  },
+  "setup": {
+    "clean_start_check": "launch=blocked (runtime not prepared), 0 files changed",
+    "interrupted_preparation_check": "launch=blocked (after an interrupted preparation)",
+    "next_start": "recovered stale lock, rebuilt venv, state=ready, no lock left",
+    "check_after_recovery": "launch=ready",
+    "server_after_recovery": {
+      "tools": 43,
+      "project_list_error": false
+    }
+  }
+}
