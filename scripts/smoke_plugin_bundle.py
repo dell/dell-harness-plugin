@@ -76,7 +76,7 @@ def main() -> int:
             result = asyncio.run(handshake(root, home))
             after = sorted(str(p.relative_to(root)) for p in root.rglob("*"))
             result["plugin_files_written"] = sorted(set(after) - set(before))
-            print(json.dumps({"archive": archive.name, **result}))
+            print(json.dumps({"archive": archive.name, **result}), flush=True)
             if not result["tools"] or result["plugin_files_written"]:
                 return 1
     return 0

@@ -62,8 +62,11 @@ def test_ca_bundle_must_be_pem(config, tmp_path):
 @pytest.mark.skipif(shutil.which('openssl') is None, reason='openssl CLI needed to mint a test certificate')
 def test_fetch_pins_the_presented_self_signed_certificate(config, tmp_path, capsys):
     key, cert = tmp_path / 'key.pem', tmp_path / 'cert.pem'
+    openssl_config = tmp_path / 'openssl.cnf'
+    openssl_config.write_text('[req]\ndistinguished_name = dn\n[dn]\n', encoding='utf-8')
     subprocess.run(['openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1', '-subj', '/CN=localhost',
-                    '-keyout', str(key), '-out', str(cert)], check=True, capture_output=True)
+                    '-config', str(openssl_config), '-keyout', str(key), '-out', str(cert)],
+                   check=True, capture_output=True)
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain(cert, key)
     listener = socket.create_server(('127.0.0.1', 0))

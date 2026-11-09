@@ -1,0 +1,39 @@
+{
+  "chatgpt_transcripts": "deferred_for_initial_review",
+  "codex_version": "codex-cli 0.167.0-alpha.3.2",
+  "fixture": "ddae-synthetic-commerce-v1",
+  "generated_at": "2026-11-09T18:42:35.624005+00:00",
+  "grades": [
+    {
+      "automated_failures": [],
+      "case_id": "ddae-bounded-analysis-explicit",
+      "codex_exit_code": 0,
+      "manual_requirements": [
+        "Use one read-only statement on synthetic.fulfillment_orders with the delayed filter, both window bounds and a LIMIT.",
+        "Report the query ID and the returned count."
+      ],
+      "passed": true,
+      "result": "evals/results/windows-review-20261109/ddae-local-review-final-20261109/ddae-bounded-analysis-explicit/result.json"
+    },
+    {
+      "automated_failures": [],
+      "case_id": "ddae-discovery-to-answer-explicit",
+      "codex_exit_code": 0,
+      "manual_requirements": [
+        "Report product and query evidence, including the query ID.",
+        "Separate result from limitations."
+      ],
+      "passed": true,
+      "result": "evals/results/windows-review-20261109/ddae-local-review-final-20261109/ddae-discovery-to-answer-explicit/result.json"
+    }
+  ],
+  "invalid_cases": 0,
+  "passed": true,
+  "passed_cases": 2,
+  "plugin": "dell-data-analytics-engine",
+  "plugin_installed": true,
+  "plugin_version": "0.2.2",
+  "prompt_style": "user request only; no harness instructions",
+  "surface": "codex",
+  "total_cases": 2
+}

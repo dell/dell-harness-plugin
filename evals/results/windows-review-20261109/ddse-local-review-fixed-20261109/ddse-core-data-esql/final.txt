@@ -1,0 +1,14 @@
+Found **17 `payment_timeout` events** in the authorized index `synthetic-orders-v1`, from 00:00 inclusive to 01:00 exclusive UTC on August 1, 2026.
+
+Mapping inspected: `@timestamp` is `date`; `event_type` and `service_name` are `keyword`. Used index listing, mapping inspection, and this ES|QL query:
+
+```esql
+FROM synthetic-orders-v1
+| WHERE @timestamp >= TO_DATETIME("2026-08-01T00:00:00Z")
+    AND @timestamp < TO_DATETIME("2026-08-01T01:00:00Z")
+    AND event_type == "payment_timeout"
+| STATS payment_timeout_count = COUNT(*)
+| LIMIT 1
+```
+
+The query succeeded. These results are from synthetic evaluation data, not a live customer deployment.

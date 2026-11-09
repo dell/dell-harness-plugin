@@ -134,7 +134,8 @@ def test_launcher_requires_private_config_and_never_serializes_secret(tmp_path):
         assert "chmod 600" in str(exc)
         assert api_key not in str(exc)
     else:
-        raise AssertionError("group-readable credentials must be rejected")
+        if os.name == "posix":
+            raise AssertionError("group-readable credentials must be rejected")
 
     config.unlink()
     state = tmp_path / "state"
@@ -408,6 +409,7 @@ def test_configure_rejects_all_mixed_with_other_profiles(tmp_path):
     assert not (tmp_path / "c.json").exists()
 
 
+@pytest.mark.skipif(os.name != "posix", reason="Tests the POSIX execve launch path and mode bits")
 def test_command_override_never_prepares_a_runtime(tmp_path, monkeypatch):
     launcher = load_launcher()
     executable = tmp_path / "doe-mcp"

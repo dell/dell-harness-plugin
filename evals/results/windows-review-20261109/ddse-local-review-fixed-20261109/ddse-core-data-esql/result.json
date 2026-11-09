@@ -1,0 +1,103 @@
+{
+  "audit_event_id": "ddse-eval-f5cdff0d-e47c-4df6-a2d7-2748918713aa,ddse-eval-c4039492-6eaa-4ba8-93b8-ce4a55da0206,ddse-eval-c332751e-f784-425a-ba17-9037da86da02",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddse-core-data-esql",
+  "codex_exit_code": 0,
+  "final_answer": "Found **17 `payment_timeout` events** in the authorized index `synthetic-orders-v1`, from 00:00 inclusive to 01:00 exclusive UTC on August 1, 2026.\n\nMapping inspected: `@timestamp` is `date`; `event_type` and `service_name` are `keyword`. Used index listing, mapping inspection, and this ES|QL query:\n\n```esql\nFROM synthetic-orders-v1\n| WHERE @timestamp >= TO_DATETIME(\"2026-08-01T00:00:00Z\")\n    AND @timestamp < TO_DATETIME(\"2026-08-01T01:00:00Z\")\n    AND event_type == \"payment_timeout\"\n| STATS payment_timeout_count = COUNT(*)\n| LIMIT 1\n```\n\nThe query succeeded. These results are from synthetic evaluation data, not a live customer deployment.",
+  "fixture": "ddse-synthetic-operations-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 30234,
+  "manual_checks": {
+    "Query synthetic-orders-v1 with a @timestamp filter on both window bounds and a LIMIT, and report the returned count.": true
+  },
+  "plugin": "dell-data-search-engine",
+  "plugin_installed": true,
+  "plugin_version": "0.3.0",
+  "prompt": "Use Dell Data Search Engine to find the authorized orders index, inspect its mapping, and count payment_timeout events from 2026-08-01T00:00:00Z to 2026-08-01T01:00:00Z with a bounded ES|QL query ending in LIMIT 1.",
+  "skill_loaded": true,
+  "surface": "codex",
+  "thread_id": "01a1c196-c7ba-7d42-b200-6ee83c217c8a",
+  "tool_calls": [
+    {
+      "arguments": {
+        "pattern": "*orders*"
+      },
+      "name": "platform_core_list_indices",
+      "result": {
+        "audit_event_id": "ddse-fixture-0b65d193-ffd2-40e5-a69b-f853e387c52f",
+        "fixture_id": "ddse-synthetic-operations-v1",
+        "indices": [
+          "synthetic-orders-v1"
+        ]
+      },
+      "server": "dell_data_search_engine",
+      "status": "completed"
+    },
+    {
+      "arguments": {
+        "indices": [
+          "synthetic-orders-v1"
+        ]
+      },
+      "name": "platform_core_get_index_mapping",
+      "result": {
+        "audit_event_id": "ddse-fixture-f8c0a529-8a3e-4f35-8af8-54c15522c872",
+        "fixture_id": "ddse-synthetic-operations-v1",
+        "mappings": {
+          "synthetic-orders-v1": {
+            "properties": {
+              "@timestamp": {
+                "type": "date"
+              },
+              "event_type": {
+                "type": "keyword"
+              },
+              "service_name": {
+                "type": "keyword"
+              }
+            }
+          }
+        },
+        "missing_indices": []
+      },
+      "server": "dell_data_search_engine",
+      "status": "completed"
+    },
+    {
+      "arguments": {
+        "query": "FROM synthetic-orders-v1\n| WHERE @timestamp >= TO_DATETIME(\"2026-08-01T00:00:00Z\") AND @timestamp < TO_DATETIME(\"2026-08-01T01:00:00Z\") AND event_type == \"payment_timeout\"\n| STATS payment_timeout_count = COUNT(*)\n| LIMIT 1"
+      },
+      "name": "platform_core_execute_esql",
+      "result": {
+        "audit_event_id": "ddse-fixture-d0e1dd5f-6239-4058-bd80-5d26475f185f",
+        "columns": [
+          "event_type",
+          "event_count"
+        ],
+        "fixture_id": "ddse-synthetic-operations-v1",
+        "values": [
+          [
+            "payment_timeout",
+            17
+          ]
+        ],
+        "window": {
+          "comparison_end": "2026-08-01T00:00:00Z",
+          "comparison_start": "2026-07-31T23:00:00Z",
+          "current_end": "2026-08-01T01:00:00Z",
+          "current_start": "2026-08-01T00:00:00Z"
+        }
+      },
+      "server": "dell_data_search_engine",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/windows-review-20261109/ddse-local-review-fixed-20261109/ddse-core-data-esql/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 88576,
+    "input_tokens": 114281,
+    "output_tokens": 515,
+    "reasoning_output_tokens": 0
+  }
+}

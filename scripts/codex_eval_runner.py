@@ -132,8 +132,8 @@ def extract_evidence(events: list[dict[str, Any]]) -> dict[str, Any]:
     ]
     return {
         "thread_id": thread_id,
-        # None: the model did not try to read a skill; False: every read was blocked.
-        "skill_loaded": None if not skill_reads else "completed" in skill_reads,
+        # No attempted read is not acceptance evidence either.
+        "skill_loaded": "completed" in skill_reads,
         "tool_calls": completed_calls,
         "final_answer": final_answer,
         "usage": usage,
@@ -219,6 +219,7 @@ def run_case(
     output_dir: Path,
     timeout: float,
     installation: dict[str, str] | None = None,
+    approval_review: bool = False,
 ) -> dict[str, Any]:
     SAFETY.validate_case(case, INVOCATIONS)
     case_dir = SAFETY.case_directory(output_dir, case["id"])
@@ -243,10 +244,9 @@ def run_case(
         "exec",
         "--json",
         "--ephemeral",
-        "--sandbox",
-        "read-only",
+        *(["--approve-for-me"] if approval_review else ["--sandbox", "read-only"]),
         "--cd",
-        tempfile.gettempdir(),
+        str(case_dir.resolve()),
         "--skip-git-repo-check",
         "--output-last-message",
         str(final_path),
@@ -266,6 +266,7 @@ def run_case(
         input=prompt,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         timeout=timeout,
     )
     latency_ms = round((time.monotonic() - started) * 1000)
@@ -308,7 +309,7 @@ def run_case(
     }
     write_private(result_path, json.dumps(result, indent=2, sort_keys=True) + "\n")
     grade = _load("aidp_eval", EVAL_SCRIPT).grade_result(result_path)
-    if evidence.get("skill_loaded") is False:
+    if evidence.get("skill_loaded") is not True:
         # The installed skill never reached the model (e.g. the host sandbox blocked the read),
         # so the run does not test the plugin and cannot count as a pass.
         grade["passed"] = False
@@ -323,6 +324,8 @@ def main(plugin: PluginEval, description: str | None = None) -> int:
     parser.add_argument("output_dir", type=Path)
     parser.add_argument("--case", action="append", dest="case_ids")
     parser.add_argument("--timeout", type=float, default=180.0)
+    parser.add_argument("--approval-review", action="store_true",
+                        help="Use Codex automatic approval review in the isolated case directory; never bypass approvals")
     args = parser.parse_args()
     document = load_json(plugin.cases_path)
     cases = selected_cases(document)
@@ -340,7 +343,8 @@ def main(plugin: PluginEval, description: str | None = None) -> int:
     for index, case in enumerate(cases, start=1):
         print(f"[{index}/{len(cases)}] running {case['id']}", flush=True)
         try:
-            grade = run_case(plugin, case, args.output_dir, args.timeout, installation)
+            grade = run_case(plugin, case, args.output_dir, args.timeout, installation,
+                             approval_review=args.approval_review)
         except subprocess.TimeoutExpired:
             grade = {
                 "case_id": case["id"],

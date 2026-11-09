@@ -47,7 +47,7 @@ def query_is_bounded(query: str, window: dict[str, str]) -> bool:
         and tables == {AUTHORIZED_TABLE}
         and "select *" not in lowered
         and re.search(r"\blimit\s+\d+", lowered) is not None
-        and re.search(r"fulfillment_status\s*=\s*'delayed'", lowered) is not None
+        and re.search(r"(?:fulfillment_status|lower\(\s*fulfillment_status\s*\))\s*=\s*'delayed'", lowered) is not None
         and re.search(r"event_time\s*>=\s*(?:timestamp\s*)?'" + FIXTURE_SERVER_MODULE.instant(window["start"]), lowered)
         is not None
         and re.search(r"event_time\s*<\s*(?:timestamp\s*)?'" + FIXTURE_SERVER_MODULE.instant(window["end"]), lowered)

@@ -9,6 +9,15 @@ heading lists the plugin versions it ships; plugins are tagged
 
 Second OpenAI plugin review round.
 
+- Installed-plugin evals now reject runs with no successful skill read and decode
+  Windows traces as UTF-8. Optional `--approval-review` uses normal Codex approval
+  review in each isolated case directory.
+- Analytics answers calculate only requested measures and stop after a successful
+  bounded result. Fixture checks accept `LOWER(fulfillment_status)` while retaining
+  exact table, time-window, row-limit, result, and query-ID assertions.
+- Windows tests distinguish POSIX permissions and unavailable directory-symlink
+  privileges from runtime failures; Windows ACL acceptance remains separate.
+
 ### Security
 
 - `dell-ai-factory-agentic-workspace` 0.6.0: certificate verification is never

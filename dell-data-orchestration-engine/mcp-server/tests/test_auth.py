@@ -92,7 +92,7 @@ def test_cookie_permissions_are_repaired(monkeypatch, tmp_path):
         assert stat.S_IMODE(cookie.stat().st_mode) == auth.TOKEN_FILE_MODE
 
 
-def test_symlinked_state_directory_is_refused(monkeypatch, tmp_path):
+def test_symlinked_state_directory_is_refused(monkeypatch, tmp_path, directory_symlinks):
     target = tmp_path / "target"
     target.mkdir()
     link = tmp_path / "state"

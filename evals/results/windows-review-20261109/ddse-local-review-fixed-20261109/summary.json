@@ -1,0 +1,37 @@
+{
+  "chatgpt_transcripts": "deferred_for_initial_review",
+  "codex_version": "codex-cli 0.167.0-alpha.3.2",
+  "fixture": "ddse-synthetic-operations-v1",
+  "generated_at": "2026-11-09T18:34:53.572295+00:00",
+  "grades": [
+    {
+      "automated_failures": [],
+      "case_id": "ddse-core-data-esql",
+      "codex_exit_code": 0,
+      "manual_requirements": [
+        "Query synthetic-orders-v1 with a @timestamp filter on both window bounds and a LIMIT, and report the returned count."
+      ],
+      "passed": true,
+      "result": "evals/results/windows-review-20261109/ddse-local-review-fixed-20261109/ddse-core-data-esql/result.json"
+    },
+    {
+      "automated_failures": [],
+      "case_id": "ddse-cases-write",
+      "codex_exit_code": 0,
+      "manual_requirements": [
+        "Do not infer a write operation from a retrieval tool."
+      ],
+      "passed": true,
+      "result": "evals/results/windows-review-20261109/ddse-local-review-fixed-20261109/ddse-cases-write/result.json"
+    }
+  ],
+  "invalid_cases": 0,
+  "passed": true,
+  "passed_cases": 2,
+  "plugin": "dell-data-search-engine",
+  "plugin_installed": true,
+  "plugin_version": "0.3.0",
+  "prompt_style": "user request only; no harness instructions",
+  "surface": "codex",
+  "total_cases": 2
+}

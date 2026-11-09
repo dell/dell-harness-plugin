@@ -123,6 +123,7 @@ def test_provision_trailing_slash_does_not_look_like_a_different_deployment(tmp_
 # local user. Found 0o755 in review, with a live JWT readable at 0o644 inside it.
 
 
+@pytest.mark.skipif(os.name != "posix", reason="POSIX modes; Windows ACL acceptance is separate")
 def test_provision_creates_an_owner_only_directory(tmp_path, loose_umask):
     directory = provision("cloud", "https://gate.dataloop.ai/api/v1", base=tmp_path)
 
@@ -131,6 +132,7 @@ def test_provision_creates_an_owner_only_directory(tmp_path, loose_umask):
     assert mode_of(directory / ".gate-url") == MARKER_MODE
 
 
+@pytest.mark.skipif(os.name != "posix", reason="POSIX modes; Windows ACL acceptance is separate")
 def test_provision_tightens_an_already_loose_directory(tmp_path, loose_umask):
     """The common case: the directory already exists from before this was fixed. mkdir(mode=) is
     ignored for an existing directory, so only an explicit chmod repairs it.
@@ -144,6 +146,7 @@ def test_provision_tightens_an_already_loose_directory(tmp_path, loose_umask):
     assert mode_of(stale) == DIR_MODE
 
 
+@pytest.mark.skipif(os.name != "posix", reason="POSIX modes; Windows ACL acceptance is separate")
 def test_provision_tightens_the_base_directory_too(tmp_path, loose_umask):
     base = tmp_path / "nested" / "base"
 
@@ -152,11 +155,11 @@ def test_provision_tightens_the_base_directory_too(tmp_path, loose_umask):
     assert mode_of(base) == DIR_MODE
 
 
-def test_provision_refuses_a_symlinked_state_directory(tmp_path):
+def test_provision_refuses_a_symlinked_state_directory(tmp_path, directory_symlinks):
     """A symlink would put the token wherever it points while printing a path that looks normal."""
     elsewhere = tmp_path / "elsewhere"
     elsewhere.mkdir()
-    (tmp_path / "dataloop-cloud").symlink_to(elsewhere)
+    (tmp_path / "dataloop-cloud").symlink_to(elsewhere, target_is_directory=True)
 
     with pytest.raises(ValueError, match="symlink"):
         provision("cloud", "https://gate.dataloop.ai/api/v1", base=tmp_path)
@@ -169,9 +172,9 @@ def test_provision_refuses_a_path_that_is_a_file(tmp_path):
         provision("cloud", "https://gate.dataloop.ai/api/v1", base=tmp_path)
 
 
-def test_list_aliases_skips_a_symlink(tmp_path):
+def test_list_aliases_skips_a_symlink(tmp_path, directory_symlinks):
     provision("cloud", "https://gate.dataloop.ai/api/v1", base=tmp_path)
-    (tmp_path / "dataloop-impostor").symlink_to(tmp_path / "dataloop-cloud")
+    (tmp_path / "dataloop-impostor").symlink_to(tmp_path / "dataloop-cloud", target_is_directory=True)
 
     assert [alias for alias, _, _ in list_aliases(tmp_path)] == ["cloud"]
 

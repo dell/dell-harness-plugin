@@ -19,6 +19,22 @@ from doe_mcp.server import build_server
 T = TypeVar("T")
 
 
+@pytest.fixture
+def directory_symlinks(tmp_path):
+    """Skip only when Windows explicitly denies the symlink privilege."""
+    target = tmp_path / "symlink-capability-target"
+    target.mkdir()
+    link = tmp_path / "symlink-capability-link"
+    try:
+        link.symlink_to(target, target_is_directory=True)
+    except OSError as exc:
+        if getattr(exc, "winerror", None) == 1314:
+            pytest.skip("Windows symlink privilege unavailable; covered by Linux CI")
+        raise
+    link.unlink()
+    target.rmdir()
+
+
 def run(coro: Awaitable[T]) -> T:
     """Drive a coroutine from a synchronous test, so no async plugin is needed."""
     return asyncio.run(coro)  # type: ignore[arg-type]

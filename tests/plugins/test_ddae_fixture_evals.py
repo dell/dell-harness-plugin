@@ -197,3 +197,26 @@ def test_a_run_that_never_read_the_installed_skill_is_flagged():
     events = [{"type": "item.completed", "item": {"type": "command_execution", "command": "cat x/SKILL.md",
                                                   "status": "failed"}}]
     assert runner.extract_evidence(events)["skill_loaded"] is False
+
+
+def test_a_run_with_no_skill_read_attempt_is_invalid():
+    runner = load_runner()
+    events = [{"type": "item.completed", "item": {"type": "agent_message", "text": "17 orders"}}]
+    assert runner.extract_evidence(events)["skill_loaded"] is False
+
+
+def test_successful_skill_read_is_recorded():
+    runner = load_runner()
+    events = [{"type": "item.completed", "item": {"type": "command_execution",
+              "command": "Get-Content installed/SKILL.md", "status": "completed"}}]
+    assert runner.extract_evidence(events)["skill_loaded"] is True
+
+
+def test_lower_status_predicate_preserves_table_and_window_checks():
+    runner = load_runner()
+    fixture = runner.FIXTURE_SERVER_MODULE
+    query = GOOD_QUERY.replace("fulfillment_status =", "LOWER(fulfillment_status) =")
+    assert all(runner.boundary_checks(CASE, evidence_for(query, "17 (ddae-synthetic-delayed-orders-v1)")).values())
+    fixture.query_read_only(query)
+    with pytest.raises(ValueError):
+        fixture.query_read_only(query.replace("synthetic.fulfillment_orders", "synthetic.order_operations"))

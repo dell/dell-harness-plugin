@@ -1,0 +1,97 @@
+{
+  "audit_event_id": "ddae-eval-24131062-c184-4975-a2b2-9224cdd38330,ddae-eval-7929ac25-6f20-4b1b-ad65-ae9f0af9eb8c",
+  "audit_source": "evaluation_harness_from_codex_jsonl",
+  "case_id": "ddae-bounded-analysis-explicit",
+  "codex_exit_code": 0,
+  "final_answer": "**Finding:** 17 distinct orders were delayed.\n\n**Evidence:** `synthetic.fulfillment_orders` (Data Product `dp_fulfillment_v1`), filtered by `fulfillment_status = 'delayed'` and `event_time \u2265 2026-08-01T00:00:00Z` and `< 2026-08-08T00:00:00Z`. Query ID: `ddae-synthetic-delayed-orders-v1`.\n\n**Method:** Authorized product discovery followed by a bounded, read-only `COUNT(DISTINCT order_id)` query.\n\n**Limitations:** Synthetic evaluation data; one aggregate row returned, with no truncation.",
+  "fixture": "ddae-synthetic-commerce-v1",
+  "fixture_data_classification": "synthetic_non_customer",
+  "latency_ms": 25844,
+  "manual_checks": {
+    "Report the query ID and the returned count.": true,
+    "Use one read-only statement on synthetic.fulfillment_orders with the delayed filter, both window bounds and a LIMIT.": true
+  },
+  "plugin": "dell-data-analytics-engine",
+  "plugin_installed": true,
+  "plugin_version": "0.2.2",
+  "prompt": "Using the approved synthetic.fulfillment_orders table, how many orders were delayed between 2026-08-01T00:00:00Z and 2026-08-08T00:00:00Z (end exclusive)? Include the query ID.",
+  "skill_loaded": true,
+  "surface": "codex",
+  "thread_id": "01a1c19d-c043-7223-b73b-a93f73ba27f3",
+  "tool_calls": [
+    {
+      "arguments": {
+        "query": "fulfillment_orders"
+      },
+      "name": "searchDataProducts",
+      "result": {
+        "audit_event_id": "ddae-fixture-5c4d2769-9004-461b-accf-cfeb8d0097af",
+        "authorization_scope": "current_review_identity_only",
+        "fixture_id": "ddae-synthetic-commerce-v1",
+        "match_count": 2,
+        "message": "Returned only authorized matching Data Products.",
+        "products": [
+          {
+            "description": "Governed order fulfillment metrics, including delayed-order analysis.",
+            "id": "dp_fulfillment_v1",
+            "name": "fulfillment_metrics",
+            "relevant_fields": [
+              "order_id",
+              "fulfillment_status",
+              "region",
+              "event_time"
+            ],
+            "table": "synthetic.fulfillment_orders"
+          },
+          {
+            "description": "Governed order lifecycle operations; useful for order state, but without dedicated fulfillment-delay measures.",
+            "id": "dp_order_operations_v1",
+            "name": "order_operations",
+            "relevant_fields": [
+              "order_id",
+              "order_state",
+              "event_time"
+            ],
+            "table": "synthetic.order_operations"
+          }
+        ],
+        "query": "fulfillment_orders"
+      },
+      "server": "dell_data_analytics_engine",
+      "status": "completed"
+    },
+    {
+      "arguments": {
+        "query": "SELECT COUNT(DISTINCT order_id) AS delayed_orders FROM synthetic.fulfillment_orders WHERE fulfillment_status = 'delayed' AND event_time >= TIMESTAMP '2026-08-01 00:00:00 UTC' AND event_time < TIMESTAMP '2026-08-08 00:00:00 UTC' LIMIT 1"
+      },
+      "name": "queryReadOnly",
+      "result": {
+        "audit_event_id": "ddae-fixture-3826d329-f327-4afb-a932-2468ff9b5a14",
+        "columns": [
+          "delayed_orders"
+        ],
+        "data_product_id": "dp_fulfillment_v1",
+        "fixture_id": "ddae-synthetic-commerce-v1",
+        "query_id": "ddae-synthetic-delayed-orders-v1",
+        "row_count": 1,
+        "rows": [
+          [
+            17
+          ]
+        ],
+        "table": "synthetic.fulfillment_orders",
+        "truncated": false
+      },
+      "server": "dell_data_analytics_engine",
+      "status": "completed"
+    }
+  ],
+  "transcript_url": "evals/results/windows-review-20261109/ddae-local-review-final-20261109/ddae-bounded-analysis-explicit/transcript.jsonl",
+  "usage": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 61312,
+    "input_tokens": 85319,
+    "output_tokens": 425,
+    "reasoning_output_tokens": 0
+  }
+}

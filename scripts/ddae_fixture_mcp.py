@@ -138,7 +138,7 @@ def evaluate(lowered: str) -> tuple[str, int]:
             f"Only {AUTHORIZED_TABLE} is authorized for this review identity; got {sorted(tables) or 'none'}."
         )
     window = FIXTURE["fixed_window"]
-    status = re.search(r"fulfillment_status\s*=\s*'delayed'", lowered)
+    status = re.search(r"(?:fulfillment_status|lower\(\s*fulfillment_status\s*\))\s*=\s*'delayed'", lowered)
     lower = re.search(r"event_time\s*>=\s*(?:timestamp\s*)?'" + instant(window["start"]), lowered)
     upper = re.search(r"event_time\s*<\s*(?:timestamp\s*)?'" + instant(window["end"]), lowered)
     if not (status and lower and upper):

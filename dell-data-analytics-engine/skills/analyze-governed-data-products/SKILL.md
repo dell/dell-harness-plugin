@@ -37,6 +37,9 @@ do not use this DDAE workflow.
 6. Otherwise, formulate one bounded statement for `queryReadOnly`. Select
    explicit columns, add restrictive predicates and a stable row limit, and
    avoid `SELECT *`.
+   Calculate only the requested measures; do not add diagnostic counts or
+   unrelated aggregates. Once a successful result answers the request, stop
+   querying and report that result.
 7. Check the returned columns, row count, query ID, warnings, and truncation
    indicators before drawing a conclusion.
 8. Answer with the calculation or finding, the Data Product and query
