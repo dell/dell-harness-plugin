@@ -33,13 +33,15 @@ On POSIX, `chmod 600` the file. `enable_delete` stays off unless set separately.
 ### Clusters without a publicly trusted certificate
 
 Certificate verification is on by default, and a certificate failure is never retried
-without it. There are two workarounds:
+without it. There are two workarounds. The agent applies the one the user chooses with
+`scripts/configure_devspaces.py` (Codex asks the user to approve the settings write); restart
+the plugin afterwards:
 
 1. **Recommended: trust the cluster's certificate.** Export the cluster's CA certificate
    (or, for a self-signed cluster, the certificate itself) as PEM, check its fingerprint
-   with the cluster administrator, and set `ca_bundle` to that file. Verification stays on
+   with the cluster administrator, and set `ca_bundle` to that file (`--ca-bundle <path>`, or `--fetch-cluster-certificate` to save a self-signed cluster's certificate and print its fingerprint). Verification stays on
    and only that certificate is added.
-2. **Lab only: disable verification.** Set `"allow_insecure_tls": true`. The server reads
+2. **Lab only: disable verification.** Set `"allow_insecure_tls": true` (`--allow-insecure-tls`). The server reads
    it once at startup and reports `tls_verification_enabled=false`; nothing at runtime turns
    it on or off. This permits interception, so use it only for isolated lab clusters.
 

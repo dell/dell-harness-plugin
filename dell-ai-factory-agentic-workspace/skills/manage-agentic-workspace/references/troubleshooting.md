@@ -18,9 +18,17 @@ After Enter, the agent must immediately recheck CLI authentication and workspace
 
 ## Certificate failures
 
-Certificate verification is never disabled automatically. When the CLI reports a certificate-verification error during `--list`, `--auth`, a lifecycle action, or `--connect`, the call fails with `certificate verification failed` and nothing is retried. Fix trust by setting `ca_bundle` in `~/.config/dell-mcp/devspaces.json` to the organization's CA PEM (for a self-signed cluster, the cluster certificate itself after checking its fingerprint), then restart the plugin. A failed or cancelled sign-in leaves TLS exactly as it was.
+Certificate verification is never disabled automatically. A certificate-verification error during `--list`, `--auth`, a lifecycle action, or `--connect` fails with `certificate verification failed` and nothing is retried. A failed or cancelled sign-in leaves TLS exactly as it was.
 
-`"allow_insecure_tls": true` in the settings file (helper `--allow-insecure-tls`, which needs that setting) is for isolated lab clusters. It is read once when the server starts and shows as `tls_verification_enabled=false` in runtime configuration. Do not set or recommend it. `DEVSPACES_AUTO_TLS_RETRY` and `--no-auto-tls-retry` were removed in 0.6.0. Ambient `NODE_TLS_REJECT_UNAUTHORIZED=0` is ignored. No user/machine environment, plugin manifest, SSH policy, or certificate store is changed.
+Workarounds, applied only with the user's choice through `scripts/configure_devspaces.py` (settings file `~/.config/dell-mcp/devspaces.json`, user-only):
+
+| Situation | Command | Verification |
+| --- | --- | --- |
+| Organization CA PEM available | `--ca-bundle <path>` | On |
+| Self-signed cluster certificate | `--cluster-url <origin> --fetch-cluster-certificate`, then confirm the fingerprint with the administrator | On, trusting that certificate |
+| Lab cluster, user accepts interception risk | `--allow-insecure-tls` (undo with `--no-allow-insecure-tls`) | Off for every call |
+
+`--fetch-cluster-certificate` pins the certificate the cluster presents; it does not help when that certificate is issued by a private CA, so use the CA file instead. Settings are read at plugin start: start a new Codex session after a change and confirm `tls_verification_enabled` in `get_runtime_configuration`. `DEVSPACES_AUTO_TLS_RETRY` was removed in 0.6.0; ambient `NODE_TLS_REJECT_UNAUTHORIZED` is ignored.
 
 Run the read-only check before any authentication. If it verifies access, skip login. Standard input and output stay attached to the native terminal; stderr is forwarded immediately there while checking only the certificate-error category, without retaining or logging it. Never invoke interactive foreground authentication through a tool that captures terminal output; use a native console. No loop, generic-error downgrade, or lifecycle/delete replay is allowed.
 
