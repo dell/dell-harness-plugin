@@ -27,6 +27,7 @@ def error_category(result):
     for marker, category in (
         ('certificate verification failed', 'certificate_verification_failed'),
         ('identity changed', 'workspace_identity_changed'),
+        ('start the workspace and verify running before connecting', 'workspace_not_running'),
         ('deletion requires', 'delete_gates_disabled'),
         ('devspaces_enable_writes', 'writes_disabled'),
         ('devspaces_enable_delete', 'delete_disabled'),

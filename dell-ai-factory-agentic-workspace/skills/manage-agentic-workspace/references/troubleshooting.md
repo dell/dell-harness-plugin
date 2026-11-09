@@ -43,6 +43,7 @@ Run the read-only check before any authentication. If it verifies access, skip l
 - **Tunnel pending/exited:** check `get_connection_status` for up to 30 seconds. Ready means setup was reported and the owned process is alive; run a separate SSH login check using the effective CLI/user policy.
 - **Unknown or changed SSH host key:** stop and report it; do not accept, replace, or remove the pinned key and do not reconnect to bypass it. The plugin never edits SSH configuration. Verify the new key through the user's or organization's approved process before anyone updates known hosts. TLS settings do not establish SSH identity.
 - **Connection refused after workspace restart:** a Running workspace does not recreate a local tunnel. Recheck identity and invoke `connect_devspace`; use its refreshed alias/port rather than a stale localhost port.
+- **Connection refused while the workspace is stopped:** inspect `get_devspace_status` first. The retained client reports `workspace_not_running` if a connect is attempted before Running. Obtain startup confirmation, start the exact workspace with its current identity, verify Running, then establish a new tunnel. A refused TCP connection occurs before SSH host-key verification; changing TLS or host-key settings cannot restore a missing listener. An exited tunnel does not establish why the workspace stopped.
 - **Not managed:** other manually launched tunnels may exist. Disconnect only this server's owned tunnel; keep the owning MCP process alive while connected.
 
 
