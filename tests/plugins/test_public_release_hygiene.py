@@ -34,6 +34,7 @@ ALLOWED_DOMAINS = (
     "dell.com",
     "github.com",
     "githubusercontent.com",
+    "docs.redhat.com",
     "openai.com",
     "chatgpt.com",
     "dataloop.ai",
