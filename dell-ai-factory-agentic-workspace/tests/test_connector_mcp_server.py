@@ -113,6 +113,92 @@ def test_stop_timeout_never_starts(adapter, monkeypatch):
     assert ['--start', 'devbox'] not in calls
 
 
+@pytest.mark.parametrize('action,owned_state,expected_connections', [
+    ('restart', 'live', 1), ('restart', 'exited', 0),
+    ('restart', 'absent', 0), ('restart', 'other_identity', 0),
+    ('stop', 'live', 0), ('start', 'live', 0),
+])
+def test_lifecycle_restores_only_the_live_tunnel_it_restarted(
+        adapter, monkeypatch, action, owned_state, expected_connections):
+    adapter.writes = True
+    phase = {'value': 'Running'}
+    monkeypatch.setattr(adapter, 'workspace', lambda *args: row(phase['value']))
+    if owned_state != 'absent':
+        adapter.connections[('team', 'devbox')] = {
+            'process': Tunnel(code=1 if owned_state == 'exited' else None),
+            'workspace_id': 'other' if owned_state == 'other_identity' else 'workspace123',
+            'ready': True,
+        }
+    commands = []
+    def run(args):
+        commands.append(args[0])
+        phase['value'] = 'Stopped' if args[0] == '--stop' else 'Running'
+    monkeypatch.setattr(adapter, 'run', run)
+    connections = []
+    def connect(name, namespace, identity):
+        assert phase['value'] == 'Running'
+        assert commands == ['--stop', '--start']
+        assert ('team', 'devbox') not in adapter.connections
+        connections.append((name, namespace, identity))
+    monkeypatch.setattr(adapter, 'connect', connect)
+    adapter.lifecycle('devbox', 'team', action, expected_identity='workspace123')
+    assert connections == [('devbox', 'team', 'workspace123')] * expected_connections
+
+
+def test_failed_restart_does_not_reconnect_or_alter_pins(adapter, monkeypatch):
+    adapter.writes = True
+    config = Path(SERVER.os.environ['DEVSPACES_SSH_CONFIG'])
+    config.write_bytes(PINNED)
+    adapter.connections[('team', 'devbox')] = {
+        'process': Tunnel(), 'workspace_id': 'workspace123', 'ready': True,
+    }
+    monkeypatch.setattr(adapter, 'workspace', lambda *args: row())
+    monkeypatch.setattr(adapter, 'run', lambda args: '')
+    def wait(*args):
+        if args[3] == 'Running':
+            raise TimeoutError('Workspace did not reach Running')
+        return row('Stopped')
+    monkeypatch.setattr(adapter, 'wait', wait)
+    monkeypatch.setattr(adapter, 'connect', lambda *args: pytest.fail('must not reconnect'))
+    with pytest.raises(TimeoutError):
+        adapter.lifecycle('devbox', 'team', 'restart', expected_identity='workspace123')
+    assert config.read_bytes() == PINNED
+
+
+@pytest.mark.parametrize('replacement', [False, True])
+def test_restart_reconnect_revalidates_identity_before_launch(adapter, monkeypatch, replacement):
+    adapter.writes = True
+    old = Tunnel()
+    adapter.connections[('team', 'devbox')] = {
+        'process': old, 'workspace_id': 'workspace123', 'ready': True,
+    }
+    final = row()
+    if replacement:
+        final['devworkspaceId'] = 'replacement456'
+    inventory = iter([row(), row('Stopped'), row(), final])
+    commands = []
+    def run(args):
+        commands.append(args)
+        return json.dumps([next(inventory)]) if args == ['--list'] else ''
+    monkeypatch.setattr(adapter, 'run', run)
+    monkeypatch.setattr(adapter, 'executable', lambda: 'connector')
+    spawned = []
+    def popen(args, **kwargs):
+        spawned.append(args)
+        return Tunnel()
+    monkeypatch.setattr(SERVER.subprocess, 'Popen', popen)
+    run_threads_inline(monkeypatch)
+    if replacement:
+        with pytest.raises(RuntimeError, match='identity changed'):
+            adapter.lifecycle('devbox', 'team', 'restart', expected_identity='workspace123')
+        assert spawned == []
+    else:
+        assert adapter.lifecycle('devbox', 'team', 'restart', expected_identity='workspace123')['phase'] == 'Running'
+        assert spawned == [['connector', '--connect', 'devbox']]
+        assert adapter.connection_status('devbox', 'team')['state'] == 'ready'
+    assert old.poll() == -15
+
+
 def test_replaced_workspace_never_starts(adapter, monkeypatch):
     adapter.writes = True
     changed = row('Stopped')

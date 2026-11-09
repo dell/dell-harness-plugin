@@ -18,6 +18,12 @@ to a plugin's MCP server, so variables exported where Codex starts do not reach 
 that does reach the process overrides the file. `cluster_url` is required and has no default;
 until it is set, every remote tool fails closed without invoking the connector.
 
+Vendor reference supplied for upgrade evaluation: [Red Hat Dev Spaces 3.31.2 release notes](https://docs.redhat.com/en/documentation/red_hat_openshift_dev_spaces/3.31/whats_new-dev_spaces_3_31_patch_release_november_4__2026__3_31_2_#GUID-5b7e2c1a-9d34-4f68-a1c0-3e8f27b64d95___overview).
+The exact page was not retrievable during this review. This link is not a verified
+connector download or evidence of SSH trust/reconnect support. Keep the approved
+local executable until a replacement's provenance, command interface, and trust
+behavior have been validated; the plugin does not download or upgrade it automatically.
+
 ```json
 {
   "cluster_url": "https://devspaces.example.com",
@@ -114,6 +120,15 @@ policy. Organization-managed SSH policies still apply.
 Workspace Running, tunnel readiness, SSH login, and Codex connection are separate
 checks. If a workspace or tunnel exits, reconnect through `connect_devspace`;
 the CLI refreshes the local port. Keep the owning MCP session alive.
+
+An explicit `restart_devspace` re-establishes a tunnel only when this MCP server
+owned a live tunnel for the same workspace identity before the restart. It first
+observes Stopped and then Running; inspect `get_connection_status` afterward
+because reconnect initiation is not SSH readiness. Stop, start without an owned
+tunnel, and failed restart operations do not create connections. This does not
+provide background recovery after an external workspace restart or a Codex/MCP
+process restart. Secure automatic recovery and host-key provisioning/rotation
+remain unimplemented; the current connector has no documented trusted-key API.
 
 ## Operations
 

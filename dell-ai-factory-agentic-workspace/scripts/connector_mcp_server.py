@@ -244,6 +244,10 @@ class Connector:
             identity = row["devworkspaceId"]
             if not identity:
                 raise RuntimeError("Workspace identity is missing")
+            owned = self.connections.get((namespace, name))
+            reconnect = (action == "restart" and owned is not None
+                         and owned['workspace_id'] == identity
+                         and owned['process'].poll() is None)
             if action in {"stop", "restart"}:
                 if row["phase"] != "Stopped" or row["started"] is not False:
                     self.run(["--stop", name])
@@ -253,6 +257,11 @@ class Connector:
                 if row["phase"] != "Running" or row["started"] is not True:
                     self.run(["--start", name])
                     row = self.wait(name, namespace, identity, "Running", timeout)
+            if reconnect:
+                # Restore only the connection this explicit restart interrupted. The
+                # normal connect preflight revalidates identity; never start a watcher
+                # or change trust settings to recover an intentionally stopped target.
+                self.connect(name, namespace, identity)
             return row
 
     def connection_status(self, name, namespace):
@@ -475,7 +484,11 @@ def stop_devspace(namespace: Name, name: Name, expected_workspace_id: Identity, 
 
 @mcp.tool(annotations=RESTART)
 def restart_devspace(namespace: Name, name: Name, expected_workspace_id: Identity, timeout: Timeout = 120) -> Workspace:
-    """Stop, verify Stopped, then start and verify Running; timeout applies to each transition."""
+    """Stop, verify Stopped, then start and verify Running; timeout applies to each transition.
+
+    Reconnect a live tunnel owned before this restart. Check get_connection_status
+    afterward: Running and reconnect initiation do not establish SSH readiness.
+    """
     return connector.lifecycle(name, namespace, "restart", timeout, expected_workspace_id)
 
 
