@@ -127,7 +127,7 @@ class Connector:
             raise ValueError("Wildcard namespaces are not supported")
         self.writes = devspaces_settings.enabled(settings, "DEVSPACES_ENABLE_WRITES")
         self.deletion = devspaces_settings.enabled(settings, "DEVSPACES_ENABLE_DELETE")
-        self._insecure_tls = devspaces_settings.enabled(settings, "DEVSPACES_ALLOW_INSECURE_TLS")
+        self._insecure_tls = devspaces_settings.insecure_tls_allowed(settings, self.cluster)
         self.auth_job = None
         self.connections = {}
         self.lock = threading.RLock()

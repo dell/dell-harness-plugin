@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import stat
+from urllib.parse import urlsplit
 
 KEYS = {
     'cluster_url': 'DEVSPACES_CLUSTER_URL',
@@ -23,6 +24,7 @@ KEYS = {
     'ca_bundle': 'NODE_EXTRA_CA_CERTS',
     # Lab-only: run the connector without certificate verification.
     'allow_insecure_tls': 'DEVSPACES_ALLOW_INSECURE_TLS',
+    'insecure_tls_cluster': 'DEVSPACES_INSECURE_TLS_CLUSTER',
 }
 
 
@@ -52,3 +54,21 @@ def load(environ=os.environ):
 
 def enabled(settings, name):
     return str(settings.get(name, 'false')).lower() in {'1', 'true', 'yes'}
+
+
+def cluster_origin(value):
+    """Canonical HTTPS origin; malformed or credential-bearing values fail closed."""
+    try:
+        parsed = urlsplit(value)
+        if (parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password
+                or parsed.path not in ('', '/') or parsed.query or parsed.fragment):
+            return None
+        return (parsed.hostname.lower(), parsed.port or 443)
+    except (ValueError, TypeError):
+        return None
+
+
+def insecure_tls_allowed(settings, cluster=None):
+    target = cluster_origin(cluster if cluster is not None else settings.get('DEVSPACES_CLUSTER_URL', ''))
+    approved = cluster_origin(settings.get('DEVSPACES_INSECURE_TLS_CLUSTER', ''))
+    return enabled(settings, 'DEVSPACES_ALLOW_INSECURE_TLS') and target is not None and target == approved

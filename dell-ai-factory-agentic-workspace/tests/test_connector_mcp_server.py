@@ -356,6 +356,7 @@ def test_disconnect_escalates_only_owned_process(adapter):
 def test_explicit_tls_retry_scoped_to_child_environment(monkeypatch):
     monkeypatch.setenv('DEVSPACES_CLUSTER_URL', 'https://devspaces.example.com')
     monkeypatch.setenv('DEVSPACES_ALLOW_INSECURE_TLS', 'true')
+    monkeypatch.setenv('DEVSPACES_INSECURE_TLS_CLUSTER', 'https://devspaces.example.com')
     monkeypatch.setenv('NODE_TLS_REJECT_UNAUTHORIZED', '1')
     adapter = SERVER.Connector()
     assert adapter.environment()['NODE_TLS_REJECT_UNAUTHORIZED'] == '0'
@@ -592,7 +593,7 @@ def test_settings_file_reaches_the_server_and_keeps_verification_on(monkeypatch,
     env = adapter.environment()
     assert env['NODE_EXTRA_CA_CERTS'] == '/certs/cluster.pem'
     assert 'NODE_TLS_REJECT_UNAUTHORIZED' not in env and not adapter.insecure_tls
-    config.write_text(json.dumps({'cluster_url': 'https://devspaces.example.com', 'allow_insecure_tls': True}))
+    config.write_text(json.dumps({'cluster_url': 'https://devspaces.example.com', 'allow_insecure_tls': True, 'insecure_tls_cluster': 'https://devspaces.example.com'}))
     assert SERVER.Connector().environment()['NODE_TLS_REJECT_UNAUTHORIZED'] == '0'
 
 

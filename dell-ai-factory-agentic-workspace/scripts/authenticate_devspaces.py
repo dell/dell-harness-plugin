@@ -166,8 +166,8 @@ def main(argv=None):
                         help='Administrator opt-in mirrored from DEVSPACES_ALLOW_INSECURE_TLS')
     args = parser.parse_args(argv)
     # The flag only mirrors the administrator's launch setting; on its own it cannot relax TLS.
-    if args.allow_insecure_tls and not devspaces_settings.enabled(settings, 'DEVSPACES_ALLOW_INSECURE_TLS'):
-        print('--allow-insecure-tls requires allow_insecure_tls=true in the plugin settings; verification stays enabled.', flush=True)
+    if args.allow_insecure_tls and not devspaces_settings.insecure_tls_allowed(settings, args.cluster):
+        print('--allow-insecure-tls requires explicit approval bound to this cluster; verification stays enabled.', flush=True)
         args.allow_insecure_tls = False
     code = 1
     try:

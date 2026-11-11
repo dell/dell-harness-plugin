@@ -25,7 +25,7 @@ import dtlpy as dl
 from mcp.server import MCPServer
 from pydantic import Field
 
-from .. import outputs, paging, serialize
+from .. import outputs, paging
 from ..context import dataloop_call, get_dataset, get_item
 from ..safety import OVERWRITE, READ_ONLY
 from ..schemas import PiiFindingsSpec, PiiMarkerSpec
@@ -68,6 +68,11 @@ def write_pii_findings(item):
 
 def apply_marker_filter(filters: dl.Filters, marker: PiiMarkerSpec, *, flagged: bool) -> dl.Filters:
     """Apply the canonical PII marker predicate to an existing item filter."""
+    if not flagged and marker.annotation_label is not None:
+        raise ValueError(
+            "Annotation-label PII exclusion is unsafe for mixed-label items; "
+            "record an item-level metadata marker and use metadata_field or entity_types."
+        )
     operator = dl.FiltersOperations.EQUAL if flagged else dl.FiltersOperations.NOT_EQUAL
     if marker.entity_types:
         # Selecting is any-of (OR); excluding is none-of, which is AND over the negations.
@@ -211,14 +216,13 @@ def register(mcp: MCPServer) -> None:
         metadata["user"] = user
         item.metadata = metadata
         # system_metadata is never passed: findings belong to the user namespace.
-        updated = dataloop_call("item update", lambda: dataset.items.update(item=item))
+        dataloop_call("item update", lambda: dataset.items.update(item=item))
         return {
             "item_id": item_id,
             "written_to": f"metadata.user.{FINDINGS_KEY}",
             "detected_entity_types": sorted(payload),
             "findings": payload,
             "marker_hint": {"entity_types": sorted(payload)} if payload else None,
-            "item": serialize.item(updated if updated is not None else item),
         }
 
     @mcp.tool(title="Get the PII writeback code node source", annotations=READ_ONLY)

@@ -36,11 +36,11 @@ from pydantic import Field
 from .. import outputs, paging, serialize
 from ..context import dataloop_call, get_execution, get_pipeline, get_project, owned
 from ..guards import confirm_or_elicit
-from ..safety import ADDITIVE, DELETE, READ_ONLY
+from ..safety import DELETE, DESTRUCTIVE_RUN, READ_ONLY
 
 
 def register(mcp: MCPServer) -> None:
-    @mcp.tool(title="Run a pipeline once", annotations=ADDITIVE)
+    @mcp.tool(title="Run a pipeline once", annotations=DESTRUCTIVE_RUN)
     def pipeline_execute(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Pipeline to run.")],

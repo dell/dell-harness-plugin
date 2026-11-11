@@ -42,7 +42,8 @@ def load_server():
 def test_insecure_opt_in_is_written_user_only_and_reaches_a_new_server(config):
     assert HELPER.main(['--cluster-url', 'https://devspaces.example.com/', '--allow-insecure-tls']) == 0
     assert json.loads(config.read_text()) == {'cluster_url': 'https://devspaces.example.com',
-                                              'allow_insecure_tls': True}
+                                              'allow_insecure_tls': True,
+                                              'insecure_tls_cluster': 'https://devspaces.example.com'}
     if os.name == 'posix':
         assert stat.S_IMODE(config.stat().st_mode) == 0o600
     connector = load_server().Connector()
@@ -57,6 +58,31 @@ def test_ca_bundle_must_be_pem(config, tmp_path):
     with pytest.raises(ValueError):
         HELPER.main(['--ca-bundle', str(bad)])
     assert not config.exists()
+
+
+def test_switching_clusters_restores_verification(config, monkeypatch):
+    HELPER.main(['--cluster-url', 'https://one.example', '--allow-insecure-tls'])
+    assert load_server().Connector().insecure_tls
+    monkeypatch.setenv('DEVSPACES_CLUSTER_URL', 'https://two.example')
+    assert not load_server().Connector().insecure_tls
+    monkeypatch.delenv('DEVSPACES_CLUSTER_URL')
+    HELPER.main(['--cluster-url', 'https://two.example'])
+    assert not load_server().Connector().insecure_tls
+    assert 'allow_insecure_tls' not in json.loads(config.read_text())
+
+
+def test_unbound_legacy_exception_is_not_accepted(config):
+    HELPER.write(config, {'cluster_url': 'https://one.example', 'allow_insecure_tls': True})
+    assert not load_server().Connector().insecure_tls
+
+
+def test_tls_binding_compares_only_valid_https_origins():
+    settings = {'DEVSPACES_ALLOW_INSECURE_TLS': 'true',
+                'DEVSPACES_INSECURE_TLS_CLUSTER': 'https://ONE.example:443/'}
+    assert HELPER.devspaces_settings.insecure_tls_allowed(settings, 'https://one.example')
+    for target in ('https://two.example', 'https://one.example:444', 'http://one.example',
+                   'https://user@one.example', 'https://one.example/path', 'https://one.example?x=1'):
+        assert not HELPER.devspaces_settings.insecure_tls_allowed(settings, target)
 
 
 @pytest.mark.skipif(shutil.which('openssl') is None, reason='openssl CLI needed to mint a test certificate')

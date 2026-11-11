@@ -19,7 +19,8 @@
       "_id": "order-1042",
       "event_type": "payment_timeout",
       "service_name": "checkout-api",
-      "timestamp": "2026-08-01T00:42:00Z"
+      "timestamp": "2026-08-01T00:42:00Z",
+      "restricted_internal": "synthetic-restricted-value"
     }
   },
   "observability": {

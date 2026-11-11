@@ -154,7 +154,6 @@ class ItemSummary(TypedDict):
     annotated: bool | None
     annotations_count: int | None
     created_at: str | int | float | None
-    metadata: dict[str, Any]
     url: str | None
 
 
@@ -277,7 +276,6 @@ class PiiFindingsWriteResult(TypedDict):
     detected_entity_types: list[str]
     findings: dict[str, bool]
     marker_hint: dict[str, list[str]] | None
-    item: ItemSummary
 
 
 class RagQueryMatch(TypedDict):

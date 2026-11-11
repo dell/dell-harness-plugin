@@ -62,6 +62,11 @@ unless the case explicitly declares and validates the corresponding dependency.
    or fall back to a model-dependent discovery tool.
 4. Use explicit fields, filters, time ranges, aggregation boundaries, and
    result limits. Avoid broad exports and unnecessary source fields.
+   For a document-ID lookup, require a documented server-side field projection
+   or a tool already restricted to the needed fields. Do not fetch a full document
+   and redact it afterward: that already exposes its fields to Codex. If neither
+   capability exists, stop and request a suitably constrained server tool. Check
+   the returned index and document ID against the request; never substitute a record.
    When the request names the evidence types or tools to use, stop after that
    path and do not repeat calls, add comparison windows, or broaden into other
    Observability tools unless the user asks.

@@ -24,6 +24,10 @@ READ_ONLY_MARKETPLACE = ToolAnnotations(
 ADDITIVE = ToolAnnotations(
     read_only_hint=False, destructive_hint=False, idempotent_hint=False, open_world_hint=False
 )
+# Starting a pipeline can replace output or terminate runs; retries can start more work.
+DESTRUCTIVE_RUN = ToolAnnotations(
+    read_only_hint=False, destructive_hint=True, idempotent_hint=False, open_world_hint=False
+)
 #: Installs third-party marketplace content into the project.
 ADDITIVE_MARKETPLACE = ToolAnnotations(
     read_only_hint=False, destructive_hint=False, idempotent_hint=False, open_world_hint=True

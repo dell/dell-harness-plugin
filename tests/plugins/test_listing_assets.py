@@ -10,6 +10,13 @@ ROOT = Path(__file__).resolve().parents[2]
 MANIFESTS = sorted(ROOT.glob("dell-*/.codex-plugin/plugin.json"))
 
 
+@pytest.mark.parametrize('manifest', MANIFESTS, ids=lambda p: p.parent.parent.name)
+def test_listing_text_fits_submission_limits(manifest):
+    interface = json.loads(manifest.read_text(encoding='utf-8'))['interface']
+    assert 1 <= len(interface['displayName']) <= 30
+    assert 1 <= len(interface['shortDescription']) <= 30
+
+
 def png_size(path: Path):
     header = path.read_bytes()[:24]
     assert header[:8] == b"\x89PNG\r\n\x1a\n", f"{path} is not a PNG"

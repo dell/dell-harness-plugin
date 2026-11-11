@@ -70,6 +70,27 @@ def dataset(monkeypatch):
 ARGS = {"project_id": "proj-1", "dataset_id": "ds-1"}
 
 
+@pytest.mark.parametrize('tool', ['item_get', 'item_list', 'pii_set_findings'])
+def test_restricted_metadata_never_reaches_tool_response(dataset, monkeypatch, call_tool, tool):
+    import json
+    from doe_mcp.tools import pii
+    item = fake_item(metadata={'user': {'restricted': 'synthetic-restricted-value'},
+                               'restricted_top': 'synthetic-restricted-value'})
+    dataset.items.get = lambda **kwargs: item
+    dataset.items.list = lambda **kwargs: SimpleNamespace(items=[item], items_count=1)
+    monkeypatch.setattr(pii, 'get_dataset', lambda *args: dataset)
+    args = dict(ARGS)
+    if tool != 'item_list':
+        args['item_id'] = item.id
+    if tool == 'pii_set_findings':
+        args['findings'] = {'entity_types': ['EMAIL_ADDRESS']}
+    result = call_tool(tool, args)
+    assert not result.is_error
+    assert 'synthetic-restricted-value' not in json.dumps(result.structured_content)
+    assert 'synthetic-restricted-value' not in str(result.content)
+    assert item.metadata['user']['restricted'] == 'synthetic-restricted-value'
+
+
 # --- listing ---------------------------------------------------------------------------
 
 
@@ -95,8 +116,7 @@ def test_item_list_hides_platform_system_metadata(dataset, call_tool):
 
     result = call_tool("item_list", ARGS)
 
-    metadata = result.structured_content["items"][0]["metadata"]
-    assert metadata == {"user": {"keep": 1}}
+    assert 'metadata' not in result.structured_content['items'][0]
 
 
 def test_item_list_projects_down_to_requested_fields(dataset, call_tool):

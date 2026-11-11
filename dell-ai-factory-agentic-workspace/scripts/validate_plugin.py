@@ -32,7 +32,9 @@ def check_package(root):
     assert re.fullmatch(r'\d+\.\d+\.\d+', manifest['version'])
     assert manifest['author']['name'] and manifest['repository'] and manifest['homepage']
     interface = manifest['interface']
-    assert interface['displayName'] == 'Dell AI Factory Agentic Workspace'
+    assert interface['displayName'] == 'Dell Agentic Workspace'
+    assert 1 <= len(interface['shortDescription']) <= 30
+    assert len(interface['displayName']) <= 30
     assert len(interface['defaultPrompt']) >= 3
     assert 'mcpServers' not in manifest, 'MCP servers live in the portable root mcp.json'
     for value in (manifest['skills'], interface['composerIcon'], interface['logo']):

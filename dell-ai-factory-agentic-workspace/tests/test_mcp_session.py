@@ -27,7 +27,8 @@ def test_retained_client_requests_results_and_shutdown(monkeypatch, tmp_path):
         async def __aenter__(self): return self
         async def __aexit__(self, *args): pass
         async def initialize(self): pass
-        async def list_tools(self): return SimpleNamespace(tools=[SimpleNamespace(name='list_devspaces')])
+        async def list_tools(self): return SimpleNamespace(tools=[SimpleNamespace(name=name) for name in
+            ('list_devspaces', 'delete_devspace', 'start_devspace', 'begin_devspaces_authentication')])
         async def call_tool(self, name, arguments):
             calls.append(name)
             return SimpleNamespace(isError=False, structuredContent={'total': 1})
@@ -50,6 +51,12 @@ def test_retained_client_requests_results_and_shutdown(monkeypatch, tmp_path):
             if (folder / 'response-2.json').exists(): break
             await asyncio.sleep(0.01)
         assert json.loads((folder / 'response-2.json').read_text())['is_error']
+        for index, tool in enumerate(('delete_devspace', 'start_devspace', 'begin_devspaces_authentication'), 4):
+            CLIENT.write_json(folder / f'request-{index}.json', {'tool': tool, 'arguments': {'confirm_name': 'devbox'}})
+            for _ in range(100):
+                if (folder / f'response-{index}.json').exists(): break
+                await asyncio.sleep(0.01)
+            assert json.loads((folder / f'response-{index}.json').read_text())['is_error']
         CLIENT.write_json(folder / 'request-1.json', {'tool': 'list_devspaces'})
         for _ in range(100):
             if not (folder / 'request-1.json').exists(): break

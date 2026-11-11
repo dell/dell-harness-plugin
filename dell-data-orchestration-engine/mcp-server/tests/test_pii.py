@@ -133,13 +133,10 @@ def test_exclude_filter_negates_a_metadata_marker(dataset, call_tool):
     assert body["warning"] is None
 
 
-def test_exclude_by_annotation_label_warns_that_the_negated_join_is_weaker(dataset, call_tool):
-    body = call_tool("pii_filter", {**ARGS, "marker": LABEL_MARKER, "mode": "exclude"}).structured_content
-
-    # A filter that looks like an exclusion but leaks mixed-annotation items is worse than one
-    # that says so.
-    assert body["warning"] is not None
-    assert "still match" in body["warning"]
+def test_exclude_by_annotation_label_is_rejected(dataset, call_tool):
+    result = call_tool("pii_filter", {**ARGS, "marker": LABEL_MARKER, "mode": "exclude"})
+    assert result.is_error
+    assert 'mixed-label' in result.content[0].text
 
 
 def test_only_mode_selects_the_flagged_items(dataset, call_tool):
@@ -184,7 +181,46 @@ def test_set_subset_pii_exclusion_alone_is_enough_of_a_filter(project, call_tool
     assert result.is_error is False
 
 
-def test_set_subset_warns_when_pii_exclusion_uses_a_label_marker(project, call_tool):
+def test_subset_membership_excludes_pii_only_and_mixed_label_items(project, call_tool):
+    records = [
+        {'id': 'clean', 'hidden': False, 'type': 'file', 'labels': ['ordinary'],
+         'metadata.user.pii_detected': False},
+        {'id': 'pii-only', 'hidden': False, 'type': 'file', 'labels': ['pii'],
+         'metadata.user.pii_detected': True},
+        {'id': 'mixed', 'hidden': False, 'type': 'file', 'labels': ['pii', 'ordinary'],
+         'metadata.user.pii_detected': True},
+    ]
+
+    def selected(filters):
+        # Execute the generated filter against a synthetic nonproduction dataset.
+        clauses = filters.prepare()['filter']['$and']
+        def matches(row):
+            for clause in clauses:
+                for field, condition in clause.items():
+                    if isinstance(condition, dict):
+                        assert set(condition) == {'$ne'}
+                        if row.get(field) == condition['$ne']:
+                            return False
+                    elif row.get(field) != condition:
+                        return False
+            return True
+        return [row for row in records if matches(row)]
+
+    def list_items(filters):
+        result = selected(filters)
+        return SimpleNamespace(items=result, items_count=len(result))
+
+    project.datasets.get = lambda **kwargs: SimpleNamespace(
+        id='ds-1', project_id='proj-1', items=SimpleNamespace(list=list_items))
+    result = call_tool('model_set_subset', {
+        'project_id': 'proj-1', 'model_id': 'model-1', 'subset': 'train', 'exclude_pii': META_MARKER})
+    assert not result.is_error
+    membership = selected(project.models.subsets['train'])
+    assert [row['id'] for row in membership] == ['clean']
+    assert result.structured_content['matched_items'] == len(membership) == 1
+
+
+def test_set_subset_rejects_label_exclusion_before_mutation(project, call_tool):
     result = call_tool(
         "model_set_subset",
         {
@@ -195,8 +231,9 @@ def test_set_subset_warns_when_pii_exclusion_uses_a_label_marker(project, call_t
         },
     )
 
-    assert result.is_error is False
-    assert "negated join" in result.structured_content["warning"]
+    assert result.is_error is True
+    assert 'mixed-label' in result.content[0].text
+    assert 'train' not in project.models.subsets
 
 
 @pytest.fixture

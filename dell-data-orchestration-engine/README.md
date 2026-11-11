@@ -10,6 +10,15 @@ elevate permissions, bypass Dataloop controls, or run pipeline code locally.
 
 ## Desktop package (recommended)
 
+Local execution clarification: the shipped `plugin-v1` dataset and pipeline
+workflows do not require the user's desktop and can run on a customer-hosted MCP,
+so the current local package is transitional pending the hosted release planned
+for mid-December 2026 and requires OpenAI's acceptance of that deployment choice.
+
+Local-file upload exists only in expanded profiles and is not a justification
+for this submitted profile; the hosted release date alone does not establish
+a desktop-exclusive requirement.
+
 `python scripts/build_plugin_bundle.py dell-data-orchestration-engine` builds
 `dist/dell-data-orchestration-engine-<version>-<platform>.zip` for Windows x64
 and Linux x86_64. Each ZIP contains a pinned CPython 3.12.16 runtime (verified

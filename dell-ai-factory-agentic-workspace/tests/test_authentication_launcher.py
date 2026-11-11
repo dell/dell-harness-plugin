@@ -205,5 +205,7 @@ def test_helper_flag_alone_cannot_disable_tls(monkeypatch):
     monkeypatch.setattr(AUTH.subprocess, 'run', run)
     assert AUTH.main(['--check', '--allow-insecure-tls']) == 0
     monkeypatch.setenv('DEVSPACES_ALLOW_INSECURE_TLS', 'true')
+    monkeypatch.setenv('DEVSPACES_INSECURE_TLS_CLUSTER', ORIGIN)
+    monkeypatch.setenv('DEVSPACES_CLUSTER_URL', ORIGIN)
     assert AUTH.main(['--check', '--allow-insecure-tls']) == 0
     assert seen == [None, '0']

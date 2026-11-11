@@ -534,15 +534,16 @@ def activate_context(context: str) -> None:
     _client = None
 
 
-def _record_login_context(result: dict[str, Any]) -> dict[str, Any]:
+def _record_login_context(result: dict[str, Any], *, activate: bool = True) -> dict[str, Any]:
     context = result.get("context")
     if result.get("authenticated") and context:
-        activate_context(context)
+        if activate:
+            activate_context(context)
         result["context_allowed"] = context_allowed(context)
         if not result["context_allowed"]:
             result["reason"] = (
                 f"Signed-in context {context!r} is outside the allowed contexts; "
-                "workspace tools stay blocked"
+                "this context cannot be used for workspace tools"
             )
     return result
 
@@ -578,7 +579,7 @@ def list_devspaces_instances() -> dict[str, Any]:
 @mcp.tool(annotations=READ)
 def get_authentication_status(instance_name: str | None = None) -> dict[str, Any]:
     """Check whether oc has a valid SSO session for a managed instance and an allowed context."""
-    return _record_login_context(AUTHENTICATION.status(instance_name))
+    return _record_login_context(AUTHENTICATION.status(instance_name), activate=False)
 
 
 @mcp.tool(annotations=WRITE)
@@ -637,7 +638,7 @@ def start_devspace(namespace: str, name: str) -> dict[str, Any]:
     return get_client().set_started(namespace, name, True)
 
 
-@mcp.tool(annotations=WRITE)
+@mcp.tool(annotations=DELETE)
 def stop_devspace(namespace: str, name: str) -> dict[str, Any]:
     """Set spec.started=false when lifecycle writes are explicitly enabled."""
     return get_client().set_started(namespace, name, False)
