@@ -19,7 +19,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Dell Data Orchestration Engine",
-    "shortDescription": "Build governed Dataloop data and ML workflows.",
+    "shortDescription": "Govern data and ML workflows",
     "longDescription": "Explore authorized projects and datasets, build agentic RAG pipelines, detect and handle PII, and manage image-classification workflows through the Dataloop Python SDK MCP server.",
     "developerName": "Dell Technologies",
     "category": "Productivity",

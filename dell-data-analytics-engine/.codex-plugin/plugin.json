@@ -19,7 +19,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Dell Data Analytics Engine",
-    "shortDescription": "Search governed data products and run read-only SQL.",
+    "shortDescription": "Query governed data",
     "longDescription": "Adds reusable workflows for a customer-registered Dell Data Analytics Engine MCP endpoint, including governed Data Product discovery, source selection, and read-only Trino analytics through Starburst Enterprise.",
     "developerName": "Dell Technologies",
     "category": "Productivity",

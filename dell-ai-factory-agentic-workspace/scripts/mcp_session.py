@@ -14,6 +14,14 @@ import sys
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
+# File requests have no trusted desktop confirmation channel. Never dispatch writes,
+# even if their annotation changes or a caller supplies confirmation arguments.
+READ_TOOLS = frozenset({
+    'get_runtime_configuration', 'get_authentication_status',
+    'get_devspaces_authentication_instructions', 'get_devspaces_authentication_progress',
+    'list_devspaces', 'get_devspace_status', 'get_connection_status',
+})
+
 
 def write_json(path, value):
     temporary = path.with_suffix('.tmp')
@@ -60,7 +68,7 @@ async def run_session(folder):
     async with stdio_client(params) as (reader, writer):
         async with ClientSession(reader, writer) as session:
             await asyncio.wait_for(session.initialize(), timeout=30)
-            names = {tool.name for tool in (await asyncio.wait_for(session.list_tools(), timeout=30)).tools}
+            names = {tool.name for tool in (await asyncio.wait_for(session.list_tools(), timeout=30)).tools} & READ_TOOLS
             write_json(folder / 'status.json', {'state': 'ready', 'pid': os.getpid(), 'tools': sorted(names)})
             try:
                 while True:

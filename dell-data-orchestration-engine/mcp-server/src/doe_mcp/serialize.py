@@ -235,10 +235,7 @@ def model(entity: dl.entities.Model) -> Any:
 
 
 def item(entity: dl.entities.Item) -> Any:
-    # `metadata` carries the platform's own `system` block alongside user data; only the user
-    # half is echoed back, so a caller never round-trips platform internals into a patch.
-    metadata = getattr(entity, "metadata", None) or {}
-    user_metadata = {key: value for key, value in metadata.items() if key != "system"}
+    # Arbitrary user metadata can contain restricted values. It is never a summary field.
     return _summary(
         {
             "id": entity.id,
@@ -251,7 +248,6 @@ def item(entity: dl.entities.Item) -> Any:
             "annotated": entity.annotated,
             "annotations_count": getattr(entity, "annotations_count", None),
             "created_at": entity.created_at,
-            "metadata": user_metadata,
             # Computed by the SDK and raises without client environment context.
             "url": optional(lambda: entity.platform_url),
         }

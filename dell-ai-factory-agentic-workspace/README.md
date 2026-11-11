@@ -63,7 +63,7 @@ Bundled helpers are part of the plugin:
 | `scripts/authenticate_devspaces.ps1` | Repeatable PowerShell wrapper around the same Python workflow |
 | `scripts/launch-auth.cmd` | Explorer/native-terminal launcher that calls Python directly, including when `.ps1` execution is blocked |
 | `scripts/prepare_runtime.py` | Reusable isolated Python/MCP runtime preparation and server launcher |
-| `scripts/mcp_session.py` | Retained MCP client fallback, eliminating generated per-chat clients |
+| `scripts/mcp_session.py` | Read-only retained MCP client fallback; mutations require the desktop flow |
 | `scripts/connector_mcp_server.py --check` | Read-only runtime and workspace diagnosis; requires the MCP dependencies |
 
 Run the Python launcher with the configured interpreter (the agent performs this, using actual configured paths):

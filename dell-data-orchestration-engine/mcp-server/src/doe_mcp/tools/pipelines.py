@@ -16,7 +16,7 @@ from .. import outputs, paging, serialize
 from ..context import get_pipeline, get_project, marketplace_dpks
 from ..guards import confirm_or_elicit
 from ..progress import report_progress
-from ..safety import ADDITIVE, ADDITIVE_MARKETPLACE, DELETE, IDEMPOTENT_WRITE, OVERWRITE, READ_ONLY
+from ..safety import ADDITIVE, ADDITIVE_MARKETPLACE, DELETE, DESTRUCTIVE_RUN, IDEMPOTENT_WRITE, OVERWRITE, READ_ONLY
 
 ResumeOption = Literal["terminateExistingCycles", "resumeExistingCycles"]
 
@@ -249,7 +249,7 @@ def register(mcp: MCPServer) -> None:
         pipeline.project.pipelines.delete(pipeline_id=pipeline_id)
         return {"deleted": True, "id": pipeline_id, "name": name}
 
-    @mcp.tool(title="Install pipeline", annotations=ADDITIVE)
+    @mcp.tool(title="Install pipeline", annotations=DESTRUCTIVE_RUN)
     def pipeline_install(
         project_id: Annotated[str, Field(description="Project that owns the pipeline.")],
         pipeline_id: Annotated[str, Field(description="Id of the pipeline to start.")],

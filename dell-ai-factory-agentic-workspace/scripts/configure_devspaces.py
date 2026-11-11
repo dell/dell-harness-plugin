@@ -86,10 +86,15 @@ def main(argv=None):
             'cluster_url': effective.get('DEVSPACES_CLUSTER_URL'),
             'connector_command': effective.get('DEVSPACES_CONNECTOR_COMMAND'),
             'ca_bundle': effective.get('NODE_EXTRA_CA_CERTS'),
-            'tls_verification_enabled': not devspaces_settings.enabled(effective, 'DEVSPACES_ALLOW_INSECURE_TLS'),
+            'tls_verification_enabled': not devspaces_settings.insecure_tls_allowed(effective),
         }, indent=2))
         return 0
     if args.cluster_url:
+        if not devspaces_settings.cluster_origin(args.cluster_url):
+            parser.error('--cluster-url must be a credential-free HTTPS origin')
+        if devspaces_settings.cluster_origin(args.cluster_url) != devspaces_settings.cluster_origin(values.get('cluster_url', '')):
+            values.pop('allow_insecure_tls', None)
+            values.pop('insecure_tls_cluster', None)
         values['cluster_url'] = args.cluster_url.rstrip('/')
     if args.connector:
         values['connector_command'] = args.connector
@@ -106,11 +111,15 @@ def main(argv=None):
         print(f'SHA-256 fingerprint: {fingerprint}')
         print('Confirm this fingerprint with the cluster administrator before relying on it.')
     if args.allow_insecure_tls:
+        if not devspaces_settings.cluster_origin(values.get('cluster_url', '')):
+            parser.error('set --cluster-url before approving a TLS exception')
         values['allow_insecure_tls'] = True
-        print('WARNING: certificate verification is disabled for every Dev Spaces call until '
-              'you run --no-allow-insecure-tls. This permits interception; use only on an isolated lab cluster.')
+        values['insecure_tls_cluster'] = values['cluster_url']
+        print('WARNING: certificate verification is disabled only for this approved lab cluster. '
+              'Use --no-allow-insecure-tls to revoke the exception.')
     if args.no_allow_insecure_tls:
         values.pop('allow_insecure_tls', None)
+        values.pop('insecure_tls_cluster', None)
     write(path, values)
     print(f'Wrote {path}. Restart the plugin (start a new Codex session) to apply it.')
     return 0

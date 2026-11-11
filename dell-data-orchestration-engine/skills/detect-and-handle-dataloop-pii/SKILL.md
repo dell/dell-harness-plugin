@@ -36,6 +36,8 @@ Separate the possible changes:
   that item's existing findings map, so read the item first.
 - `model_set_subset` with `exclude_pii` keeps flagged items out of a model's
   training or validation subset, using the same marker as `pii_report`.
+  Exclusion requires an item-level metadata or entity-type marker. Annotation-label
+  exclusions are rejected because mixed-label items can otherwise enter training.
 
 Before any write, show the exact project, dataset, model, marker, PII
 categories, record count when available, and rollback path (`model_delete_subset`

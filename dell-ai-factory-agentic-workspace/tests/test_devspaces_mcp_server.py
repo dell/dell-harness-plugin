@@ -249,13 +249,35 @@ def test_login_context_inside_allowlist_is_used(monkeypatch):
 
 def test_authentication_status_flags_disallowed_context(monkeypatch):
     install_kubeconfig(monkeypatch, Kubeconfig(active="approved"))
+    SERVER.activate_context('approved')
+    original = SERVER.get_client()
     monkeypatch.setattr(SERVER.AUTHENTICATION, "status", lambda instance_name=None: {
         "authenticated": True, "context": "other"})
     result = SERVER.get_authentication_status()
     assert result["context_allowed"] is False
     assert "outside the allowed contexts" in result["reason"]
-    with pytest.raises(PermissionError):
-        SERVER.get_client()
+    assert SERVER.get_client() is original
+    assert SERVER._session_context == 'approved'
+
+
+def test_status_does_not_switch_to_another_allowed_cluster(monkeypatch):
+    install_kubeconfig(monkeypatch, Kubeconfig(active='approved'), allowed_contexts=('approved', 'other'))
+    SERVER.activate_context('approved')
+    original = SERVER.get_client()
+    monkeypatch.setattr(SERVER.AUTHENTICATION, 'status', lambda instance_name=None: {
+        'authenticated': True, 'context': 'other'})
+    assert SERVER.get_authentication_status()['context_allowed'] is True
+    assert SERVER._session_context == 'approved'
+    assert SERVER.get_client() is original
+
+
+def test_kubernetes_stop_is_advertised_as_destructive():
+    import asyncio
+    tools = asyncio.run(SERVER.mcp.list_tools())
+    stop = next(tool for tool in tools if tool.name == 'stop_devspace')
+    assert stop.annotations.destructiveHint is True
+    assert stop.annotations.readOnlyHint is False
+    assert stop.annotations.idempotentHint is True
 
 
 def test_client_constructor_never_widens_explicit_allowlist(monkeypatch):

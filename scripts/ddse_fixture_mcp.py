@@ -134,14 +134,17 @@ def execute_esql(query: str) -> dict[str, Any]:
     structured_output=True,
 )
 def get_document_by_id(index: str, document_id: str) -> dict[str, Any]:
-    """Retrieve the one known synthetic order document."""
+    """Retrieve one synthetic order; server projection returns only _index, _id,
+    event_type, service_name, and timestamp, never unrestricted source fields.
+    """
     reject_restricted(index)
     document = FIXTURE["orders"]["known_document"]
     found = index == document["_index"] and document_id == document["_id"]
     return {
         "fixture_id": FIXTURE["fixture_id"],
         "found": found,
-        "document": document if found else None,
+        "document": {key: document[key] for key in
+                     ('_index', '_id', 'event_type', 'service_name', 'timestamp')} if found else None,
         "audit_event_id": audit(
             "platform_core_get_document_by_id",
             {"index": index, "document_id": document_id},

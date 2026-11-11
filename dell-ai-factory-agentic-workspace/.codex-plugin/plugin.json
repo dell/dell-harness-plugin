@@ -18,8 +18,8 @@
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Dell AI Factory Agentic Workspace",
-    "shortDescription": "Connect and manage Dell AI Factory Agentic Workspace.",
+    "displayName": "Dell Agentic Workspace",
+    "shortDescription": "Connect to Dev Spaces",
     "longDescription": "Local Codex integration for Dell AI Factory Agentic Workspace, built on Red Hat OpenShift Dev Spaces: authentication guidance, status, start, stop, restart, and managed SSH tunnels through a Dev Spaces CLI connector. Requires local Python, a connector installation, and network access to your own Dev Spaces cluster. Optional Kubernetes diagnostics remain available.",
     "developerName": "Dell Technologies",
     "category": "Productivity",

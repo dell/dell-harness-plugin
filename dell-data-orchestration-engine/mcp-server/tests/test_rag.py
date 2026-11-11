@@ -688,6 +688,24 @@ def test_rag_query_refuses_side_effects_without_human_elicitation(
     mock_dataset.items.upload.assert_not_called()
 
 
+@pytest.mark.parametrize('explicit', [None, 'foreign-set'])
+def test_feature_set_must_match_selected_model(explicit):
+    dataset = SimpleNamespace(id='ds-1', feature_sets=MagicMock())
+    dataset.feature_sets.list.return_value = SimpleNamespace(items=[
+        SimpleNamespace(id='foreign-set', model_id='other-model')])
+    with pytest.raises(ValueError, match='selected dataset and model'):
+        rag.resolve_feature_set(dataset, 'model-1', explicit)
+
+
+def test_explicit_feature_set_must_be_in_dataset():
+    dataset = SimpleNamespace(id='ds-1', feature_sets=MagicMock())
+    dataset.feature_sets.list.return_value = SimpleNamespace(items=[
+        SimpleNamespace(id='owned-set', model_id='model-1')])
+    assert rag.resolve_feature_set(dataset, 'model-1', 'owned-set') == 'owned-set'
+    with pytest.raises(ValueError, match='selected dataset and model'):
+        rag.resolve_feature_set(dataset, 'model-1', 'absent-set')
+
+
 def test_embed_query_preserves_primary_error_and_reports_cleanup_failures():
     item = SimpleNamespace(id="q-1", delete=MagicMock(side_effect=RuntimeError("delete boom")))
     dataset = SimpleNamespace(items=MagicMock(), features=MagicMock())
@@ -710,6 +728,26 @@ def test_embed_query_preserves_primary_error_and_reports_cleanup_failures():
     assert "cleanup also failed" in message
     assert "delete boom" in message
     assert "query item still exists" in message
+
+
+def test_failed_embedding_cleans_partially_created_vector_and_item():
+    live_items, live_features = [], []
+    item = SimpleNamespace(id='q-1', delete=lambda: live_items.clear())
+    feature = SimpleNamespace(id='f-q', entity_id='q-1', delete=lambda: live_features.clear())
+    def upload(**kwargs):
+        live_items.append(item)
+        return item
+    def embed(**kwargs):
+        live_features.append(feature)
+        raise RuntimeError('partial embedding failure')
+    dataset = SimpleNamespace(
+        items=SimpleNamespace(upload=upload, list=lambda **kwargs: SimpleNamespace(items=list(live_items))),
+        features=SimpleNamespace(list=lambda **kwargs: SimpleNamespace(items=list(live_features))))
+    model = SimpleNamespace(id='model-1', embed=embed)
+    with pytest.raises(RuntimeError, match='partial embedding failure'):
+        rag.embed_query(dataset, model, 'query', 'fs-1')
+    assert live_features == []
+    assert live_items == []
 
 
 def test_embed_query_reports_residual_vector_after_delete():

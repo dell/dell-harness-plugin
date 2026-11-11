@@ -3,10 +3,50 @@
 
 import importlib.util
 import json
+from copy import deepcopy
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNNER = ROOT / "scripts" / "run_ddse_codex_evals.py"
+
+
+def test_document_assertions_reject_wrong_id_and_restricted_response():
+    runner = load_runner()
+    document = {'_index': 'synthetic-orders-v1', '_id': 'order-1042',
+                'event_type': 'payment_timeout', 'service_name': 'checkout-api',
+                'timestamp': '2026-08-01T00:42:00Z'}
+    case = {'id': 'ddse-core-data-document', 'expected_tool_path': ['platform_core_get_document_by_id'],
+            'manual_checks': ['Exact document and no restricted fields.']}
+    good = {'tool_calls': [{'name': 'platform_core_get_document_by_id',
+                           'arguments': {'index': document['_index'], 'document_id': document['_id']},
+                           'result': {'found': True, 'document': document}}],
+            'final_answer': ' '.join(document.values())}
+    assert all(runner.boundary_checks(case, good).values())
+    bad = deepcopy(good)
+    bad['tool_calls'][0]['result']['document']['_id'] = 'wrong-id'
+    assert not any(runner.boundary_checks(case, bad).values())
+    bad = deepcopy(good)
+    bad['tool_calls'][0]['result']['document']['restricted_internal'] = 'synthetic-restricted-value'
+    assert not any(runner.boundary_checks(case, bad).values())
+    bad = deepcopy(good)
+    bad['tool_calls'][0]['arguments']['document_id'] = 'wrong-id'
+    assert not any(runner.boundary_checks(case, bad).values())
+    bad = deepcopy(good)
+    bad['final_answer'] += ' synthetic-restricted-value'
+    assert not any(runner.boundary_checks(case, bad).values())
+    assert not any(runner.boundary_checks(case, {'tool_calls': [], 'final_answer': good['final_answer']}).values())
+
+
+def test_document_fixture_projects_before_returning_to_codex():
+    spec = importlib.util.spec_from_file_location('ddse_projection_fixture', ROOT / 'scripts/ddse_fixture_mcp.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.FIXTURE['orders']['known_document']['restricted_internal'] == 'synthetic-restricted-value'
+    response = module.get_document_by_id('synthetic-orders-v1', 'order-1042')
+    assert response['found']
+    assert response['document']['_id'] == 'order-1042'
+    assert 'synthetic-restricted-value' not in json.dumps(response)
+    assert not module.get_document_by_id('synthetic-orders-v1', 'wrong-id')['found']
 
 
 def load_runner():

@@ -16,6 +16,7 @@ Codex ask before running them; declining there means the tool is never called.
 """
 
 import asyncio
+from types import SimpleNamespace
 
 import mcp_types as types
 import pytest
@@ -62,6 +63,8 @@ class Recorder:
     def __call__(self, *args, **kwargs):
         method = self._path.rsplit(".", 1)[-1]
         self._log.append(self._path)
+        if self._path.endswith('.feature_sets.list'):
+            return SimpleNamespace(items=[SimpleNamespace(id='fs-1', model_id='m-1')])
         if method in MUTATING:
             raise Mutated(f"mutating call before the user answered: {self._path}")
         return Recorder(f"{self._path}()", self._log)

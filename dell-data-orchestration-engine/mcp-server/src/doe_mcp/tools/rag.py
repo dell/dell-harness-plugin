@@ -311,15 +311,16 @@ def python_string_literal(value: str) -> str:
 
 def resolve_feature_set(dataset: Any, model_id: str, feature_set_id: str | None) -> str:
     """Which feature set holds this dataset's chunk vectors."""
-    if feature_set_id is not None:
-        return feature_set_id
     sets = paging.page_entities(dataloop_call("feature set list", lambda: dataset.feature_sets.list()))
     if not sets:
         raise ValueError(
             f"Dataset {dataset.id} has no feature set, so nothing has been embedded yet. Install "
             "and run the RAG pipeline's embedding node, then retry."
         )
-    candidates = [entry for entry in sets if getattr(entry, "model_id", None) == model_id] or sets
+    candidates = [entry for entry in sets if getattr(entry, "model_id", None) == model_id
+                  and (feature_set_id is None or str(entry.id) == feature_set_id)]
+    if not candidates:
+        raise ValueError("Feature set must belong to the selected dataset and model.")
     if len(candidates) > 1:
         names = ", ".join(f"{getattr(s, 'name', '?')} ({getattr(s, 'id', '?')})" for s in candidates)
         raise ValueError(f"Provide feature_set_id: this dataset has several — {names}.")

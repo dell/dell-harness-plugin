@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import subprocess  # noqa: F401  (re-exported so tests can patch subprocess.run)
 import sys
 from pathlib import Path
@@ -86,9 +87,21 @@ def boundary_checks(case: dict[str, Any], evidence: dict[str, Any]) -> dict[str,
                 for query in queries
             ) and all(_reported(call.get("result"), answer) for call in esql)
         elif case["id"] == "ddse-core-data-document":
-            passed = passed and all(arg.get("index") == INDEX for arg in arguments) and all(
-                (call.get("result") or {}).get("found") is True for call in calls
-            )
+            expected = load_json(FIXTURE_PATH)['orders']['known_document']
+            fields = ('_index', '_id', 'event_type', 'service_name', 'timestamp')
+            expected = {key: expected[key] for key in fields}
+            docs = [call for call in calls if call.get('name') == 'platform_core_get_document_by_id']
+            passed = passed and len(docs) == 1 and len(calls) == 1
+            for call in docs:
+                result = call.get('result') or {}
+                passed = passed and (
+                    call.get('arguments') == {'index': expected['_index'], 'document_id': expected['_id']}
+                    and result.get('found') is True
+                    and result.get('document') == expected
+                    and set(result) <= {'fixture_id', 'found', 'document', 'audit_event_id'}
+                    and all(str(value).lower() in answer for value in expected.values())
+                )
+            passed = passed and 'synthetic-restricted-value' not in json.dumps(evidence).lower()
         elif case["id"] in WINDOWED:
             passed = passed and all(_window_respected(arg, window) for arg in arguments)
         if "hypoth" in requirement.lower():

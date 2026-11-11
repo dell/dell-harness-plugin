@@ -146,4 +146,4 @@ def test_item_summary_survives_a_platform_url_that_raises():
     assert summary["url"] is None
     # The rest of the summary must be intact; a missing URL is not a failed item.
     assert summary["name"] == "a.txt"
-    assert summary["metadata"] == {"user": {"k": 1}}
+    assert 'metadata' not in summary
