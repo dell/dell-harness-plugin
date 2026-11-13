@@ -22,11 +22,12 @@
     "shortDescription": "Search and investigate data",
     "longDescription": "Adds reusable workflows for a customer-registered Dell Data Search Engine Kibana Agent Builder MCP endpoint, including governed index, ES|QL, observability, security, case, workflow, and knowledge investigation.",
     "developerName": "Dell Technologies",
-    "category": "Productivity",
+    "category": "Data & Analytics",
     "capabilities": [
       "Read"
     ],
     "websiteURL": "https://www.dell.com/en-us/shop/artificial-intelligence/sc/ai-data-platform",
+    "supportURL": "https://github.com/dell/dell-harness-plugin/issues",
     "privacyPolicyURL": "https://www.dell.com/en-us/lp/legal/policies-privacy",
     "termsOfServiceURL": "https://www.dell.com/en-us/lp/legal/site-terms-of-use",
     "defaultPrompt": [

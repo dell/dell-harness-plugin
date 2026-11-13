@@ -22,7 +22,7 @@
     "shortDescription": "Connect to Dev Spaces",
     "longDescription": "Local Codex integration for Dell AI Factory Agentic Workspace, built on Red Hat OpenShift Dev Spaces: authentication guidance, status, start, stop, restart, and managed SSH tunnels through a Dev Spaces CLI connector. Requires local Python, a connector installation, and network access to your own Dev Spaces cluster. Optional Kubernetes diagnostics remain available.",
     "developerName": "Dell Technologies",
-    "category": "Productivity",
+    "category": "Developer Tools",
     "capabilities": [
       "Read",
       "Write"
@@ -33,6 +33,7 @@
       "Connect my workspace to Codex."
     ],
     "websiteURL": "https://github.com/dell/dell-harness-plugin/tree/main/dell-ai-factory-agentic-workspace",
+    "supportURL": "https://github.com/dell/dell-harness-plugin/issues",
     "privacyPolicyURL": "https://www.dell.com/en-us/lp/legal/policies-privacy",
     "termsOfServiceURL": "https://www.dell.com/en-us/lp/legal/site-terms-of-use",
     "brandColor": "#0672CE",

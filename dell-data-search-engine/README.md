@@ -124,3 +124,10 @@ See the bundled `configure-dell-data-search-engine` skill for validation and
 safe-use guidance. The bundled `investigate-dell-search-data` skill routes
 user outcomes across the complete advertised tool catalog and defines the
 evidence, dependency, and answer-format workflow.
+
+## Support
+
+For plugin setup problems, bugs, or feature requests, open an issue in
+[GitHub Issues](https://github.com/dell/dell-harness-plugin/issues) and include
+the plugin name and version. Do not include credentials or customer data.
+Report security vulnerabilities through [SECURITY.md](../SECURITY.md).

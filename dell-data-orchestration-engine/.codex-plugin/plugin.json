@@ -22,12 +22,13 @@
     "shortDescription": "Govern data and ML workflows",
     "longDescription": "Explore authorized projects and datasets, build agentic RAG pipelines, detect and handle PII, and manage image-classification workflows through the Dataloop Python SDK MCP server.",
     "developerName": "Dell Technologies",
-    "category": "Productivity",
+    "category": "Data & Analytics",
     "capabilities": [
       "Read",
       "Write"
     ],
     "websiteURL": "https://www.dell.com/en-us/shop/artificial-intelligence/sc/ai-data-platform",
+    "supportURL": "https://github.com/dell/dell-harness-plugin/issues",
     "privacyPolicyURL": "https://www.dell.com/en-us/lp/legal/policies-privacy",
     "termsOfServiceURL": "https://www.dell.com/en-us/lp/legal/site-terms-of-use",
     "defaultPrompt": [

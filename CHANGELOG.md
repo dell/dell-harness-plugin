@@ -9,6 +9,10 @@ heading lists the plugin versions it ships; plugins are tagged
 
 Second OpenAI plugin review round.
 
+- All four plugin listings link to GitHub Issues for support. The three data
+  engines use the Data & Analytics category, and Agentic Workspace uses Developer
+  Tools. The analytics listing now states its intended users and prerequisites.
+
 - Installed-plugin evals now reject runs with no successful skill read and decode
   Windows traces as UTF-8. Optional `--approval-review` uses normal Codex approval
   review in each isolated case directory.

@@ -20,13 +20,14 @@
   "interface": {
     "displayName": "Dell Data Analytics Engine",
     "shortDescription": "Query governed data",
-    "longDescription": "Adds reusable workflows for a customer-registered Dell Data Analytics Engine MCP endpoint, including governed Data Product discovery, source selection, and read-only Trino analytics through Starburst Enterprise.",
+    "longDescription": "Helps data analysts discover authorized Dell Data Analytics Engine Data Products, select relevant data sources, and answer business questions using bounded, read-only Trino queries through Starburst Enterprise. Requires a customer-managed MCP endpoint and authorized access.",
     "developerName": "Dell Technologies",
-    "category": "Productivity",
+    "category": "Data & Analytics",
     "capabilities": [
       "Read"
     ],
     "websiteURL": "https://www.dell.com/en-us/shop/artificial-intelligence/sc/ai-data-platform",
+    "supportURL": "https://github.com/dell/dell-harness-plugin/issues",
     "privacyPolicyURL": "https://www.dell.com/en-us/lp/legal/policies-privacy",
     "termsOfServiceURL": "https://www.dell.com/en-us/lp/legal/site-terms-of-use",
     "defaultPrompt": [
