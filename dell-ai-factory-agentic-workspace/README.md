@@ -170,3 +170,10 @@ Install `requirements-dev.txt` for offline validation. The validator checks pack
 This is a local Codex plugin that runs on the user's workstation and talks to a Dev Spaces cluster that the user's organization operates. It is not a hosted connector, and ChatGPT web/mobile compatibility is out of scope. The Devspaces CLI connector is a separate executable that this repository does not distribute. Report issues through this repository's [issue tracker](https://github.com/dell/dell-harness-plugin/issues) and security vulnerabilities through [SECURITY.md](../SECURITY.md).
 
 Detailed [setup scenarios and recovery](skills/manage-agentic-workspace/references/setup-scenarios.md) cover runtime, login, TLS, private prompts, duplicate windows, empty inventory, tunnels, and SSH trust.
+
+## Support
+
+For plugin setup problems, bugs, or feature requests, open an issue in
+[GitHub Issues](https://github.com/dell/dell-harness-plugin/issues) and include
+the plugin name and version. Do not include credentials or customer data.
+Report security vulnerabilities through [SECURITY.md](../SECURITY.md).

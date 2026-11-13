@@ -125,3 +125,10 @@ safe-use guidance. The bundled `analyze-governed-data-products` skill provides
 the user-facing discovery-to-analysis workflow and grounded answer format.
 The analysis workflow calculates only requested measures and reports the result
 and query ID after a successful bounded query, without extra diagnostic queries.
+
+## Support
+
+For plugin setup problems, bugs, or feature requests, open an issue in
+[GitHub Issues](https://github.com/dell/dell-harness-plugin/issues) and include
+the plugin name and version. Do not include credentials or customer data.
+Report security vulnerabilities through [SECURITY.md](../SECURITY.md).

@@ -172,3 +172,10 @@ data.
 The latest package-level readiness assessment is recorded in
 `evals/results/doe-initial-review-20260911/REVIEW.md`. It does not represent a
 completed live Dataloop or ChatGPT review.
+
+## Support
+
+For plugin setup problems, bugs, or feature requests, open an issue in
+[GitHub Issues](https://github.com/dell/dell-harness-plugin/issues) and include
+the plugin name and version. Do not include credentials or customer data.
+Report security vulnerabilities through [SECURITY.md](../SECURITY.md).
